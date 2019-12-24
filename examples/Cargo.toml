@@ -1,0 +1,31 @@
+[package]
+name = "examples"
+version = "0.0.0"
+publish = false
+edition = "2018"
+
+[dev-dependencies]
+tunelo = { path = "../tunelo" }
+
+log = "0.4"
+simple_logger = "1"
+futures = "0.3"
+tokio = { version = "0.2", features = [ "full" ] }
+
+[[example]]
+name = "myip"
+path = "myip.rs"
+
+[[example]]
+name = "socks_server"
+path = "socks_server.rs"
+
+[[example]]
+name = "proxy_chain"
+path = "proxy_chain.rs"
+
+[[example]]
+name = "proxy_checker"
+path = "proxy_checker.rs"
+
+
