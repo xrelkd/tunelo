@@ -1,0 +1,32 @@
+[package]
+name = "tunelo"
+version = "0.1.0"
+authors = ["user <user@localhost>"]
+edition = "2018"
+
+default-run = "tunelo"
+autobins = false
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+byteorder = "1"
+bytes = "0.5"
+futures = "0.3"
+log = "0.4"
+lru_time_cache = "0.9"
+serde = "1"
+serde_derive = "1"
+simple_logger = "1"
+structopt = "0.3"
+tokio = { version = "0.2", features = [ "full" ] }
+trust-dns-resolver = "0.18"
+
+[lib]
+name = "tunelo"
+path = "src/lib.rs"
+
+[[bin]]
+name = "tunelo"
+path = "src/bin/main.rs"
+
