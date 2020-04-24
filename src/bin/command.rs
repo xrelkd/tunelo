@@ -79,13 +79,12 @@ impl Command {
 
     pub fn run(self) {
         match self {
-            Command::Version => match Command::clap().write_version(&mut std::io::stdout()) {
-                Ok(_) => std::process::exit(0),
-                Err(err) => {
-                    eprintln!("failed to print version, error: {}", err);
-                    std::process::exit(1);
-                }
-            },
+            Command::Version => {
+                Command::clap()
+                    .write_version(&mut std::io::stdout())
+                    .expect("failed to write to stdout");
+                std::process::exit(0);
+            }
             Command::Completions { shell } => {
                 let app_name = Command::app_name();
                 Command::clap().gen_completions_to(app_name, shell, &mut std::io::stdout());
