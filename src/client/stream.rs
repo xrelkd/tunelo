@@ -2,8 +2,10 @@ use std::sync::Arc;
 
 use tokio::net::TcpStream;
 
-use crate::client::{Error, ProxyConnector};
-use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
+use crate::{
+    client::{Error, ProxyConnector},
+    common::{HostAddress, ProxyHost, ProxyStrategy},
+};
 
 #[derive(Debug)]
 pub struct ProxyStream {
@@ -36,24 +38,16 @@ impl ProxyStream {
     }
 
     #[inline]
-    pub fn into_inner(self) -> TcpStream {
-        self.socket
-    }
+    pub fn into_inner(self) -> TcpStream { self.socket }
 
     #[inline]
-    pub fn proxy_strategy(&self) -> &ProxyStrategy {
-        &self.strategy
-    }
+    pub fn proxy_strategy(&self) -> &ProxyStrategy { &self.strategy }
 }
 
 impl AsMut<TcpStream> for ProxyStream {
-    fn as_mut(&mut self) -> &mut TcpStream {
-        &mut self.socket
-    }
+    fn as_mut(&mut self) -> &mut TcpStream { &mut self.socket }
 }
 
 impl AsRef<TcpStream> for ProxyStream {
-    fn as_ref(&self) -> &TcpStream {
-        &self.socket
-    }
+    fn as_ref(&self) -> &TcpStream { &self.socket }
 }

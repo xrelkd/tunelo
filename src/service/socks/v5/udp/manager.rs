@@ -1,19 +1,27 @@
-use std::collections::HashSet;
-use std::net::{IpAddr, SocketAddr};
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    collections::HashSet,
+    net::{IpAddr, SocketAddr},
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
+    time::Duration,
+};
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio::sync::mpsc;
-use tokio::time;
+use tokio::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    sync::mpsc,
+    time,
+};
 
 use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 
-use crate::common::HostAddress;
-use crate::protocol::socks::{v5::Reply, Address, Error};
-use crate::service::socks::v5::udp::{UdpAssociateCache, UdpServer, shutdown};
-use crate::transport::Resolver;
+use crate::{
+    common::HostAddress,
+    protocol::socks::{v5::Reply, Address, Error},
+    service::socks::v5::udp::{shutdown, UdpAssociateCache, UdpServer},
+    transport::Resolver,
+};
 
 pub struct Manager<TransportStream> {
     resolver: Arc<dyn Resolver>,

@@ -1,5 +1,4 @@
-use crate::client::handshake;
-use crate::common::HostAddress;
+use crate::{client::handshake, common::HostAddress};
 
 #[derive(Debug)]
 pub enum Error {
@@ -12,9 +11,7 @@ pub enum Error {
 }
 
 impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error {
-        Error::StdIo(err)
-    }
+    fn from(err: std::io::Error) -> Error { Error::StdIo(err) }
 }
 
 impl From<handshake::Error> for Error {

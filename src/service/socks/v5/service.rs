@@ -1,21 +1,23 @@
-use std::collections::HashSet;
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{collections::HashSet, net::SocketAddr, sync::Arc};
 
-use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
-use tokio::sync::{mpsc, Mutex};
-
-use crate::authentication::{Authentication, AuthenticationManager};
-use crate::common::HostAddress;
-use crate::protocol::socks::{
-    v5::{
-        Command, HandshakeReply, HandshakeRequest, Method, Reply, Request,
-        UserPasswordHandshakeReply, UserPasswordHandshakeRequest,
-    },
-    Address,
+use tokio::{
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
+    sync::{mpsc, Mutex},
 };
-use crate::service::socks::Error;
-use crate::transport::Transport;
+
+use crate::{
+    authentication::{Authentication, AuthenticationManager},
+    common::HostAddress,
+    protocol::socks::{
+        v5::{
+            Command, HandshakeReply, HandshakeRequest, Method, Reply, Request,
+            UserPasswordHandshakeReply, UserPasswordHandshakeRequest,
+        },
+        Address,
+    },
+    service::socks::Error,
+    transport::Transport,
+};
 
 pub struct Service<ClientStream, TransportStream> {
     authentication_manager: Arc<Mutex<AuthenticationManager>>,

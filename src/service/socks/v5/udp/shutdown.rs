@@ -11,15 +11,11 @@ pub fn shutdown_handle() -> (ShutdownSignal, ShutdownSlot) {
 }
 
 impl ShutdownSignal {
-    pub fn shutdown(self) {
-        drop(self.0);
-    }
+    pub fn shutdown(self) { drop(self.0); }
 }
 
 impl ShutdownSlot {
-    pub async fn wait(&mut self) {
-        self.0.recv().await;
-    }
+    pub async fn wait(&mut self) { self.0.recv().await; }
 }
 
 pub struct JoinHandle<T> {

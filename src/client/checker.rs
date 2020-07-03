@@ -13,9 +13,7 @@ pub struct Report {
 }
 
 impl From<Vec<TaskReport>> for Report {
-    fn from(task_reports: Vec<TaskReport>) -> Report {
-        Report { task_reports }
-    }
+    fn from(task_reports: Vec<TaskReport>) -> Report { Report { task_reports } }
 }
 
 #[derive(Debug)]
@@ -78,9 +76,7 @@ struct TaskRunner {
 }
 
 impl TaskRunner {
-    fn new(id: usize, queue: Arc<Mutex<Vec<Task>>>) -> TaskRunner {
-        TaskRunner { id, queue }
-    }
+    fn new(id: usize, queue: Arc<Mutex<Vec<Task>>>) -> TaskRunner { TaskRunner { id, queue } }
 
     async fn run(self) -> Vec<TaskReport> {
         info!("TaskRunner {} is running", self.id);

@@ -1,7 +1,9 @@
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
-use crate::client::handshake::{ClientHandshake, Error};
-use crate::common::HostAddress;
+use crate::{
+    client::handshake::{ClientHandshake, Error},
+    common::HostAddress,
+};
 
 impl<Stream> ClientHandshake<Stream>
 where

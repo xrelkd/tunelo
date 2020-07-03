@@ -1,6 +1,4 @@
-use std::net::SocketAddr;
-use std::pin::Pin;
-use std::sync::Arc;
+use std::{net::SocketAddr, pin::Pin, sync::Arc};
 
 use futures::Future;
 use tokio::io::{AsyncRead, AsyncWrite};
@@ -38,8 +36,8 @@ where
     Stream: Unpin + AsyncRead + AsyncWrite,
     Error: Send + Sync,
 {
-    type Stream = Stream;
     type Error = Error;
+    type Stream = Stream;
 
     fn connect(&self, host: &HostAddress) -> Connect<Self::Stream, Self::Error> {
         (self.connect_fn)(host)

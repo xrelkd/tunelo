@@ -1,5 +1,4 @@
-use std::net::IpAddr;
-use std::pin::Pin;
+use std::{net::IpAddr, pin::Pin};
 
 use futures::Future;
 
@@ -8,8 +7,7 @@ use crate::transport::Error;
 mod tokio_dns;
 mod trust_dns;
 
-pub use self::tokio_dns::TokioResolver;
-pub use self::trust_dns::DefaultResolver;
+pub use self::{tokio_dns::TokioResolver, trust_dns::DefaultResolver};
 
 pub type Resolve = Pin<Box<dyn Future<Output = Result<Vec<IpAddr>, Error>> + Send>>;
 
@@ -23,9 +21,7 @@ pub trait Resolver: Send + Sync {
 pub struct DummyResolver {}
 
 impl DummyResolver {
-    pub fn new() -> DummyResolver {
-        DummyResolver {}
-    }
+    pub fn new() -> DummyResolver { DummyResolver {} }
 }
 
 impl Resolver for DummyResolver {

@@ -1,5 +1,7 @@
-use std::collections::HashSet;
-use std::net::{IpAddr, SocketAddr};
+use std::{
+    collections::HashSet,
+    net::{IpAddr, SocketAddr},
+};
 
 use crate::common::{HostAddress, ProxyStrategy};
 
@@ -86,14 +88,10 @@ impl DefaultFilter {
         DefaultFilter { mode: FilterMode::Blacklist, ..Default::default() }
     }
 
-    pub fn set_mode(&mut self, mode: FilterMode) {
-        self.mode = mode;
-    }
+    pub fn set_mode(&mut self, mode: FilterMode) { self.mode = mode; }
 
     #[inline]
-    pub fn add_socket(&mut self, socket: SocketAddr) {
-        self.sockets.insert(socket);
-    }
+    pub fn add_socket(&mut self, socket: SocketAddr) { self.sockets.insert(socket); }
 
     #[inline]
     pub fn add_host(&mut self, host: &str, port: u16) {
@@ -101,19 +99,13 @@ impl DefaultFilter {
     }
 
     #[inline]
-    pub fn add_hostname(&mut self, host: &str) {
-        self.hostnames.insert(host.to_owned());
-    }
+    pub fn add_hostname(&mut self, host: &str) { self.hostnames.insert(host.to_owned()); }
 
     #[inline]
-    pub fn add_port(&mut self, port: u16) {
-        self.ports.insert(port);
-    }
+    pub fn add_port(&mut self, port: u16) { self.ports.insert(port); }
 
     #[inline]
-    pub fn add_address(&mut self, addr: IpAddr) {
-        self.addresses.insert(addr);
-    }
+    pub fn add_address(&mut self, addr: IpAddr) { self.addresses.insert(addr); }
 
     #[inline]
     pub fn add_host_address(&mut self, addr: HostAddress) {
@@ -151,16 +143,12 @@ impl DefaultFilter {
 }
 
 impl Default for FilterMode {
-    fn default() -> Self {
-        FilterMode::Blacklist
-    }
+    fn default() -> Self { FilterMode::Blacklist }
 }
 
 impl HostFilter for DefaultFilter {
     #[inline]
-    fn filter_port(&self, port: u16) -> FilterAction {
-        self.filter(self.ports.contains(&port))
-    }
+    fn filter_port(&self, port: u16) -> FilterAction { self.filter(self.ports.contains(&port)) }
 
     #[inline]
     fn filter_hostname(&self, hostname: &str) -> FilterAction {

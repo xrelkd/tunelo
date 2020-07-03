@@ -29,9 +29,7 @@ impl Counter {
     }
 
     #[inline]
-    pub fn zero() -> Counter {
-        Counter::new(0)
-    }
+    pub fn zero() -> Counter { Counter::new(0) }
 
     #[inline]
     pub fn increase(&self) -> usize {
@@ -47,13 +45,9 @@ impl Counter {
     }
 
     #[inline]
-    pub fn current(&self) -> usize {
-        self.current.load(Ordering::Acquire)
-    }
+    pub fn current(&self) -> usize { self.current.load(Ordering::Acquire) }
 
-    pub fn accumulated(&self) -> usize {
-        self.accumulated.load(Ordering::Acquire)
-    }
+    pub fn accumulated(&self) -> usize { self.accumulated.load(Ordering::Acquire) }
 }
 
 pub struct CounterHelper(Counter);
@@ -67,19 +61,13 @@ impl CounterHelper {
 }
 
 impl Drop for CounterHelper {
-    fn drop(&mut self) {
-        self.0.decrease();
-    }
+    fn drop(&mut self) { self.0.decrease(); }
 }
 
 impl StatMonitor for TransportMetrics {
-    fn increase_tx(&mut self, n: usize) {
-        self.transmitted.fetch_add(n, Ordering::SeqCst);
-    }
+    fn increase_tx(&mut self, n: usize) { self.transmitted.fetch_add(n, Ordering::SeqCst); }
 
-    fn increase_rx(&mut self, n: usize) {
-        self.received.fetch_add(n, Ordering::SeqCst);
-    }
+    fn increase_rx(&mut self, n: usize) { self.received.fetch_add(n, Ordering::SeqCst); }
 }
 
 impl TransportMetrics {
@@ -94,34 +82,22 @@ impl TransportMetrics {
     }
 
     #[inline]
-    pub fn current_relay(&self) -> usize {
-        self.relay_counter.current()
-    }
+    pub fn current_relay(&self) -> usize { self.relay_counter.current() }
 
     #[inline]
-    pub fn accumulated_relay(&self) -> usize {
-        self.relay_counter.accumulated()
-    }
+    pub fn accumulated_relay(&self) -> usize { self.relay_counter.accumulated() }
 
     #[inline]
-    pub fn current_client(&self) -> usize {
-        self.client_counter.current()
-    }
+    pub fn current_client(&self) -> usize { self.client_counter.current() }
 
     #[inline]
-    pub fn accumulated_client(&self) -> usize {
-        self.client_counter.accumulated()
-    }
+    pub fn accumulated_client(&self) -> usize { self.client_counter.accumulated() }
 
     #[inline]
-    pub fn current_remote(&self) -> usize {
-        self.remote_counter.current()
-    }
+    pub fn current_remote(&self) -> usize { self.remote_counter.current() }
 
     #[inline]
-    pub fn accumulated_remote(&self) -> usize {
-        self.remote_counter.accumulated()
-    }
+    pub fn accumulated_remote(&self) -> usize { self.remote_counter.accumulated() }
 
     #[inline]
     pub fn count_relay(&self) -> (CounterHelper, usize) {

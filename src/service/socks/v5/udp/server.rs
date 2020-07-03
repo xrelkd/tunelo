@@ -1,18 +1,16 @@
-use std::net::SocketAddr;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{net::SocketAddr, sync::Arc, time::Duration};
 
-use tokio::net::UdpSocket;
-use tokio::sync::mpsc;
-use tokio::time;
+use tokio::{net::UdpSocket, sync::mpsc, time};
 
 use futures::FutureExt;
 
 use lru_time_cache::LruCache;
 
-use crate::protocol::socks::{v5::Datagram, Error};
-use crate::service::socks::v5::udp::{UdpAssociate, UdpAssociateCache, shutdown};
-use crate::transport::Resolver;
+use crate::{
+    protocol::socks::{v5::Datagram, Error},
+    service::socks::v5::udp::{shutdown, UdpAssociate, UdpAssociateCache},
+    transport::Resolver,
+};
 
 pub struct UdpServer {
     local_addr: SocketAddr,

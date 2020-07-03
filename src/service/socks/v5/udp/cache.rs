@@ -1,20 +1,16 @@
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
 use tokio::sync::Mutex;
 
 use lru_time_cache::LruCache;
 
-use crate::common::HostAddress;
-use crate::service::socks::v5::udp::shutdown;
+use crate::{common::HostAddress, service::socks::v5::udp::shutdown};
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 struct CacheKey(String);
 
 impl From<HostAddress> for CacheKey {
-    fn from(host_addr: HostAddress) -> CacheKey {
-        Self::from(&host_addr)
-    }
+    fn from(host_addr: HostAddress) -> CacheKey { Self::from(&host_addr) }
 }
 
 impl From<&HostAddress> for CacheKey {
@@ -66,11 +62,7 @@ impl UdpAssociateCache {
         }
     }
 
-    pub async fn clear(&mut self) {
-        self.cache.lock().await.clear();
-    }
+    pub async fn clear(&mut self) { self.cache.lock().await.clear(); }
 
-    pub async fn remove_stalled(&self) {
-        self.cache.lock().await.iter();
-    }
+    pub async fn remove_stalled(&self) { self.cache.lock().await.iter(); }
 }

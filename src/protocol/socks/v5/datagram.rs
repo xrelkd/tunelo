@@ -1,8 +1,9 @@
-use std::convert::TryFrom;
-use std::net::SocketAddr;
+use std::{convert::TryFrom, net::SocketAddr};
 
-use crate::common::HostAddress;
-use crate::protocol::socks::{Address, AddressRef, AddressType, Error, SocksVersion};
+use crate::{
+    common::HostAddress,
+    protocol::socks::{Address, AddressRef, AddressType, Error, SocksVersion},
+};
 
 // Datagram is the UDP packet
 #[derive(Debug, Clone)]
@@ -71,24 +72,16 @@ impl Datagram {
     }
 
     #[inline]
-    pub fn header(&self) -> Vec<u8> {
-        self.header_internal(false)
-    }
+    pub fn header(&self) -> Vec<u8> { self.header_internal(false) }
 
     #[inline]
-    pub fn data(&self) -> &Vec<u8> {
-        &self.data
-    }
+    pub fn data(&self) -> &Vec<u8> { &self.data }
 
     #[inline]
-    pub fn frag(&self) -> u8 {
-        self.frag
-    }
+    pub fn frag(&self) -> u8 { self.frag }
 
     #[inline]
-    pub fn destination_address(&self) -> &HostAddress {
-        self.destination_socket.as_ref()
-    }
+    pub fn destination_address(&self) -> &HostAddress { self.destination_socket.as_ref() }
 
     fn header_internal(&self, extensible: bool) -> Vec<u8> {
         use std::mem::size_of_val;

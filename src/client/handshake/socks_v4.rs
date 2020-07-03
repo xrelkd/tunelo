@@ -1,10 +1,12 @@
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
-use crate::client::handshake::{ClientHandshake, Error};
-use crate::common::HostAddress;
-use crate::protocol::socks::{
-    v4::{Command, Reply, ReplyField, Request},
-    Address,
+use crate::{
+    client::handshake::{ClientHandshake, Error},
+    common::HostAddress,
+    protocol::socks::{
+        v4::{Command, Reply, ReplyField, Request},
+        Address,
+    },
 };
 
 impl<Stream> ClientHandshake<Stream>

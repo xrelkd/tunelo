@@ -2,11 +2,9 @@ use std::net::{Ipv4Addr, SocketAddrV4};
 
 use tokio::runtime;
 
-use tunelo::client::ProxyChecker;
-use tunelo::common::ProxyHost;
+use tunelo::{client::ProxyChecker, common::ProxyHost};
 
-use crate::consts;
-use crate::exit_code;
+use crate::{consts, exit_code};
 
 pub fn run() -> i32 {
     let mut runtime = match runtime::Builder::new()

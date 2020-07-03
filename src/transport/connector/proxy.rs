@@ -1,14 +1,15 @@
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use futures::FutureExt;
 use tokio::net::TcpStream;
 
-use crate::client;
-use crate::common::{HostAddress, ProxyStrategy};
-use crate::transport::{
-    connector::{Connect, Connector},
-    Error,
+use crate::{
+    client,
+    common::{HostAddress, ProxyStrategy},
+    transport::{
+        connector::{Connect, Connector},
+        Error,
+    },
 };
 
 #[derive(Clone)]
@@ -25,8 +26,8 @@ impl ProxyConnector {
 }
 
 impl Connector for ProxyConnector {
-    type Stream = TcpStream;
     type Error = Error;
+    type Stream = TcpStream;
 
     fn connect(&self, host: &HostAddress) -> Connect<Self::Stream, Self::Error> {
         let host = host.clone();

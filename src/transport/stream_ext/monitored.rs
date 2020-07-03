@@ -1,6 +1,8 @@
-use std::io;
-use std::pin::Pin;
-use std::task::{Context, Poll};
+use std::{
+    io,
+    pin::Pin,
+    task::{Context, Poll},
+};
 
 use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
 
@@ -33,27 +35,21 @@ where
     }
 
     #[inline]
-    pub fn into_inner(self) -> Stream {
-        self.stream
-    }
+    pub fn into_inner(self) -> Stream { self.stream }
 }
 
 impl<Stream, Monitor> AsRef<Stream> for MonitoredStream<Stream, Monitor>
 where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
-    fn as_ref(&self) -> &Stream {
-        &self.stream
-    }
+    fn as_ref(&self) -> &Stream { &self.stream }
 }
 
 impl<Stream, Monitor> AsMut<Stream> for MonitoredStream<Stream, Monitor>
 where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
-    fn as_mut(&mut self) -> &mut Stream {
-        &mut self.stream
-    }
+    fn as_mut(&mut self) -> &mut Stream { &mut self.stream }
 }
 
 impl<Stream, Monitor> AsyncRead for MonitoredStream<Stream, Monitor>

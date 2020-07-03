@@ -1,10 +1,14 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
 
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::runtime::Runtime;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    runtime::Runtime,
+};
 
-use tunelo::client::ProxyStream;
-use tunelo::common::{HostAddress, ProxyHost};
+use tunelo::{
+    client::ProxyStream,
+    common::{HostAddress, ProxyHost},
+};
 
 fn main() {
     let proxy_chain = vec![

@@ -1,5 +1,7 @@
-use crate::protocol::http::Error as HttpError;
-use crate::protocol::socks::{Error as SocksError, SocksVersion};
+use crate::protocol::{
+    http::Error as HttpError,
+    socks::{Error as SocksError, SocksVersion},
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -24,9 +26,7 @@ pub enum Error {
 }
 
 impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error {
-        Error::StdIo(err)
-    }
+    fn from(err: std::io::Error) -> Error { Error::StdIo(err) }
 }
 
 impl From<SocksError> for Error {

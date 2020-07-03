@@ -1,15 +1,17 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
 };
 
-use tokio::net::UdpSocket;
-use tokio::sync::{mpsc, Mutex};
+use tokio::{
+    net::UdpSocket,
+    sync::{mpsc, Mutex},
+};
 
-use crate::protocol::socks::v5::Datagram;
-use crate::service::socks::Error;
-use crate::transport::Resolver;
+use crate::{protocol::socks::v5::Datagram, service::socks::Error, transport::Resolver};
 
 pub struct UdpAssociate {
     tx: Mutex<mpsc::Sender<Datagram>>,
@@ -17,9 +19,7 @@ pub struct UdpAssociate {
 }
 
 impl Drop for UdpAssociate {
-    fn drop(&mut self) {
-        self.closed.store(true, Ordering::Release);
-    }
+    fn drop(&mut self) { self.closed.store(true, Ordering::Release); }
 }
 
 impl UdpAssociate {

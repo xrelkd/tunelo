@@ -1,11 +1,10 @@
-use std::net::SocketAddr;
-use std::pin::Pin;
-use std::sync::Arc;
-use std::time::Duration;
+use std::{net::SocketAddr, pin::Pin, sync::Arc, time::Duration};
 
 use futures::Future;
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::sync::Mutex;
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    sync::Mutex,
+};
 
 use crate::transport::stream_ext::{StatMonitor, StreamExt};
 
@@ -32,9 +31,9 @@ impl<Monitor> Acceptor for TcpAcceptor<Monitor>
 where
     Monitor: 'static + Clone + Unpin + Send + Sync + StatMonitor,
 {
-    type Stream = StreamExt<TcpStream, Monitor>;
     type Address = SocketAddr;
     type Error = std::io::Error;
+    type Stream = StreamExt<TcpStream, Monitor>;
 
     fn accept(&mut self) -> Accept<Self::Stream, Self::Address, Self::Error> {
         let listener = self.listener.clone();

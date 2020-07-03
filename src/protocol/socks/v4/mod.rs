@@ -1,10 +1,14 @@
-use std::convert::TryFrom;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
+use std::{
+    convert::TryFrom,
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+};
 
 use tokio::io::{AsyncRead, AsyncReadExt};
 
-use crate::common::HostAddress;
-use crate::protocol::socks::{consts, Address, Error, SocksVersion};
+use crate::{
+    common::HostAddress,
+    protocol::socks::{consts, Address, Error, SocksVersion},
+};
 
 #[derive(Debug, Hash, Clone, Copy, Eq, PartialEq)]
 pub enum Command {
@@ -23,6 +27,7 @@ impl Into<u8> for Command {
 
 impl TryFrom<u8> for Command {
     type Error = Error;
+
     fn try_from(cmd: u8) -> Result<Self, Self::Error> {
         match cmd {
             consts::SOCKS4_CMD_TCP_CONNECT => Ok(Command::TcpConnect),
@@ -107,12 +112,9 @@ impl Request {
         Ok(Request { command, destination_socket, id })
     }
 
-    pub fn into_bytes(&self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(&self) -> Vec<u8> { self.to_bytes() }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        //
         // +----+----+----+----+----+----+----+----+----+----+....+----+
         // | VN | CD | DSTPORT |      DSTIP        | USERID       |NULL|
         // +----+----+----+----+----+----+----+----+----+----+....+----+
@@ -208,9 +210,7 @@ impl Reply {
         Reply { reply: ReplyField::InvalidId, destination_socket }
     }
 
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
     pub fn to_bytes(&self) -> Vec<u8> {
         // +----+----+----+----+----+----+----+----+

@@ -1,17 +1,23 @@
-use std::collections::HashSet;
-use std::net::{IpAddr, SocketAddr};
-use std::sync::Arc;
-use std::time::Duration;
+use std::{
+    collections::HashSet,
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+    time::Duration,
+};
 
-use tokio::net::{TcpListener, TcpStream};
-use tokio::sync::Mutex;
+use tokio::{
+    net::{TcpListener, TcpStream},
+    sync::Mutex,
+};
 
 use futures::FutureExt;
 
-use crate::authentication::AuthenticationManager;
-use crate::protocol::socks::{SocksCommand, SocksVersion};
-use crate::service::socks::{v5::UdpAssociateManager, Error, Service};
-use crate::transport::{Resolver, StreamExt, TimedStream, Transport};
+use crate::{
+    authentication::AuthenticationManager,
+    protocol::socks::{SocksCommand, SocksVersion},
+    service::socks::{v5::UdpAssociateManager, Error, Service},
+    transport::{Resolver, StreamExt, TimedStream, Transport},
+};
 
 #[derive(Debug, Clone)]
 pub struct ServerConfig {
