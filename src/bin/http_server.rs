@@ -6,13 +6,14 @@ use tokio::sync::Mutex;
 use tunelo::{
     authentication::AuthenticationManager,
     filter::DefaultFilter,
-    lifecycle::LifecycleManager,
     server::http::{Server, ServerConfig},
     transport::{DefaultResolver, Transport},
 };
 
 use crate::consts;
 use crate::exit_code;
+use crate::shutdown;
+use crate::signal_handler;
 
 pub fn run(server_config: ServerConfig) -> i32 {
     let mut runtime = match runtime::Builder::new()
@@ -36,8 +37,6 @@ pub fn run(server_config: ServerConfig) -> i32 {
         }
     };
 
-    let (mut lifecycle_manager, _shutdown_signal) = LifecycleManager::new();
-
     let http_server = {
         let filter = {
             let mut f = DefaultFilter::blacklist();
@@ -46,22 +45,25 @@ pub fn run(server_config: ServerConfig) -> i32 {
         };
         let transport = Arc::new(Transport::direct(resolver, filter));
         let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
-        let (server, shutdown_signal) =
-            Server::new(server_config, transport, authentication_manager);
-        let shutdown_hook = Box::new(move || {
-            shutdown_signal.shutdown();
-        });
-        lifecycle_manager.register("HTTP Server", shutdown_hook);
+        let server = Server::new(server_config, transport, authentication_manager);
         server
     };
 
-    runtime.block_on(lifecycle_manager.block_on(async {
-        match http_server.serve().await {
+    runtime.block_on(async {
+        let (tx, mut rx) = shutdown::shutdown_handle();
+        signal_handler::start(Box::new(|| tx.shutdown()));
+
+        match http_server
+            .serve_with_shutdown(async move {
+                rx.wait().await;
+            })
+            .await
+        {
             Ok(_) => exit_code::EXIT_SUCCESS,
             Err(err) => {
                 error!("SOCKS server error: {:?}", err);
                 exit_code::EXIT_FAILURE
             }
         }
-    }))
+    })
 }
