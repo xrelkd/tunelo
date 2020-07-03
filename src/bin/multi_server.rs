@@ -6,7 +6,6 @@ use tokio::sync::Mutex;
 use tunelo::{
     authentication::AuthenticationManager,
     filter::DefaultFilter,
-    lifecycle::LifecycleManager,
     server::http::{Server as HttpServer, ServerConfig as HttpServerConfig},
     server::socks::{Server as SocksServer, ServerConfig as SocksServerConfig},
     transport::{DefaultResolver, Transport},
@@ -14,6 +13,8 @@ use tunelo::{
 
 use crate::consts;
 use crate::exit_code;
+use crate::shutdown;
+use crate::signal_handler;
 
 pub fn run(socks_server_config: SocksServerConfig, http_server_config: HttpServerConfig) -> i32 {
     let mut runtime = match runtime::Builder::new()
@@ -28,8 +29,6 @@ pub fn run(socks_server_config: SocksServerConfig, http_server_config: HttpServe
             return exit_code::EXIT_FAILURE;
         }
     };
-
-    let (mut lifecycle_manager, _shutdown_signal) = LifecycleManager::new();
 
     let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
     let filter = {
@@ -48,31 +47,35 @@ pub fn run(socks_server_config: SocksServerConfig, http_server_config: HttpServe
     };
 
     let transport = Arc::new(Transport::direct(resolver.clone(), filter));
+    use tokio::sync::broadcast;
+    let (shutdown_sender, mut shutdown_receiver) = broadcast::channel(1);
 
     let socks_serve = {
-        let (server, shutdown_signal) = SocksServer::new(
+        let mut rx = shutdown_sender.subscribe();
+        let server = SocksServer::new(
             socks_server_config,
             transport.clone(),
             authentication_manager.clone(),
         );
-        let shutdown_hook = Box::new(move || {
-            shutdown_signal.shutdown();
-        });
-        lifecycle_manager.register("SOCKS Server", shutdown_hook);
-        server.serve()
+
+        server.serve_with_shutdown(async move {
+            let _ = rx.recv().await;
+        })
     };
 
     let http_serve = {
-        let (server, shutdown_signal) =
-            HttpServer::new(http_server_config, transport, authentication_manager);
-        let shutdown_hook = Box::new(move || {
-            shutdown_signal.shutdown();
-        });
-        lifecycle_manager.register("HTTP Server", shutdown_hook);
-        server.serve()
+        let server = HttpServer::new(http_server_config, transport, authentication_manager);
+
+        server.serve_with_shutdown(async move {
+            let _ = shutdown_receiver.recv().await;
+        })
     };
 
-    runtime.block_on(lifecycle_manager.block_on(async {
+    runtime.block_on(async {
+        signal_handler::start(Box::new(move || {
+            let _ = shutdown_sender.send(());
+        }));
+
         let handle = futures::join!(socks_serve, http_serve);
         match handle {
             (Ok(_), Ok(_)) => exit_code::EXIT_SUCCESS,
@@ -90,5 +93,5 @@ pub fn run(socks_server_config: SocksServerConfig, http_server_config: HttpServe
                 exit_code::EXIT_FAILURE
             }
         }
-    }))
+    })
 }
