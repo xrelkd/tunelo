@@ -1,7 +1,5 @@
-with import <nixpkgs> {};
+with import <nixpkgs> { };
 stdenv.mkDerivation {
-  name = "dev";
+  name = "tunelo-dev";
   buildInputs = [ rustup ];
 }
-
-
