@@ -11,7 +11,6 @@ use futures::FutureExt;
 use crate::authentication::AuthenticationManager;
 use crate::protocol::socks::{SocksCommand, SocksVersion};
 use crate::service::socks::{v5::UdpAssociateManager, Error, Service};
-use crate::shutdown;
 use crate::transport::{Resolver, StreamExt, TimedStream, Transport};
 
 #[derive(Debug, Clone)]
@@ -34,7 +33,6 @@ impl ServerConfig {
 }
 
 pub struct Server {
-    shutdown_slot: shutdown::ShutdownSlot,
     authentication_manager: Arc<Mutex<AuthenticationManager>>,
     transport: Arc<Transport<TcpStream>>,
 
@@ -61,7 +59,7 @@ impl Server {
         config: ServerConfig,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
-    ) -> (Server, shutdown::ShutdownSignal) {
+    ) -> Server {
         let tcp_address = config.listen_socket();
         let connection_timeout = if config.connection_timeout == Duration::from_secs(0) {
             None
@@ -74,51 +72,7 @@ impl Server {
         let udp_timeout = Some(Duration::from_secs(10));
         let udp_session_time = Duration::from_secs(10);
 
-        let (shutdown_signal, shutdown_slot) = shutdown::shutdown_handle();
-
-        (
-            Server {
-                shutdown_slot,
-                authentication_manager,
-                transport,
-
-                supported_versions: config.supported_versions,
-                supported_commands: config.supported_commands,
-
-                tcp_address,
-                connection_timeout,
-                tcp_keepalive,
-
-                udp_address: config.listen_address,
-                udp_ports: config.udp_ports,
-                udp_timeout,
-                udp_session_time,
-
-                udp_cache_expiry_duration: config.udp_cache_expiry_duration,
-            },
-            shutdown_signal,
-        )
-    }
-
-    pub fn with_shutdown_slot(
-        config: ServerConfig,
-        transport: Arc<Transport<TcpStream>>,
-        authentication_manager: Arc<Mutex<AuthenticationManager>>,
-        shutdown_slot: shutdown::ShutdownSlot,
-    ) -> Server {
-        let tcp_address = SocketAddr::new(config.listen_address, config.listen_port);
-        let connection_timeout = if config.connection_timeout == Duration::from_secs(0) {
-            None
-        } else {
-            Some(config.connection_timeout)
-        };
-        let tcp_keepalive = Some(Duration::from_secs(10));
-
-        let udp_timeout = Some(Duration::from_secs(10));
-        let udp_session_time = Duration::from_secs(10);
-
         Server {
-            shutdown_slot,
             authentication_manager,
             transport,
 
@@ -138,9 +92,11 @@ impl Server {
         }
     }
 
-    pub async fn serve(self) -> Result<(), Error> {
+    pub async fn serve_with_shutdown<F: std::future::Future<Output = ()>>(
+        self,
+        shutdown_signal: F,
+    ) -> Result<(), Error> {
         let mut tcp_listener = TcpListener::bind(self.tcp_address).await?;
-        let shutdown_slot = self.shutdown_slot;
         info!("Starting SOCKS server at {}", self.tcp_address);
 
         let (udp_associate_join_handle, udp_associate_stream_tx) =
@@ -170,12 +126,13 @@ impl Server {
             udp_associate_stream_tx,
         ));
 
-        futures::pin_mut!(shutdown_slot);
+        let shutdown = shutdown_signal.fuse();
+        futures::pin_mut!(shutdown);
 
         loop {
             let stream = futures::select! {
                 stream = tcp_listener.accept().fuse() => stream,
-                _ = shutdown_slot.wait().fuse() => {
+                _ = shutdown => {
                     info!("Stopping SOCKS server");
                     break;
                 },

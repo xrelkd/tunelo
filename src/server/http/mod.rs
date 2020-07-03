@@ -8,7 +8,6 @@ use tokio::sync::Mutex;
 use crate::{
     authentication::AuthenticationManager,
     service::http::{Error, Service},
-    shutdown,
     transport::Transport,
 };
 
@@ -25,7 +24,6 @@ impl ServerConfig {
 }
 
 pub struct Server {
-    shutdown_slot: shutdown::ShutdownSlot,
     tcp_address: SocketAddr,
 
     transport: Arc<Transport<TcpStream>>,
@@ -37,37 +35,28 @@ impl Server {
         config: ServerConfig,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
-    ) -> (Server, shutdown::ShutdownSignal) {
-        let (shutdown_signal, shutdown_slot) = shutdown::shutdown_handle();
-        let tcp_address = SocketAddr::new(config.listen_address, config.listen_port);
-
-        (Server { tcp_address, shutdown_slot, transport, authentication_manager }, shutdown_signal)
-    }
-
-    pub fn with_shutdown_slot(
-        config: ServerConfig,
-        authentication_manager: Arc<Mutex<AuthenticationManager>>,
-        transport: Arc<Transport<TcpStream>>,
-        shutdown_slot: shutdown::ShutdownSlot,
     ) -> Server {
         let tcp_address = SocketAddr::new(config.listen_address, config.listen_port);
 
-        Server { tcp_address, transport, shutdown_slot, authentication_manager }
+        Server { tcp_address, transport, authentication_manager }
     }
 
-    pub async fn serve(self) -> Result<(), Error> {
+    pub async fn serve_with_shutdown<F: std::future::Future<Output = ()>>(
+        self,
+        shutdown_signal: F,
+    ) -> Result<(), Error> {
         let mut tcp_listener = TcpListener::bind(self.tcp_address).await?;
-        let shutdown_slot = self.shutdown_slot;
         info!("Starting HTTP proxy server at {}", self.tcp_address);
 
         let service = Arc::new(Service::new(self.transport, self.authentication_manager));
 
-        futures::pin_mut!(shutdown_slot);
+        let shutdown = shutdown_signal.fuse();
+        futures::pin_mut!(shutdown);
 
         loop {
             let stream = futures::select! {
                 stream = tcp_listener.accept().fuse() => stream,
-                _ = shutdown_slot.wait().fuse() => {
+                _ = shutdown => {
                     info!("Stopping HTTP server");
                     break;
                 },
