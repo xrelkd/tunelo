@@ -1,5 +1,4 @@
-use std::collections::HashMap;
-use std::net::SocketAddr;
+use std::{collections::HashMap, net::SocketAddr};
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum AuthenticationMethod {

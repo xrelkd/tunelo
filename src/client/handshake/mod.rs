@@ -16,21 +16,15 @@ where
     Stream: Unpin + Send + Sync + AsyncRead + AsyncWrite,
 {
     #[inline]
-    pub fn new(stream: Stream) -> ClientHandshake<Stream> {
-        ClientHandshake { stream }
-    }
+    pub fn new(stream: Stream) -> ClientHandshake<Stream> { ClientHandshake { stream } }
 
     #[allow(dead_code)]
     #[inline]
-    pub fn into_inner(self) -> Stream {
-        self.stream
-    }
+    pub fn into_inner(self) -> Stream { self.stream }
 
     #[allow(dead_code)]
     #[inline]
-    fn as_ref(&self) -> &Stream {
-        &self.stream
-    }
+    fn as_ref(&self) -> &Stream { &self.stream }
 
     #[allow(dead_code)]
     #[inline]

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
-use tokio::runtime;
-use tokio::sync::Mutex;
+use tokio::{runtime, sync::Mutex};
 
 use tunelo::{
     authentication::AuthenticationManager,
@@ -10,10 +9,7 @@ use tunelo::{
     transport::{DefaultResolver, Transport},
 };
 
-use crate::consts;
-use crate::exit_code;
-use crate::shutdown;
-use crate::signal_handler;
+use crate::{consts, exit_code, shutdown, signal_handler};
 
 pub fn run(server_config: ServerConfig) -> i32 {
     let mut runtime = match runtime::Builder::new()

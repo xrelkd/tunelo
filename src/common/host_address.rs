@@ -1,5 +1,7 @@
-use std::fmt;
-use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::{
+    fmt,
+    net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
+};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum HostAddress {
@@ -56,27 +58,19 @@ impl HostAddress {
     }
 
     #[inline]
-    pub fn empty_domain() -> Self {
-        HostAddress::DomainName(String::new(), 0)
-    }
+    pub fn empty_domain() -> Self { HostAddress::DomainName(String::new(), 0) }
 }
 
 impl From<SocketAddr> for HostAddress {
-    fn from(addr: SocketAddr) -> HostAddress {
-        HostAddress::Socket(addr)
-    }
+    fn from(addr: SocketAddr) -> HostAddress { HostAddress::Socket(addr) }
 }
 
 impl From<SocketAddrV4> for HostAddress {
-    fn from(addr: SocketAddrV4) -> HostAddress {
-        HostAddress::Socket(SocketAddr::V4(addr))
-    }
+    fn from(addr: SocketAddrV4) -> HostAddress { HostAddress::Socket(SocketAddr::V4(addr)) }
 }
 
 impl From<SocketAddrV6> for HostAddress {
-    fn from(addr: SocketAddrV6) -> HostAddress {
-        HostAddress::Socket(SocketAddr::V6(addr))
-    }
+    fn from(addr: SocketAddrV6) -> HostAddress { HostAddress::Socket(SocketAddr::V6(addr)) }
 }
 
 impl fmt::Display for HostAddress {

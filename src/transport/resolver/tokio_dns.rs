@@ -11,9 +11,7 @@ use crate::transport::{
 pub struct TokioResolver {}
 
 impl TokioResolver {
-    pub fn new() -> Result<TokioResolver, Error> {
-        Ok(TokioResolver {})
-    }
+    pub fn new() -> Result<TokioResolver, Error> { Ok(TokioResolver {}) }
 }
 
 impl Resolver for TokioResolver {

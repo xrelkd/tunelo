@@ -1,15 +1,19 @@
-use std::io;
-use std::pin::Pin;
-use std::task::{Context, Poll};
-use std::time::Duration;
+use std::{
+    io,
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
 use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
 
 mod monitored;
 mod timed;
 
-pub use self::monitored::{MonitoredStream, StatMonitor};
-pub use self::timed::TimedStream;
+pub use self::{
+    monitored::{MonitoredStream, StatMonitor},
+    timed::TimedStream,
+};
 
 pub struct StreamExt<Stream, Monitor> {
     stream: MonitoredStream<TimedStream<Stream>, Monitor>,

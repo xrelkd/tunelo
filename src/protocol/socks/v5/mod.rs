@@ -1,10 +1,11 @@
-use std::collections::HashSet;
-use std::convert::TryFrom;
+use std::{collections::HashSet, convert::TryFrom};
 
 use tokio::io::AsyncRead;
 
-use crate::authentication::AuthenticationMethod;
-use crate::protocol::socks::{consts, Address, AddressType, Error, SocksCommand, SocksVersion};
+use crate::{
+    authentication::AuthenticationMethod,
+    protocol::socks::{consts, Address, AddressType, Error, SocksCommand, SocksVersion},
+};
 
 mod datagram;
 
@@ -59,9 +60,7 @@ impl From<u8> for Method {
 
 impl Method {
     #[inline]
-    pub fn serialized_len() -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 #[derive(Hash, Clone, Copy, Eq, PartialEq, Debug)]
@@ -83,6 +82,7 @@ impl From<SocksCommand> for Command {
 
 impl TryFrom<u8> for Command {
     type Error = Error;
+
     fn try_from(cmd: u8) -> Result<Command, Error> {
         match cmd {
             consts::SOCKS5_CMD_TCP_CONNECT => Ok(Command::TcpConnect),
@@ -105,9 +105,7 @@ impl Into<u8> for Command {
 
 impl Command {
     #[inline]
-    pub fn serialized_len() -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 //  +----+----------+----------+
@@ -152,14 +150,10 @@ impl HandshakeRequest {
         }
     }
 
-    pub fn contains_method(&self, method: Method) -> bool {
-        self.methods.contains(&method)
-    }
+    pub fn contains_method(&self, method: Method) -> bool { self.methods.contains(&method) }
 
     #[allow(dead_code)]
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut methods_vec = self.methods.iter().cloned().map(Into::into).collect::<Vec<u8>>();
@@ -192,9 +186,7 @@ pub struct HandshakeReply {
 }
 
 impl HandshakeReply {
-    pub fn new(method: Method) -> HandshakeReply {
-        HandshakeReply { method }
-    }
+    pub fn new(method: Method) -> HandshakeReply { HandshakeReply { method } }
 
     pub async fn from_reader<R>(rdr: &mut R) -> Result<HandshakeReply, Error>
     where
@@ -216,22 +208,17 @@ impl HandshakeReply {
     }
 
     #[inline]
-    pub fn serialized_len() -> usize {
-        SocksVersion::serialized_len() + Method::serialized_len()
-    }
+    pub fn serialized_len() -> usize { SocksVersion::serialized_len() + Method::serialized_len() }
 
     #[inline]
-    pub fn to_bytes(&self) -> Vec<u8> {
-        vec![SocksVersion::V5.into(), self.method.into()]
-    }
+    pub fn to_bytes(&self) -> Vec<u8> { vec![SocksVersion::V5.into(), self.method.into()] }
 
     #[inline]
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
-// UserPassNegotiationRequest is the negotiation username/password reqeust packet
+// UserPassNegotiationRequest is the negotiation username/password reqeust
+// packet
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UserPasswordHandshakeRequest {
     pub version: UserPasswordVersion,
@@ -253,9 +240,7 @@ impl UserPasswordHandshakeRequest {
         buf
     }
 
-    pub fn into_bytes(&self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(&self) -> Vec<u8> { self.to_bytes() }
 
     pub async fn from_reader<R>(client: &mut R) -> Result<UserPasswordHandshakeRequest, Error>
     where
@@ -335,14 +320,10 @@ impl UserPasswordHandshakeReply {
     }
 
     #[inline]
-    pub fn to_bytes(&self) -> Vec<u8> {
-        vec![self.version.into(), self.status.into()]
-    }
+    pub fn to_bytes(&self) -> Vec<u8> { vec![self.version.into(), self.status.into()] }
 
     #[inline]
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
 // Request is the request packet
@@ -379,9 +360,7 @@ impl Request {
     }
 
     #[inline]
-    pub fn address_type(&self) -> AddressType {
-        self.destination_socket.address_type()
-    }
+    pub fn address_type(&self) -> AddressType { self.destination_socket.address_type() }
 
     #[inline]
     pub fn serialized_len(&self) -> usize {
@@ -403,9 +382,7 @@ impl Request {
     }
 
     #[inline]
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
 // Reply is the reply packet
@@ -456,9 +433,7 @@ impl Reply {
         buf
     }
 
-    pub fn into_bytes(self) -> Vec<u8> {
-        self.to_bytes()
-    }
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
     pub fn success(bind_socket: Address) -> Reply {
         Reply { reply: ReplyField::Success, bind_socket }
@@ -553,9 +528,7 @@ impl From<u8> for ReplyField {
 
 impl ReplyField {
     #[inline]
-    pub fn serialized_len() -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 #[derive(Hash, Clone, Copy, Eq, PartialEq, Debug)]
@@ -565,13 +538,12 @@ pub enum UserPasswordVersion {
 
 impl UserPasswordVersion {
     #[inline]
-    pub fn serialized_len() -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 impl TryFrom<u8> for UserPasswordVersion {
     type Error = Error;
+
     fn try_from(cmd: u8) -> Result<UserPasswordVersion, Error> {
         match cmd {
             0x01 => Ok(UserPasswordVersion::V1),
@@ -614,9 +586,7 @@ impl Into<u8> for UserPasswordStatus {
 
 impl UserPasswordStatus {
     #[inline]
-    pub fn serialized_len() -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 #[cfg(test)]

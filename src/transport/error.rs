@@ -11,13 +11,9 @@ pub enum Error {
 }
 
 impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error {
-        Error::StdIo(err)
-    }
+    fn from(err: std::io::Error) -> Error { Error::StdIo(err) }
 }
 
 impl From<client::Error> for Error {
-    fn from(err: client::Error) -> Error {
-        Error::ProxyClient(err)
-    }
+    fn from(err: client::Error) -> Error { Error::ProxyClient(err) }
 }

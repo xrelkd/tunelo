@@ -1,15 +1,17 @@
-use std::collections::HashSet;
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{collections::HashSet, net::SocketAddr, sync::Arc};
 
-use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio::sync::{mpsc, Mutex};
+use tokio::{
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
+    sync::{mpsc, Mutex},
+};
 
-use crate::authentication::AuthenticationManager;
-use crate::common::HostAddress;
-use crate::protocol::socks::{Error as ProtocolError, SocksVersion};
-use crate::service::socks::{v4, v5, Error};
-use crate::transport::Transport;
+use crate::{
+    authentication::AuthenticationManager,
+    common::HostAddress,
+    protocol::socks::{Error as ProtocolError, SocksVersion},
+    service::socks::{v4, v5, Error},
+    transport::Transport,
+};
 
 pub struct Service<ClientStream, TransportStream> {
     service_v4: Option<v4::Service<ClientStream, TransportStream>>,

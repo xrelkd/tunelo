@@ -1,17 +1,23 @@
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use std::sync::{
-    atomic::{AtomicBool, Ordering},
-    Arc,
+use std::{
+    net::{IpAddr, Ipv4Addr, SocketAddr},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    time::Duration,
 };
-use std::time::Duration;
 
-use tokio::io::AsyncWriteExt;
-use tokio::net::{TcpStream, UdpSocket};
-use tokio::time;
+use tokio::{
+    io::AsyncWriteExt,
+    net::{TcpStream, UdpSocket},
+    time,
+};
 
-use crate::client::{handshake::*, Error};
-use crate::common::HostAddress;
-use crate::protocol::socks::v5::Datagram;
+use crate::{
+    client::{handshake::*, Error},
+    common::HostAddress,
+    protocol::socks::v5::Datagram,
+};
 
 mod split;
 
@@ -68,9 +74,7 @@ impl Socks5Datagram {
     }
 
     #[inline]
-    pub fn split(self) -> (RecvHalf, SendHalf) {
-        (self.rx, self.tx)
-    }
+    pub fn split(self) -> (RecvHalf, SendHalf) { (self.rx, self.tx) }
 
     #[inline]
     pub async fn recv_from(&mut self, buf: &mut [u8]) -> Result<(usize, HostAddress), Error> {

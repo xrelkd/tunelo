@@ -1,11 +1,9 @@
 #[macro_use]
 extern crate log;
 
-use std::sync::Arc;
-use std::time::Duration;
+use std::{sync::Arc, time::Duration};
 
-use tokio::runtime::Runtime;
-use tokio::sync::Mutex;
+use tokio::{runtime::Runtime, sync::Mutex};
 
 use tunelo::{
     authentication::AuthenticationManager,
@@ -53,11 +51,11 @@ fn main() {
             SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9052).into(),
             SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9053).into(),
             SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 3128).into(),
-            // SocketAddrV4::new(Ipv4Addr::new(91, 121, 67, 146), 9050).into(),
-            // SocketAddrV4::new(Ipv4Addr::new(89, 223, 92, 30), 9049).into(),
-            // SocketAddrV4::new(Ipv4Addr::new(169, 62, 192, 70), 9050).into(),
-            // SocketAddrV4::new(Ipv4Addr::new(124, 120, 195, 233), 8118).into(),
-            // SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 8080).into(),
+            /* SocketAddrV4::new(Ipv4Addr::new(91, 121, 67, 146), 9050).into(),
+             * SocketAddrV4::new(Ipv4Addr::new(89, 223, 92, 30), 9049).into(),
+             * SocketAddrV4::new(Ipv4Addr::new(169, 62, 192, 70), 9050).into(),
+             * SocketAddrV4::new(Ipv4Addr::new(124, 120, 195, 233), 8118).into(),
+             * SocketAddrV4::new(Ipv4Addr::new(127,0,0,1), 8080).into(), */
         ]
         .into_iter()
         .map(|server| ProxyHost::Socks5 { server, user_name: None, password: None })

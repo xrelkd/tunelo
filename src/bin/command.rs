@@ -1,81 +1,68 @@
-use std::collections::HashSet;
-use std::net::IpAddr;
-use std::str::FromStr;
-use std::time::Duration;
+use std::{collections::HashSet, net::IpAddr, str::FromStr, time::Duration};
 
 use structopt::{clap::Shell as ClapShell, StructOpt};
 
-use crate::exit_code;
-use crate::http_server;
-use crate::multi_server;
-use crate::proxy_checker;
-use crate::socks_server;
+use crate::{exit_code, http_server, multi_server, proxy_checker, socks_server};
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
-    /// Shows current version
+    #[structopt(about = "Shows current version")]
     Version,
 
-    /// Shows shell completions
+    #[structopt(about = "Shows shell completions")]
     Completions {
         shell: ClapShell,
     },
 
     SocksServer {
-        /// Disable SOCKS4a support
-        #[structopt(long = "disable-socks4a")]
+        #[structopt(long = "disable-socks4a", help = "Disable SOCKS4a support")]
         disable_socks4a: bool,
 
-        /// Disable SOCKS5 support
-        #[structopt(long = "disable-socks5")]
+        #[structopt(long = "disable-socks5", help = "Disable SOCKS5 support")]
         disable_socks5: bool,
 
-        /// Enable "TCP Connect" support
-        #[structopt(long = "enable-tcp-connect")]
+        #[structopt(long = "enable-tcp-connect", help = "Enable \"TCP Connect\" support")]
         enable_tcp_connect: bool,
 
-        /// Enable "TCP Bind" support
-        #[structopt(long = "enable-tcp-bind")]
+        #[structopt(long = "enable-tcp-bind", help = "Enable \"TCP Bind\" support")]
         enable_tcp_bind: bool,
 
-        /// Enable "UDP Associate" support
-        #[structopt(long = "enable-udp-associate")]
+        #[structopt(long = "enable-udp-associate", help = "Enable \"UDP Associate\" support")]
         enable_udp_associate: bool,
 
-        /// Connection timeout
-        #[structopt(long = "connection-timeout", default_value = "20")]
+        #[structopt(
+            long = "connection-timeout",
+            default_value = "20",
+            help = "Connection timeout"
+        )]
         connection_timeout: u64,
 
-        /// IP address to listen
-        #[structopt(long = "ip", default_value = "127.0.0.1")]
+        #[structopt(long = "ip", default_value = "127.0.0.1", help = "IP address to listen")]
         ip: String,
 
-        /// Port number to listen
-        #[structopt(long = "port", default_value = "3128")]
+        #[structopt(long = "port", default_value = "3128", help = "Port number to listen")]
         port: u16,
 
-        /// UDP ports to provide UDP associate service
-        #[structopt(long = "udp-ports")]
+        #[structopt(long = "udp-ports", help = "UDP ports to provide UDP associate service")]
         udp_ports: Vec<u16>,
     },
-    ProxyChecker,
+
     HttpServer {
-        /// IP address to listen
-        #[structopt(long = "ip", default_value = "127.0.0.1")]
+        #[structopt(long = "ip", default_value = "127.0.0.1", help = "IP address to listen")]
         ip: String,
 
-        /// Port number to listen
-        #[structopt(long = "port", default_value = "8118")]
+        #[structopt(long = "port", default_value = "8118", help = "Port number to listen")]
         port: u16,
     },
+
     MultiServer {},
+
+    ProxyChecker,
 }
 
 impl Command {
     #[inline]
-    pub fn app_name() -> String {
-        Command::clap().get_name().to_owned()
-    }
+    pub fn app_name() -> String { Command::clap().get_name().to_owned() }
 
     pub fn run(self) {
         match self {
@@ -101,8 +88,10 @@ impl Command {
                 enable_tcp_bind,
                 connection_timeout,
             } => {
-                use tunelo::protocol::socks::{SocksCommand, SocksVersion};
-                use tunelo::server::socks::ServerConfig;
+                use tunelo::{
+                    protocol::socks::{SocksCommand, SocksVersion},
+                    server::socks::ServerConfig,
+                };
 
                 let listen_address = match IpAddr::from_str(&ip) {
                     Ok(ip) => ip,
@@ -195,9 +184,13 @@ impl Command {
                 std::process::exit(http_server::run(config))
             }
             Command::MultiServer {} => {
-                use tunelo::protocol::socks::{SocksCommand, SocksVersion};
-                use tunelo::server::http::ServerConfig as HttpServerConfig;
-                use tunelo::server::socks::ServerConfig as SocksServerConfig;
+                use tunelo::{
+                    protocol::socks::{SocksCommand, SocksVersion},
+                    server::{
+                        http::ServerConfig as HttpServerConfig,
+                        socks::ServerConfig as SocksServerConfig,
+                    },
+                };
 
                 let ip = "127.0.0.1";
 

@@ -11,13 +11,9 @@ pub fn shutdown_handle() -> (ShutdownSender, ShutdownReceiver) {
 }
 
 impl ShutdownSender {
-    pub fn shutdown(self) {
-        drop(self.0);
-    }
+    pub fn shutdown(self) { drop(self.0); }
 }
 
 impl ShutdownReceiver {
-    pub async fn wait(&mut self) {
-        self.0.recv().await;
-    }
+    pub async fn wait(&mut self) { self.0.recv().await; }
 }

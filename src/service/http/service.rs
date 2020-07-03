@@ -1,14 +1,17 @@
-use std::net::SocketAddr;
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
-use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader};
-use tokio::sync::Mutex;
+use tokio::{
+    io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader},
+    sync::Mutex,
+};
 
-use crate::authentication::AuthenticationManager;
-use crate::common::HostAddress;
-use crate::protocol::http::{Error as ProtocolError, StatusCode};
-use crate::service::http::Error;
-use crate::transport::Transport;
+use crate::{
+    authentication::AuthenticationManager,
+    common::HostAddress,
+    protocol::http::{Error as ProtocolError, StatusCode},
+    service::http::Error,
+    transport::Transport,
+};
 
 pub struct Service<TransportStream> {
     transport: Arc<Transport<TransportStream>>,
@@ -44,14 +47,15 @@ where
             Err(ProtocolError::UnsupportedMethod(method)) => {
                 client_stream.write(StatusCode::NotImplemented.status_line().as_bytes()).await?;
                 client_stream
-                        .write(
-                            format!(
-                                "<html lang=\"en\"><body>HTTP method {} is NOT SUPPORTED</body></html>\r\n",
-                                method
-                            )
-                            .as_bytes(),
+                    .write(
+                        format!(
+                            "<html lang=\"en\"><body>HTTP method {} is NOT \
+                             SUPPORTED</body></html>\r\n",
+                            method
                         )
-                        .await?;
+                        .as_bytes(),
+                    )
+                    .await?;
                 client_stream.shutdown().await?;
                 return Ok(());
             }

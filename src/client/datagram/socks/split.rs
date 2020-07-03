@@ -8,9 +8,11 @@ use tokio::net::{
     UdpSocket,
 };
 
-use crate::client::Error;
-use crate::common::HostAddress;
-use crate::protocol::socks::{v5::Datagram, Address};
+use crate::{
+    client::Error,
+    common::HostAddress,
+    protocol::socks::{v5::Datagram, Address},
+};
 
 pub struct RecvHalf {
     closed: Arc<AtomicBool>,
@@ -31,9 +33,7 @@ pub fn split(socket: UdpSocket, closed: Arc<AtomicBool>) -> (RecvHalf, SendHalf)
 }
 
 impl Drop for RecvHalf {
-    fn drop(&mut self) {
-        self.closed.store(true, Ordering::Release);
-    }
+    fn drop(&mut self) { self.closed.store(true, Ordering::Release); }
 }
 
 impl RecvHalf {
@@ -71,9 +71,7 @@ impl RecvHalf {
 }
 
 impl Drop for SendHalf {
-    fn drop(&mut self) {
-        self.closed.store(true, Ordering::Release);
-    }
+    fn drop(&mut self) { self.closed.store(true, Ordering::Release); }
 }
 
 impl SendHalf {

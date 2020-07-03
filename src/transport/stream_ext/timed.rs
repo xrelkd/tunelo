@@ -1,11 +1,15 @@
-use std::io;
-use std::pin::Pin;
-use std::task::{Context, Poll};
-use std::time::Duration;
+use std::{
+    io,
+    pin::Pin,
+    task::{Context, Poll},
+    time::Duration,
+};
 
 use futures::Future;
-use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
-use tokio::time::{self, Delay};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf},
+    time::{self, Delay},
+};
 
 pub struct TimedStream<Stream> {
     stream: Stream,
@@ -28,27 +32,21 @@ where
     }
 
     #[inline]
-    pub fn into_inner(self) -> Stream {
-        self.stream
-    }
+    pub fn into_inner(self) -> Stream { self.stream }
 }
 
 impl<Stream> AsRef<Stream> for TimedStream<Stream>
 where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
-    fn as_ref(&self) -> &Stream {
-        &self.stream
-    }
+    fn as_ref(&self) -> &Stream { &self.stream }
 }
 
 impl<Stream> AsMut<Stream> for TimedStream<Stream>
 where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
-    fn as_mut(&mut self) -> &mut Stream {
-        &mut self.stream
-    }
+    fn as_mut(&mut self) -> &mut Stream { &mut self.stream }
 }
 
 impl<Stream> TimedStream<Stream> {
@@ -73,9 +71,7 @@ impl<Stream> TimedStream<Stream> {
         Poll::Ready(Ok(()))
     }
 
-    fn cancel_timeout(&mut self) {
-        let _ = self.timer.take();
-    }
+    fn cancel_timeout(&mut self) { let _ = self.timer.take(); }
 }
 
 impl<Stream> AsyncRead for TimedStream<Stream>

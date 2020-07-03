@@ -1,16 +1,20 @@
-use std::collections::HashSet;
-use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4};
-use std::sync::Arc;
+use std::{
+    collections::HashSet,
+    net::{Ipv4Addr, SocketAddr, SocketAddrV4},
+    sync::Arc,
+};
 
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
     sync::Mutex,
 };
 
-use crate::authentication::AuthenticationManager;
-use crate::protocol::socks::v4::{Command, Reply, Request};
-use crate::service::socks::Error;
-use crate::transport::Transport;
+use crate::{
+    authentication::AuthenticationManager,
+    protocol::socks::v4::{Command, Reply, Request},
+    service::socks::Error,
+    transport::Transport,
+};
 
 pub struct Service<ClientStream, TransportStream> {
     supported_commands: HashSet<Command>,

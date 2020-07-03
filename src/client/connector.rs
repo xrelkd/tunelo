@@ -1,10 +1,14 @@
 use std::sync::Arc;
 
-use tokio::io::{AsyncRead, AsyncWrite};
-use tokio::net::TcpStream;
+use tokio::{
+    io::{AsyncRead, AsyncWrite},
+    net::TcpStream,
+};
 
-use crate::client::{Error, ProxyStream};
-use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
+use crate::{
+    client::{Error, ProxyStream},
+    common::{HostAddress, ProxyHost, ProxyStrategy},
+};
 
 #[derive(Clone)]
 pub struct ProxyConnector {

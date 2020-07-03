@@ -1,20 +1,18 @@
 use std::sync::Arc;
 
-use tokio::runtime;
-use tokio::sync::Mutex;
+use tokio::{runtime, sync::Mutex};
 
 use tunelo::{
     authentication::AuthenticationManager,
     filter::DefaultFilter,
-    server::http::{Server as HttpServer, ServerConfig as HttpServerConfig},
-    server::socks::{Server as SocksServer, ServerConfig as SocksServerConfig},
+    server::{
+        http::{Server as HttpServer, ServerConfig as HttpServerConfig},
+        socks::{Server as SocksServer, ServerConfig as SocksServerConfig},
+    },
     transport::{DefaultResolver, Transport},
 };
 
-use crate::consts;
-use crate::exit_code;
-use crate::shutdown;
-use crate::signal_handler;
+use crate::{consts, exit_code, shutdown, signal_handler};
 
 pub fn run(socks_server_config: SocksServerConfig, http_server_config: HttpServerConfig) -> i32 {
     let mut runtime = match runtime::Builder::new()

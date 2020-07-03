@@ -1,7 +1,6 @@
 mod socks;
 
-use crate::client::Error;
-use crate::common::ProxyHost;
+use crate::{client::Error, common::ProxyHost};
 
 pub use self::socks::Socks5Datagram;
 

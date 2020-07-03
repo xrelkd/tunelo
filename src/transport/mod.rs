@@ -1,5 +1,7 @@
-use std::net::{IpAddr, SocketAddr};
-use std::sync::Arc;
+use std::{
+    net::{IpAddr, SocketAddr},
+    sync::Arc,
+};
 
 use futures::FutureExt;
 use tokio::{
@@ -8,8 +10,10 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::common::{HostAddress, ProxyStrategy};
-use crate::filter::{FilterAction, HostFilter};
+use crate::{
+    common::{HostAddress, ProxyStrategy},
+    filter::{FilterAction, HostFilter},
+};
 
 mod acceptor;
 mod connector;
@@ -20,13 +24,17 @@ mod stream_ext;
 
 pub use self::error::Error;
 
-use self::connector::{Connector, ProxyConnector};
-use self::metrics::TransportMetrics;
-use self::resolver::DummyResolver;
 pub use self::stream_ext::StatMonitor;
+use self::{
+    connector::{Connector, ProxyConnector},
+    metrics::TransportMetrics,
+    resolver::DummyResolver,
+};
 
-pub use self::resolver::{DefaultResolver, Resolver, TokioResolver};
-pub use self::stream_ext::{MonitoredStream, StreamExt, TimedStream};
+pub use self::{
+    resolver::{DefaultResolver, Resolver, TokioResolver},
+    stream_ext::{MonitoredStream, StreamExt, TimedStream},
+};
 
 pub struct Transport<Stream> {
     metrics: TransportMetrics,
@@ -116,9 +124,7 @@ where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
     #[inline]
-    pub fn resolver(&self) -> Arc<dyn Resolver> {
-        self.resolver.clone()
-    }
+    pub fn resolver(&self) -> Arc<dyn Resolver> { self.resolver.clone() }
 
     #[inline]
     pub fn connector(&self) -> Arc<dyn Connector<Stream = Stream, Error = Error>> {
@@ -126,9 +132,7 @@ where
     }
 
     #[inline]
-    pub fn filter(&self) -> Arc<dyn HostFilter> {
-        self.filter.clone()
-    }
+    pub fn filter(&self) -> Arc<dyn HostFilter> { self.filter.clone() }
 
     pub async fn resolve_host(&self, host: &str) -> Result<IpAddr, Error> {
         let addrs = self.resolver.resolve(host).await?;

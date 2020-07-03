@@ -1,5 +1,7 @@
-use std::convert::TryFrom;
-use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
+use std::{
+    convert::TryFrom,
+    net::{SocketAddr, SocketAddrV4, SocketAddrV6},
+};
 
 use tokio::io::AsyncRead;
 
@@ -79,9 +81,7 @@ impl Into<u8> for SocksVersion {
 
 impl SocksVersion {
     #[inline]
-    pub fn serialized_len() -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 #[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
@@ -93,9 +93,7 @@ pub enum SocksCommand {
 
 impl SocksCommand {
     #[inline]
-    pub fn serialized_len(&self) -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len(&self) -> usize { std::mem::size_of::<u8>() }
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -107,13 +105,12 @@ pub enum AddressType {
 
 impl AddressType {
     #[inline]
-    pub fn serialized_len() -> usize {
-        std::mem::size_of::<u8>()
-    }
+    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 impl TryFrom<u8> for AddressType {
     type Error = Error;
+
     fn try_from(version: u8) -> Result<Self, Self::Error> {
         match version {
             consts::SOCKS5_ADDR_TYPE_IPV4 => Ok(AddressType::Ipv4),
@@ -219,62 +216,42 @@ impl Address {
         AddressRef(&self.0).to_bytes(socks_version)
     }
 
-    pub fn into_bytes(self, socks_version: SocksVersion) -> Vec<u8> {
-        self.to_bytes(socks_version)
-    }
+    pub fn into_bytes(self, socks_version: SocksVersion) -> Vec<u8> { self.to_bytes(socks_version) }
 
     pub fn new_domain(host: &[u8], port: u16) -> Address {
         Address(HostAddress::DomainName(String::from_utf8_lossy(&host).into_owned(), port))
     }
 
     #[allow(dead_code)]
-    pub fn empty_domain() -> Self {
-        Address::from(HostAddress::empty_domain())
-    }
+    pub fn empty_domain() -> Self { Address::from(HostAddress::empty_domain()) }
 
     #[inline]
-    pub fn empty_ipv4() -> Self {
-        Address::from(HostAddress::empty_ipv4())
-    }
+    pub fn empty_ipv4() -> Self { Address::from(HostAddress::empty_ipv4()) }
 
     #[inline]
-    pub fn empty_ipv6() -> Self {
-        Address::from(HostAddress::empty_ipv6())
-    }
+    pub fn empty_ipv6() -> Self { Address::from(HostAddress::empty_ipv6()) }
 
     #[inline]
-    pub fn port(&self) -> u16 {
-        self.0.port()
-    }
+    pub fn port(&self) -> u16 { self.0.port() }
 
     #[inline]
-    pub fn set_port(&mut self, port: u16) {
-        self.0.set_port(port);
-    }
+    pub fn set_port(&mut self, port: u16) { self.0.set_port(port); }
 
-    pub fn address_type(&self) -> AddressType {
-        AddressRef(&self.0).address_type()
-    }
+    pub fn address_type(&self) -> AddressType { AddressRef(&self.0).address_type() }
 
     #[inline]
-    pub fn into_inner(self) -> HostAddress {
-        self.0
-    }
+    pub fn into_inner(self) -> HostAddress { self.0 }
 }
 
 #[derive(Hash, Debug, Clone, Eq, PartialEq)]
 pub struct AddressRef<'a>(&'a HostAddress);
 
 impl<'a> From<&'a HostAddress> for AddressRef<'a> {
-    fn from(addr: &'a HostAddress) -> AddressRef<'a> {
-        AddressRef(addr)
-    }
+    fn from(addr: &'a HostAddress) -> AddressRef<'a> { AddressRef(addr) }
 }
 
 impl<'a> Into<&'a HostAddress> for AddressRef<'a> {
-    fn into(self) -> &'a HostAddress {
-        self.0
-    }
+    fn into(self) -> &'a HostAddress { self.0 }
 }
 
 impl<'a> AddressRef<'a> {
@@ -364,45 +341,31 @@ impl<'a> AddressRef<'a> {
 }
 
 impl AsRef<HostAddress> for Address {
-    fn as_ref(&self) -> &HostAddress {
-        &self.0
-    }
+    fn as_ref(&self) -> &HostAddress { &self.0 }
 }
 
 impl ToString for Address {
-    fn to_string(&self) -> String {
-        self.0.to_string()
-    }
+    fn to_string(&self) -> String { self.0.to_string() }
 }
 
 impl From<HostAddress> for Address {
-    fn from(addr: HostAddress) -> Address {
-        Address(addr)
-    }
+    fn from(addr: HostAddress) -> Address { Address(addr) }
 }
 
 impl Into<HostAddress> for Address {
-    fn into(self) -> HostAddress {
-        self.0
-    }
+    fn into(self) -> HostAddress { self.0 }
 }
 
 impl From<SocketAddr> for Address {
-    fn from(socket_addr: SocketAddr) -> Address {
-        Address(HostAddress::from(socket_addr))
-    }
+    fn from(socket_addr: SocketAddr) -> Address { Address(HostAddress::from(socket_addr)) }
 }
 
 impl From<SocketAddrV4> for Address {
-    fn from(socket_addr: SocketAddrV4) -> Address {
-        Address(HostAddress::from(socket_addr))
-    }
+    fn from(socket_addr: SocketAddrV4) -> Address { Address(HostAddress::from(socket_addr)) }
 }
 
 impl From<SocketAddrV6> for Address {
-    fn from(socket_addr: SocketAddrV6) -> Address {
-        Address(HostAddress::from(socket_addr))
-    }
+    fn from(socket_addr: SocketAddrV6) -> Address { Address(HostAddress::from(socket_addr)) }
 }
 
 #[cfg(test)]
