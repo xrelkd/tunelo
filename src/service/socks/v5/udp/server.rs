@@ -11,8 +11,7 @@ use futures::FutureExt;
 use lru_time_cache::LruCache;
 
 use crate::protocol::socks::{v5::Datagram, Error};
-use crate::service::socks::v5::udp::{UdpAssociate, UdpAssociateCache};
-use crate::shutdown;
+use crate::service::socks::v5::udp::{UdpAssociate, UdpAssociateCache, shutdown};
 use crate::transport::Resolver;
 
 pub struct UdpServer {

@@ -12,8 +12,7 @@ use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
 
 use crate::common::HostAddress;
 use crate::protocol::socks::{v5::Reply, Address, Error};
-use crate::service::socks::v5::udp::{UdpAssociateCache, UdpServer};
-use crate::shutdown;
+use crate::service::socks::v5::udp::{UdpAssociateCache, UdpServer, shutdown};
 use crate::transport::Resolver;
 
 pub struct Manager<TransportStream> {

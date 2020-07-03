@@ -6,7 +6,7 @@ use tokio::sync::Mutex;
 use lru_time_cache::LruCache;
 
 use crate::common::HostAddress;
-use crate::shutdown;
+use crate::service::socks::v5::udp::shutdown;
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
 struct CacheKey(String);
