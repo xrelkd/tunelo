@@ -14,6 +14,7 @@ use futures::FutureExt;
 
 use crate::{
     authentication::AuthenticationManager,
+    common::utils::safe_duration,
     protocol::socks::{SocksCommand, SocksVersion},
     service::socks::{v5::UdpAssociateManager, Error, Service},
     transport::{TimedStream, Transport},
@@ -35,25 +36,11 @@ pub struct ServerOptions {
 impl Default for ServerOptions {
     fn default() -> ServerOptions {
         ServerOptions {
-            supported_versions: {
-                let mut versions = HashSet::new();
-                versions.insert(SocksVersion::V4);
-                versions.insert(SocksVersion::V5);
-                versions
-            },
-            supported_commands: {
-                let mut commands = HashSet::new();
-                commands.insert(SocksCommand::TcpConnect);
-                commands.insert(SocksCommand::TcpBind);
-                commands
-            },
+            supported_versions: vec![SocksVersion::V4, SocksVersion::V5].into_iter().collect(),
+            supported_commands: vec![SocksCommand::TcpConnect].into_iter().collect(),
             listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
             listen_port: 3128,
-            udp_ports: {
-                let mut ports = HashSet::new();
-                ports.insert(3129);
-                ports
-            },
+            udp_ports: vec![3129].into_iter().collect(),
             connection_timeout: Duration::from_secs(10),
             tcp_keepalive: Duration::from_secs(10),
             udp_cache_expiry_duration: Duration::from_secs(10),
@@ -76,11 +63,13 @@ pub struct Server {
 
     tcp_address: SocketAddr,
     connection_timeout: Option<Duration>,
+    #[allow(dead_code)]
     tcp_keepalive: Option<Duration>,
 
     udp_address: IpAddr,
     udp_ports: HashSet<u16>,
 
+    // TODO
     #[allow(dead_code)]
     udp_timeout: Option<Duration>,
     #[allow(dead_code)]
@@ -96,13 +85,9 @@ impl Server {
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
     ) -> Server {
         let tcp_address = config.listen_socket();
-        let connection_timeout = if config.connection_timeout == Duration::from_secs(0) {
-            None
-        } else {
-            Some(config.connection_timeout)
-        };
-
-        let tcp_keepalive = Some(Duration::from_secs(10));
+        let connection_timeout = safe_duration(config.connection_timeout);
+        let tcp_keepalive = safe_duration(config.tcp_keepalive);
+        let udp_cache_expiry_duration = config.udp_cache_expiry_duration;
 
         let udp_timeout = Some(Duration::from_secs(10));
         let udp_session_time = Duration::from_secs(10);
@@ -123,7 +108,7 @@ impl Server {
             udp_timeout,
             udp_session_time,
 
-            udp_cache_expiry_duration: config.udp_cache_expiry_duration,
+            udp_cache_expiry_duration,
         }
     }
 

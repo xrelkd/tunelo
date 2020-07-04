@@ -25,7 +25,7 @@ fn main() {
     ]
     .into_iter()
     // .map(|server| ProxyHost::Socks4a { server, id: None })
-    .map(|server| ProxyHost::Socks5 { server, user_name: None, password: None })
+    .map(|server| ProxyHost::Socks5 { host, port, user_name: None, password: None })
     // .map(|server| ProxyHost::HttpTunnel {
     //     server,
     //     user_agent: Some(String::from(

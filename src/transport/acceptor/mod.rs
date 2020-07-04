@@ -3,6 +3,7 @@ use std::{net::SocketAddr, pin::Pin, sync::Arc, time::Duration};
 use futures::Future;
 use tokio::{
     io::{AsyncRead, AsyncWrite},
+    net::{TcpListener, TcpStream},
     sync::Mutex,
 };
 
@@ -18,8 +19,6 @@ pub trait Acceptor {
 
 pub type Accept<Stream, Address, Error> =
     Pin<Box<dyn Future<Output = Result<(Stream, Address), Error>> + Send>>;
-
-use tokio::net::{TcpListener, TcpStream};
 
 pub struct TcpAcceptor<Monitor> {
     listener: Arc<Mutex<TcpListener>>,

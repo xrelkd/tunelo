@@ -1,9 +1,10 @@
 use std::{collections::HashSet, net::IpAddr, time::Duration};
 
-use snafu::Snafu;
 use structopt::StructOpt;
 
-use tunelo::server::{http, socks};
+use tunelo::server::socks;
+
+use crate::command::options::error::Error;
 
 #[derive(Debug, StructOpt)]
 pub struct SocksOptions {
@@ -104,43 +105,4 @@ impl std::convert::TryInto<socks::ServerOptions> for SocksOptions {
             tcp_keepalive: Duration::from_secs(5),
         })
     }
-}
-
-#[derive(Debug, StructOpt)]
-pub struct HttpOptions {
-    #[structopt(long = "ip", default_value = "127.0.0.1", help = "IP address to listen")]
-    ip: IpAddr,
-
-    #[structopt(long = "port", default_value = "8118", help = "Port number to listen")]
-    port: u16,
-}
-
-impl Into<http::ServerOptions> for HttpOptions {
-    fn into(self) -> http::ServerOptions {
-        let listen_address = self.ip;
-        let listen_port = self.port;
-
-        http::ServerOptions { listen_address, listen_port }
-    }
-}
-
-#[derive(Debug, StructOpt)]
-pub struct ProxyCheckerOptions {}
-
-#[derive(Debug, StructOpt)]
-pub struct ProxyChainOptions {}
-
-#[derive(Debug, Snafu)]
-pub enum Error {
-    #[snafu(display("No SOCKS service is enabled"))]
-    NoSocksServiceEnabled,
-
-    #[snafu(display("UDP associate is enabled but no UDP port is provided"))]
-    NoUdpPortProvided,
-
-    #[snafu(display("TCP bind is not supported yet"))]
-    TcpBindNotSupported,
-
-    #[snafu(display("No SOCKS command is enabled, try to enable some commands"))]
-    NoSocksCommandEnabled,
 }

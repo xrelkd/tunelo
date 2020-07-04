@@ -8,7 +8,7 @@ use crate::{command::options, config::ConfigError};
 pub enum Error {
     #[snafu(display("Options error: {}", source))]
     OptionsError {
-        source: options::Error,
+        source: options::OptionsError,
     },
 
     #[snafu(display("Could not read configuration from {:?}, error: {}", file_path.display(), source))]
@@ -42,8 +42,8 @@ pub enum Error {
     },
 }
 
-impl From<options::Error> for Error {
-    fn from(source: options::Error) -> Error { Error::OptionsError { source } }
+impl From<options::OptionsError> for Error {
+    fn from(source: options::OptionsError) -> Error { Error::OptionsError { source } }
 }
 
 impl From<tunelo::transport::Error> for Error {
