@@ -1,17 +1,34 @@
+use snafu::Snafu;
+
 use crate::protocol::socks::SocksVersion;
 
-#[derive(Debug)]
+#[derive(Debug, Snafu)]
 pub enum Error {
-    StdIo(std::io::Error),
-    UnsupportedSocksVersion(SocksVersion),
-    InvalidSocksVersion(u8),
-    InvalidAddressType(u8),
-    InvalidCommand(u8),
-    InvalidUserPasswordVersion(u8),
+    #[snafu(display("StdIo error: {}", source))]
+    StdIo { source: std::io::Error },
+
+    #[snafu(display("Unsupported SOCKS version: {}", version))]
+    UnsupportedSocksVersion { version: SocksVersion },
+
+    #[snafu(display("Invalid SOCKS version: {}", version))]
+    InvalidSocksVersion { version: u8 },
+
+    #[snafu(display("Invalid address type: {}", ty))]
+    InvalidAddressType { ty: u8 },
+
+    #[snafu(display("Invalid user command: {}", command))]
+    InvalidCommand { command: u8 },
+
+    #[snafu(display("Invalid user password version: {}", version))]
+    InvalidUserPasswordVersion { version: u8 },
+
+    #[snafu(display("Bad request"))]
     BadRequest,
+
+    #[snafu(display("Bad reply"))]
     BadReply,
 }
 
 impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error { Error::StdIo(err) }
+    fn from(source: std::io::Error) -> Error { Error::StdIo { source } }
 }

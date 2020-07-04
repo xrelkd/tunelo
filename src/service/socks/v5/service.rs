@@ -93,7 +93,7 @@ where
                 stream.flush().await?;
                 stream.shutdown().await?;
 
-                return Err(Error::UnsupportedCommand);
+                return Err(Error::UnsupportedCommand { command: req.command.into() });
             }
 
             req
@@ -163,7 +163,7 @@ where
             let reply = HandshakeReply::new(Method::NotAcceptable);
             client.write(&reply.into_bytes()).await?;
 
-            return Err(Error::UnsupportedMethod);
+            return Err(Error::UnsupportedMethod { method: supported_method });
         }
 
         let reply = HandshakeReply::new(supported_method);
@@ -212,7 +212,7 @@ where
             Method::GSSAPI => {
                 // TODO
                 client.shutdown().await?;
-                return Err(Error::UnsupportedCommand);
+                return Err(Error::UnsupportedMethod { method: Method::GSSAPI });
             }
             Method::NotAcceptable => unreachable!(),
         }

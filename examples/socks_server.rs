@@ -8,9 +8,8 @@ use tokio::{runtime::Runtime, sync::Mutex};
 use tunelo::{
     authentication::AuthenticationManager,
     filter::DefaultFilter,
-    lifecycle::LifecycleManager,
     protocol::socks::{SocksCommand, SocksVersion},
-    server::socks::{Server, ServerConfig},
+    server::socks::{Server, ServerOptions},
     transport::{DefaultResolver, Transport},
 };
 
@@ -19,7 +18,7 @@ fn main() {
 
     let listen_address = "127.0.0.1".parse().unwrap();
     let listen_port = 9050;
-    let server_config = ServerConfig {
+    let server_config = ServerOptions {
         listen_address,
         listen_port,
         udp_cache_expiry_duration: Duration::from_secs(5),
@@ -39,7 +38,6 @@ fn main() {
 
     let mut runtime = Runtime::new().unwrap();
 
-    let (mut lifecycle_manager, _shutdown_signal) = LifecycleManager::new();
     let socks_server = {
         use std::net::{Ipv4Addr, SocketAddrV4};
 
@@ -61,11 +59,14 @@ fn main() {
         .map(|server| ProxyHost::Socks5 { server, user_name: None, password: None })
         .collect();
 
-        let resolver = match DefaultResolver::from_system_conf(&mut runtime) {
-            Ok(r) => Arc::new(r),
-            Err(err) => {
-                eprintln!("{:?}", err);
-                return;
+        let resolver = {
+            let handle = runtime.handle().clone();
+            match runtime.block_on(async { DefaultResolver::from_system_conf(handle).await }) {
+                Ok(r) => Arc::new(r),
+                Err(err) => {
+                    eprintln!("{:?}", err);
+                    return;
+                }
             }
         };
 
@@ -86,22 +87,25 @@ fn main() {
         };
 
         let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
-        let (server, shutdown_signal) =
-            Server::new(server_config, transport, authentication_manager);
-        let shutdown_hook = Box::new(move || {
-            shutdown_signal.shutdown();
-        });
-        lifecycle_manager.register("SOCKS Server", shutdown_hook);
+        let server = Server::new(server_config, transport, authentication_manager);
+
         server
     };
 
-    runtime.block_on(lifecycle_manager.block_on(async {
-        match socks_server.serve().await {
+    runtime.block_on(async {
+        match socks_server
+            .serve_with_shutdown(async {
+                loop {
+                    tokio::time::delay_for(Duration::from_secs(10)).await;
+                }
+            })
+            .await
+        {
             Ok(_) => return 0,
             Err(err) => {
                 error!("SOCKS server error: {:?}", err);
                 return 1;
             }
         }
-    }));
+    });
 }

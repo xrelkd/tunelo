@@ -73,7 +73,7 @@ where
             let reply = Reply::rejected(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0));
             let _ = stream.write(&reply.into_bytes()).await?;
             stream.shutdown().await?;
-            return Err(Error::UnsupportedCommand);
+            return Err(Error::UnsupportedCommand { command: request.command.into() });
         }
 
         match request.command {
@@ -120,7 +120,7 @@ where
             Command::TcpBind => {
                 debug!("Unsupported SOCKS command, close connection: {:?}", peer_addr);
                 let _ = stream.shutdown().await?;
-                Err(Error::UnsupportedCommand)
+                Err(Error::UnsupportedCommand { command: Command::TcpBind.into() })
             }
         }
     }

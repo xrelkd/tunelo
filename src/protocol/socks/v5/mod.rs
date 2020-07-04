@@ -27,6 +27,17 @@ pub enum Method {
     NotAcceptable,
 }
 
+impl std::fmt::Display for Method {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Method::NoAuthentication => write!(f, "No Authentication"),
+            Method::GSSAPI => write!(f, "GSSAPI"),
+            Method::UsernamePassword => write!(f, "Username/password authentication method"),
+            Method::NotAcceptable => write!(f, "Not acceptable authentication method"),
+        }
+    }
+}
+
 impl From<AuthenticationMethod> for Method {
     fn from(method: AuthenticationMethod) -> Method {
         match method {
@@ -88,7 +99,7 @@ impl TryFrom<u8> for Command {
             consts::SOCKS5_CMD_TCP_CONNECT => Ok(Command::TcpConnect),
             consts::SOCKS5_CMD_TCP_BIND => Ok(Command::TcpBind),
             consts::SOCKS5_CMD_UDP_ASSOCIATE => Ok(Command::UdpAssociate),
-            n => Err(Error::InvalidCommand(n)),
+            command => Err(Error::InvalidCommand { command }),
         }
     }
 }
@@ -138,16 +149,12 @@ impl HandshakeRequest {
         }
 
         let mut buf = vec![0u8; nmethods as usize];
-        match client.read_exact(&mut buf).await {
-            Ok(_) => {
-                let methods = buf.into_iter().map(Method::from).collect();
+        client.read_exact(&mut buf).await?;
 
-                debug!("Got NegotiationRequest: {:?} {} {:?}", SocksVersion::V5, nmethods, methods);
+        let methods = buf.into_iter().map(Method::from).collect();
+        debug!("Got NegotiationRequest: {:?} {} {:?}", SocksVersion::V5, nmethods, methods);
 
-                Ok(HandshakeRequest { methods })
-            }
-            Err(err) => Err(Error::StdIo(err)),
-        }
+        Ok(HandshakeRequest { methods })
     }
 
     pub fn contains_method(&self, method: Method) -> bool { self.methods.contains(&method) }
@@ -258,7 +265,7 @@ impl UserPasswordHandshakeRequest {
 
         let version = UserPasswordVersion::try_from(buf[0])?;
         if version != UserPasswordVersion::V1 {
-            return Err(Error::InvalidUserPasswordVersion(buf[0]));
+            return Err(Error::InvalidUserPasswordVersion { version: buf[0] });
         }
 
         let mut user_name = vec![0u8; user_len];
@@ -346,7 +353,9 @@ impl Request {
 
         match SocksVersion::try_from(buf[0]) {
             Err(err) => return Err(err),
-            Ok(v) if v != SocksVersion::V5 => return Err(Error::UnsupportedSocksVersion(v)),
+            Ok(version) if version != SocksVersion::V5 => {
+                return Err(Error::UnsupportedSocksVersion { version })
+            }
             Ok(_) => {}
         }
 
@@ -547,7 +556,7 @@ impl TryFrom<u8> for UserPasswordVersion {
     fn try_from(cmd: u8) -> Result<UserPasswordVersion, Error> {
         match cmd {
             0x01 => Ok(UserPasswordVersion::V1),
-            n => Err(Error::InvalidUserPasswordVersion(n)),
+            version => Err(Error::InvalidUserPasswordVersion { version }),
         }
     }
 }

@@ -29,23 +29,26 @@ pub trait HostFilter: Send + Sync {
 
     fn filter_port(&self, port: u16) -> FilterAction;
 
-    fn check_proxy_strategy(&self, strategy: &ProxyStrategy) -> bool {
+    fn check_proxy_strategy(&self, strategy: &ProxyStrategy) -> (bool, Vec<HostAddress>) {
         match strategy {
             ProxyStrategy::Single(proxy) => {
                 if self.filter_host_address(proxy.host_address()) == FilterAction::Deny {
-                    return false;
+                    return (false, vec![proxy.host_address().clone()]);
                 }
             }
             ProxyStrategy::Chained(proxies) => {
-                for proxy in proxies {
-                    if self.filter_host_address(proxy.host_address()) == FilterAction::Deny {
-                        return false;
-                    }
-                }
+                let denied: Vec<_> = proxies
+                    .iter()
+                    .filter(|proxy| {
+                        self.filter_host_address(proxy.host_address()) == FilterAction::Deny
+                    })
+                    .map(|proxy| proxy.host_address().clone())
+                    .collect();
+                return (denied.is_empty(), denied);
             }
         }
 
-        true
+        (true, vec![])
     }
 }
 
@@ -61,8 +64,8 @@ pub struct DefaultFilter {
 
 #[derive(Debug, Clone, Copy)]
 pub enum FilterMode {
-    Blacklist,
-    Whitelist,
+    AllowList,
+    DenyList,
 }
 
 impl DefaultFilter {
@@ -79,13 +82,13 @@ impl DefaultFilter {
     }
 
     #[inline]
-    pub fn whitelist() -> DefaultFilter {
-        DefaultFilter { mode: FilterMode::Whitelist, ..Default::default() }
+    pub fn allow_list() -> DefaultFilter {
+        DefaultFilter { mode: FilterMode::AllowList, ..Default::default() }
     }
 
     #[inline]
-    pub fn blacklist() -> DefaultFilter {
-        DefaultFilter { mode: FilterMode::Blacklist, ..Default::default() }
+    pub fn deny_list() -> DefaultFilter {
+        DefaultFilter { mode: FilterMode::DenyList, ..Default::default() }
     }
 
     pub fn set_mode(&mut self, mode: FilterMode) { self.mode = mode; }
@@ -118,8 +121,8 @@ impl DefaultFilter {
     #[inline]
     fn filter(&self, b: bool) -> FilterAction {
         match self.mode {
-            FilterMode::Blacklist => Self::deny(b),
-            FilterMode::Whitelist => Self::allow(b),
+            FilterMode::DenyList => Self::deny(b),
+            FilterMode::AllowList => Self::allow(b),
         }
     }
 
@@ -143,7 +146,7 @@ impl DefaultFilter {
 }
 
 impl Default for FilterMode {
-    fn default() -> Self { FilterMode::Blacklist }
+    fn default() -> Self { FilterMode::DenyList }
 }
 
 impl HostFilter for DefaultFilter {
@@ -176,7 +179,33 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test() {
+    fn test_constructors() {
+        let _filter = DefaultFilter::default();
+        let _filter = DefaultFilter::allow_list();
+        let _filter = DefaultFilter::deny_list();
+
+        let port = 8787;
+        let ip: IpAddr = "220.181.38.148".parse().unwrap();
+        let hostname = "baidu.com";
+        let socket = SocketAddr::new("127.0.3.1".parse().unwrap(), 9332);
+
+        let filter = DefaultFilter::new(
+            vec![hostname.to_owned()].into_iter().collect(),
+            vec![ip].into_iter().collect(),
+            vec![(hostname.to_owned(), port)].into_iter().collect(),
+            vec![socket].into_iter().collect(),
+            vec![port].into_iter().collect(),
+            FilterMode::DenyList,
+        );
+        assert_eq!(filter.filter_port(port), FilterAction::Deny);
+        assert_eq!(filter.filter_hostname(hostname), FilterAction::Deny);
+        assert_eq!(filter.filter_address(&ip), FilterAction::Deny);
+        assert_eq!(filter.filter_socket(&socket), FilterAction::Deny);
+        assert_eq!(filter.filter_host(hostname, port), FilterAction::Deny);
+    }
+
+    #[test]
+    fn test_filters() {
         let port = 8787;
         let ip: IpAddr = "220.181.38.148".parse().unwrap();
         let hostname = "baidu.com";
@@ -195,7 +224,7 @@ mod tests {
         assert_eq!(filter.filter_socket(&socket), FilterAction::Deny);
         assert_eq!(filter.filter_host(hostname, port), FilterAction::Deny);
 
-        filter.set_mode(FilterMode::Whitelist);
+        filter.set_mode(FilterMode::AllowList);
 
         assert_eq!(filter.filter_port(port), FilterAction::Allow);
         assert_eq!(filter.filter_hostname(hostname), FilterAction::Allow);
