@@ -1,25 +1,10 @@
 use std::net::{Ipv4Addr, SocketAddrV4};
 
-use tokio::runtime;
-
 use tunelo::{client::ProxyChecker, common::ProxyHost};
 
-use crate::{consts, exit_code};
+use crate::command::Error;
 
-pub fn run() -> i32 {
-    let mut runtime = match runtime::Builder::new()
-        .thread_name(consts::THREAD_NAME)
-        .threaded_scheduler()
-        .enable_all()
-        .build()
-    {
-        Ok(rt) => rt,
-        Err(err) => {
-            error!("Error: {:?}", err);
-            return exit_code::EXIT_FAILURE;
-        }
-    };
-
+pub async fn run() -> Result<(), Error> {
     let proxy_servers = vec![
         SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9050).into(),
         SocketAddrV4::new(Ipv4Addr::new(127, 0, 0, 1), 9051).into(),
@@ -41,12 +26,10 @@ pub fn run() -> i32 {
     let target_hosts = vec![];
     let checker = ProxyChecker::with_parallel(6, proxy_servers, target_hosts);
 
-    runtime.block_on(async move {
-        let report = checker.run().await;
-        println!("{:?}", report);
-    });
+    let report = checker.run().await;
+    println!("{:?}", report);
 
-    exit_code::EXIT_SUCCESS
+    Ok(())
 }
 
 #[cfg(test)]

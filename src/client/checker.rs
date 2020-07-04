@@ -49,16 +49,15 @@ impl ProxyChecker {
     }
 
     pub async fn run(self) -> Result<Report, Error> {
-        let runners = (0..self.parallel_count).fold(
-            Vec::with_capacity(self.parallel_count),
-            |mut runners, id| {
+        use futures::future::join_all;
+        let runners: Vec<_> = (0..self.parallel_count)
+            .map(|id| {
                 let runner = TaskRunner::new(id, self.tasks.clone());
-                runners.push(runner.run());
-                runners
-            },
-        );
+                runner.run()
+            })
+            .collect();
 
-        let reports = futures::future::join_all(runners).await.into_iter().fold(
+        let reports: Vec<_> = join_all(runners).await.into_iter().fold(
             Vec::with_capacity(self.proxy_servers.len()),
             |mut all_reports, reports| {
                 all_reports.extend(reports);

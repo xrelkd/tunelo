@@ -1,5 +1,5 @@
 use std::{
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
 };
 
@@ -16,12 +16,18 @@ use crate::{
 };
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct ServerConfig {
+pub struct ServerOptions {
     pub listen_address: IpAddr,
     pub listen_port: u16,
 }
 
-impl ServerConfig {
+impl Default for ServerOptions {
+    fn default() -> ServerOptions {
+        ServerOptions { listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST), listen_port: 8118 }
+    }
+}
+
+impl ServerOptions {
     pub fn listen_socket(&self) -> SocketAddr {
         SocketAddr::new(self.listen_address, self.listen_port)
     }
@@ -36,7 +42,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(
-        config: ServerConfig,
+        config: ServerOptions,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
     ) -> Server {

@@ -38,7 +38,7 @@ where
         let handshake_reply = HandshakeReply::from_reader(&mut self.stream).await?;
 
         if handshake_reply.method != method {
-            return Err(Error::UnsupportedSocksMethod);
+            return Err(Error::UnsupportedSocksMethod { method });
         }
 
         if method == Method::UsernamePassword {

@@ -65,7 +65,7 @@ impl TryFrom<u8> for SocksVersion {
         match version {
             consts::SOCKS4_VERSION => Ok(SocksVersion::V4),
             consts::SOCKS5_VERSION => Ok(SocksVersion::V5),
-            version => Err(Error::InvalidSocksVersion(version)),
+            version => Err(Error::InvalidSocksVersion { version }),
         }
     }
 }
@@ -75,6 +75,15 @@ impl Into<u8> for SocksVersion {
         match self {
             SocksVersion::V4 => consts::SOCKS4_VERSION,
             SocksVersion::V5 => consts::SOCKS5_VERSION,
+        }
+    }
+}
+
+impl std::fmt::Display for SocksVersion {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SocksVersion::V4 => write!(f, "SOCKS4"),
+            SocksVersion::V5 => write!(f, "SOCKS5"),
         }
     }
 }
@@ -94,6 +103,35 @@ pub enum SocksCommand {
 impl SocksCommand {
     #[inline]
     pub fn serialized_len(&self) -> usize { std::mem::size_of::<u8>() }
+}
+
+impl From<v4::Command> for SocksCommand {
+    fn from(cmd: v4::Command) -> SocksCommand {
+        match cmd {
+            v4::Command::TcpConnect => SocksCommand::TcpConnect,
+            v4::Command::TcpBind => SocksCommand::TcpBind,
+        }
+    }
+}
+
+impl From<v5::Command> for SocksCommand {
+    fn from(cmd: v5::Command) -> SocksCommand {
+        match cmd {
+            v5::Command::TcpConnect => SocksCommand::TcpConnect,
+            v5::Command::TcpBind => SocksCommand::TcpBind,
+            v5::Command::UdpAssociate => SocksCommand::UdpAssociate,
+        }
+    }
+}
+
+impl std::fmt::Display for SocksCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SocksCommand::TcpConnect => write!(f, "TCP Connect"),
+            SocksCommand::TcpBind => write!(f, "TCP Bind"),
+            SocksCommand::UdpAssociate => write!(f, "UDP Associate"),
+        }
+    }
 }
 
 #[derive(Clone, Copy, Eq, PartialEq, Debug)]
@@ -116,7 +154,7 @@ impl TryFrom<u8> for AddressType {
             consts::SOCKS5_ADDR_TYPE_IPV4 => Ok(AddressType::Ipv4),
             consts::SOCKS5_ADDR_TYPE_IPV6 => Ok(AddressType::Ipv6),
             consts::SOCKS5_ADDR_TYPE_DOMAIN_NAME => Ok(AddressType::Domain),
-            v => Err(Error::InvalidAddressType(v)),
+            ty => Err(Error::InvalidAddressType { ty }),
         }
     }
 }

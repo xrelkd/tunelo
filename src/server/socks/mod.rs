@@ -1,6 +1,6 @@
 use std::{
     collections::HashSet,
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::Arc,
     time::Duration,
 };
@@ -16,11 +16,11 @@ use crate::{
     authentication::AuthenticationManager,
     protocol::socks::{SocksCommand, SocksVersion},
     service::socks::{v5::UdpAssociateManager, Error, Service},
-    transport::{Resolver, StreamExt, TimedStream, Transport},
+    transport::{TimedStream, Transport},
 };
 
 #[derive(Debug, Clone)]
-pub struct ServerConfig {
+pub struct ServerOptions {
     pub supported_versions: HashSet<SocksVersion>,
     pub supported_commands: HashSet<SocksCommand>,
     pub listen_address: IpAddr,
@@ -32,7 +32,36 @@ pub struct ServerConfig {
     pub udp_cache_expiry_duration: Duration,
 }
 
-impl ServerConfig {
+impl Default for ServerOptions {
+    fn default() -> ServerOptions {
+        ServerOptions {
+            supported_versions: {
+                let mut versions = HashSet::new();
+                versions.insert(SocksVersion::V4);
+                versions.insert(SocksVersion::V5);
+                versions
+            },
+            supported_commands: {
+                let mut commands = HashSet::new();
+                commands.insert(SocksCommand::TcpConnect);
+                commands.insert(SocksCommand::TcpBind);
+                commands
+            },
+            listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
+            listen_port: 3128,
+            udp_ports: {
+                let mut ports = HashSet::new();
+                ports.insert(3129);
+                ports
+            },
+            connection_timeout: Duration::from_secs(10),
+            tcp_keepalive: Duration::from_secs(10),
+            udp_cache_expiry_duration: Duration::from_secs(10),
+        }
+    }
+}
+
+impl ServerOptions {
     pub fn listen_socket(&self) -> SocketAddr {
         SocketAddr::new(self.listen_address, self.listen_port)
     }
@@ -62,7 +91,7 @@ pub struct Server {
 
 impl Server {
     pub fn new(
-        config: ServerConfig,
+        config: ServerOptions,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
     ) -> Server {

@@ -1,6 +1,6 @@
 use crate::common::HostAddress;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum ProxyHost {
     Socks4a {
         server: HostAddress,

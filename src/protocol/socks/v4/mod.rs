@@ -32,7 +32,7 @@ impl TryFrom<u8> for Command {
         match cmd {
             consts::SOCKS4_CMD_TCP_CONNECT => Ok(Command::TcpConnect),
             consts::SOCKS4_CMD_TCP_BIND => Ok(Command::TcpBind),
-            cmd => Err(Error::InvalidCommand(cmd)),
+            command => Err(Error::InvalidCommand { command }),
         }
     }
 }

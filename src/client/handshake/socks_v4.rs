@@ -34,7 +34,7 @@ where
             ReplyField::Granted => Ok(()),
             ReplyField::Rejected => Err(Error::ProxyRejected),
             ReplyField::Unreachable => Err(Error::HostUnreachable),
-            ReplyField::InvalidId => Err(Error::InvalidSocks4aId(id)),
+            ReplyField::InvalidId => Err(Error::InvalidSocks4aId { id }),
         }
     }
 

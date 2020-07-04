@@ -67,15 +67,15 @@ where
         match stream.read_u8().await {
             Ok(0x04) => match self.service_v4 {
                 Some(ref service) => service.handle(stream, peer_addr).await,
-                None => Err(Error::UnsupportedSocksVersion(SocksVersion::V4)),
+                None => Err(Error::UnsupportedSocksVersion { version: SocksVersion::V4 }),
             },
             Ok(0x05) => match self.service_v5 {
                 Some(ref service) => service.handle(stream, peer_addr).await,
-                None => Err(Error::UnsupportedSocksVersion(SocksVersion::V5)),
+                None => Err(Error::UnsupportedSocksVersion { version: SocksVersion::V5 }),
             },
-            Ok(v) => {
+            Ok(version) => {
                 let _ = stream.shutdown().await;
-                Err(ProtocolError::InvalidSocksVersion(v).into())
+                Err(ProtocolError::InvalidSocksVersion { version }.into())
             }
             Err(err) => {
                 debug!("Failed to get SOCKS version from host: {:?}, error: {:?}", peer_addr, err);

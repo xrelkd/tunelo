@@ -111,9 +111,12 @@ impl Transport<TcpStream> {
         strategy: Arc<ProxyStrategy>,
     ) -> Result<Transport<TcpStream>, Error> {
         let metrics = TransportMetrics::new();
-        if !filter.check_proxy_strategy(strategy.as_ref()) {
-            return Err(Error::ConnectForbiddenHost);
+
+        let (pass, denied_hosts) = filter.check_proxy_strategy(strategy.as_ref());
+        if !pass {
+            return Err(Error::ConnectForbiddenHosts { hosts: denied_hosts });
         }
+
         let connector = Arc::new(ProxyConnector::new(strategy)?);
         Ok(Transport { metrics, connector, resolver, filter })
     }
@@ -138,7 +141,7 @@ where
         let addrs = self.resolver.resolve(host).await?;
         if addrs.is_empty() {
             warn!("Failed to resolve domain name {}", host);
-            return Err(Error::FailedToResolveDomainName);
+            return Err(Error::ResolveDomainName { domain_name: host.to_owned() });
         }
         let addr = addrs[0];
         debug!("Resolved {} => {}", host, addr);
@@ -158,7 +161,7 @@ where
     #[inline]
     pub async fn connect(&self, host: &HostAddress) -> Result<(Stream, HostAddress), Error> {
         if self.filter.filter_host_address(host) == FilterAction::Deny {
-            return Err(Error::ConnectForbiddenHost);
+            return Err(Error::ConnectForbiddenHosts { hosts: vec![host.clone()] });
         }
 
         debug!("Try to connect remote host {}", host.to_string());
@@ -176,7 +179,7 @@ where
     #[inline]
     pub async fn connect_addr(&self, addr: &SocketAddr) -> Result<(Stream, SocketAddr), Error> {
         if self.filter.filter_socket(addr) == FilterAction::Deny {
-            return Err(Error::ConnectForbiddenHost);
+            return Err(Error::ConnectForbiddenHosts { hosts: vec![addr.clone().into()] });
         }
 
         debug!("Try to connect remote host {}", addr);

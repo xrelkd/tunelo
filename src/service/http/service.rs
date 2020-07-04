@@ -44,7 +44,7 @@ where
                 Self::shutdown_with_status(&mut client_stream, StatusCode::NotFound).await?;
                 return Ok(());
             }
-            Err(ProtocolError::UnsupportedMethod(method)) => {
+            Err(ProtocolError::UnsupportedMethod { method }) => {
                 client_stream.write(StatusCode::NotImplemented.status_line().as_bytes()).await?;
                 client_stream
                     .write(
@@ -68,7 +68,7 @@ where
                 let _n = client_stream.write(response.as_ref()).await?;
                 (socket, addr)
             }
-            Err(_err) => return Err(Error::Protocol(ProtocolError::HostUnreachable)),
+            Err(_err) => return Err(Error::Protocol { source: ProtocolError::HostUnreachable }),
         };
 
         let on_finished = Box::new(move || {
@@ -100,7 +100,7 @@ where
             let mut parts = line.trim().split_whitespace();
             match parts.next() {
                 Some(method) if method.to_uppercase() != "CONNECT" => {
-                    return Err(ProtocolError::UnsupportedMethod(method.to_owned()));
+                    return Err(ProtocolError::UnsupportedMethod { method: method.to_owned() });
                 }
                 Some(_) => {}
                 None => return Err(ProtocolError::BadRequest),

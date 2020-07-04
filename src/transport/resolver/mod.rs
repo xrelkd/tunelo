@@ -29,3 +29,23 @@ impl Resolver for DummyResolver {
         Box::pin(futures::future::lazy(|_| Ok(vec![IpAddr::from([0, 0, 0, 0])])))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use tokio::runtime::Runtime;
+
+    use super::*;
+
+    #[test]
+    fn test_dummy_resolver() {
+        let resolver = DummyResolver::new();
+        let mut r = Runtime::new().unwrap();
+
+        r.block_on(async move {
+            assert_eq!(
+                resolver.resolve("www.google.com").await.unwrap(),
+                vec![IpAddr::from([0, 0, 0, 0])]
+            )
+        });
+    }
+}

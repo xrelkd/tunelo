@@ -1,5 +1,5 @@
 use futures::FutureExt;
-use tokio::runtime::Runtime;
+use tokio::runtime::Handle;
 use trust_dns_resolver::{
     config::{ResolverConfig, ResolverOpts},
     AsyncResolver, TokioAsyncResolver,
@@ -16,40 +16,22 @@ pub struct DefaultResolver {
 }
 
 impl DefaultResolver {
-    pub fn new(
-        runtime: &mut Runtime,
+    pub async fn new(
+        runtime_handle: Handle,
         resolver_config: ResolverConfig,
         resolver_opts: ResolverOpts,
     ) -> Result<DefaultResolver, Error> {
-        let resolver = {
-            let runtime_handle = runtime.handle().clone();
-
-            runtime.block_on(async move {
-                match AsyncResolver::new(resolver_config, resolver_opts, runtime_handle.clone())
-                    .await
-                {
-                    Ok(r) => Ok(r),
-                    Err(err) => Err(Error::FailedToInitializeNameResolver(err.to_string())),
-                }
-            })?
-        };
-
-        Ok(DefaultResolver { resolver })
+        AsyncResolver::new(resolver_config, resolver_opts, runtime_handle)
+            .await
+            .map(|resolver| DefaultResolver { resolver })
+            .map_err(|err| Error::InitializeTrustDnsResolver { error: err.to_string() })
     }
 
-    pub fn from_system_conf(runtime: &mut Runtime) -> Result<DefaultResolver, Error> {
-        let resolver = {
-            let runtime_handle = runtime.handle().clone();
-
-            runtime.block_on(async move {
-                match AsyncResolver::from_system_conf(runtime_handle.clone()).await {
-                    Ok(r) => Ok(r),
-                    Err(err) => Err(Error::FailedToInitializeNameResolver(err.to_string())),
-                }
-            })?
-        };
-
-        Ok(DefaultResolver { resolver })
+    pub async fn from_system_conf(runtime_handle: Handle) -> Result<DefaultResolver, Error> {
+        AsyncResolver::from_system_conf(runtime_handle)
+            .await
+            .map(|resolver| DefaultResolver { resolver })
+            .map_err(|err| Error::InitializeTrustDnsResolver { error: err.to_string() })
     }
 }
 
@@ -61,7 +43,7 @@ impl Resolver for DefaultResolver {
         async move {
             let response = match resolver.lookup_ip(host).await {
                 Ok(res) => res,
-                Err(_err) => return Err(Error::NameResolver),
+                Err(err) => return Err(Error::LookupTrustDnsResolver { error: err.to_string() }),
             };
 
             Ok(response.iter().collect())
