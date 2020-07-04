@@ -28,6 +28,22 @@ impl PartialEq<SocketAddr> for HostAddress {
 
 impl HostAddress {
     #[inline]
+    pub fn new(host: &str, port: u16) -> Self {
+        match host.parse() {
+            Ok(ip) => HostAddress::Socket(SocketAddr::new(ip, port)),
+            Err(_) => HostAddress::DomainName(host.to_owned(), port),
+        }
+    }
+
+    #[inline]
+    pub fn host(&self) -> String {
+        match self {
+            HostAddress::Socket(socket) => socket.ip().to_string(),
+            HostAddress::DomainName(host, _) => host.clone(),
+        }
+    }
+
+    #[inline]
     pub fn port(&self) -> u16 {
         match self {
             HostAddress::Socket(socket) => socket.port(),

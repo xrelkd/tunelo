@@ -1,6 +1,7 @@
-use std::sync::Arc;
+use std::{future::Future, pin::Pin, sync::Arc};
 
-use tokio::sync::Mutex;
+use futures::future::join_all;
+use tokio::sync::{broadcast, Mutex};
 
 use tunelo::{
     authentication::AuthenticationManager,
@@ -9,13 +10,9 @@ use tunelo::{
     transport::{Resolver, Transport},
 };
 
-use crate::{config::Config, error::Error, signal_handler};
+use crate::{config::MultiProxyConfig, error::Error, signal_handler};
 
-pub async fn run(resolver: Arc<dyn Resolver>, config: Config) -> Result<(), Error> {
-    use futures::future::join_all;
-    use std::{future::Future, pin::Pin};
-    use tokio::sync::broadcast;
-
+pub async fn run(resolver: Arc<dyn Resolver>, config: MultiProxyConfig) -> Result<(), Error> {
     let socks_server_config =
         if config.enable_socks() { config.socks_server.clone() } else { None };
     let http_server_config = if config.enable_http() { config.http_server.clone() } else { None };
@@ -75,13 +72,4 @@ pub async fn run(resolver: Arc<dyn Resolver>, config: Config) -> Result<(), Erro
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        let v = vec![Ok(1), Err(3), Ok(2), Err(4)];
-        assert_eq!(v.into_iter().filter_map(Result::err).collect::<Vec<_>>(), vec![3, 4]);
-    }
 }

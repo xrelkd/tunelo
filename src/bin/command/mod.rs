@@ -4,10 +4,10 @@ use structopt::{clap::Shell as ClapShell, StructOpt};
 
 use tunelo::transport::{DefaultResolver, Resolver};
 
-use crate::{config::Config, error::Error};
+use crate::{config::MultiProxyConfig, error::Error};
 
 mod http_server;
-mod multi_server;
+mod multi_proxy;
 pub mod options;
 mod proxy_chain;
 mod proxy_checker;
@@ -25,7 +25,7 @@ pub enum Command {
     ProxyChecker(options::ProxyCheckerOptions),
 
     #[structopt(about = "Starts multiple proxy server")]
-    MultiServer {
+    MultiProxy {
         #[structopt(long = "config", short = "c")]
         config_file: Option<PathBuf>,
     },
@@ -36,20 +36,23 @@ pub enum Command {
     #[structopt(about = "Runs as HTTP proxy server")]
     HttpServer(options::HttpOptions),
 
+    // #[structopt(about = "Runs as proxy chain server")]
+    // ProxyChain(options::ProxyChainOptions),
     #[structopt(about = "Runs as proxy chain server")]
-    ProxyChain(options::ProxyChainOptions),
+    ProxyChain {
+        config_file: Option<PathBuf>,
+
+        #[structopt(flatten)]
+        options: options::ProxyChainOptions,
+    },
 }
 
 impl Command {
     #[inline]
-    pub fn new() -> Command {
-        Command::from_args()
-    }
+    pub fn new() -> Command { Command::from_args() }
 
     #[inline]
-    pub fn app_name() -> String {
-        Command::clap().get_name().to_owned()
-    }
+    pub fn app_name() -> String { Command::clap().get_name().to_owned() }
 
     pub fn run(self) -> Result<(), Error> {
         match self {
@@ -64,18 +67,18 @@ impl Command {
                 Command::clap().gen_completions_to(app_name, shell, &mut std::io::stdout());
                 Ok(())
             }
-            Command::MultiServer { config_file } => {
+            Command::MultiProxy { config_file } => {
                 let config = match config_file {
-                    Some(path) => match Config::load(&path) {
-                        Ok(config) => config,
-                        Err(source) => {
-                            let file_path = path.to_owned();
-                            return Err(Error::ReadConfigFile { source, file_path });
-                        }
-                    },
-                    None => Config::default(),
+                    Some(path) => MultiProxyConfig::load(&path).map_err(|source| {
+                        Error::ReadConfigFile { source, file_path: path.to_owned() }
+                    })?,
+                    None => MultiProxyConfig::default(),
                 };
-                execute(move |resolver| Box::pin(multi_server::run(resolver, config)))
+                execute(move |resolver| Box::pin(multi_proxy::run(resolver, config)))
+            }
+            Command::ProxyChain { options, config_file } => {
+                let options = options.into();
+                execute(move |resolver| Box::pin(proxy_chain::run(resolver, options)))
             }
             Command::SocksServer(options) => {
                 let options = options.try_into()?;
@@ -85,7 +88,6 @@ impl Command {
                 let options = options.into();
                 execute(move |resolver| Box::pin(http_server::run(resolver, options)))
             }
-            Command::ProxyChain(_options) => Ok(()),
             Command::ProxyChecker(_options) => {
                 execute(move |_resolver| Box::pin(proxy_checker::run()))
             }

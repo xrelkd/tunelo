@@ -32,7 +32,7 @@ pub trait HostFilter: Send + Sync {
     fn check_proxy_strategy(&self, strategy: &ProxyStrategy) -> (bool, Vec<HostAddress>) {
         match strategy {
             ProxyStrategy::Single(proxy) => {
-                if self.filter_host_address(proxy.host_address()) == FilterAction::Deny {
+                if self.filter_host_address(&proxy.host_address()) == FilterAction::Deny {
                     return (false, vec![proxy.host_address().clone()]);
                 }
             }
@@ -40,7 +40,7 @@ pub trait HostFilter: Send + Sync {
                 let denied: Vec<_> = proxies
                     .iter()
                     .filter(|proxy| {
-                        self.filter_host_address(proxy.host_address()) == FilterAction::Deny
+                        self.filter_host_address(&proxy.host_address()) == FilterAction::Deny
                     })
                     .map(|proxy| proxy.host_address().clone())
                     .collect();

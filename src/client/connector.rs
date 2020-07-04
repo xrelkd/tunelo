@@ -88,11 +88,11 @@ impl ProxyConnector {
                 let _ = id;
                 handshake.handshake_socks_v4_tcp_connect(target_host, None).await?;
             }
-            ProxyHost::Socks5 { user_name, password, .. } => {
+            ProxyHost::Socks5 { username, password, .. } => {
                 handshake
                     .handshake_socks_v5_tcp_connect(
                         target_host,
-                        user_name.as_deref(),
+                        username.as_deref(),
                         password.as_deref(),
                     )
                     .await?;
