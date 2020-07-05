@@ -1,0 +1,46 @@
+[tasks.format]
+command = "rustup"
+args = ["run", "nightly", "cargo", "fmt"]
+
+[tasks.build]
+command = "cargo"
+args = ["build"]
+dependencies = ["format"]
+
+[tasks.build-all]
+command = "cargo"
+args = ["build"]
+dependencies = ["format"]
+
+[tasks.build-release]
+command = "cargo"
+args = ["build", "--release"]
+dependencies = ["format"]
+
+[tasks.test]
+command = "cargo"
+args = ["test"]
+
+[tasks.build-docker]
+command = "docker"
+args = ["build", "--tag=tunelo:latest", "."]
+dependencies = ["format"]
+
+[tasks.generate-completions]
+script = [
+'''
+rm -rf completions
+
+mkdir -p completions/{bash-completion/completions,fish/completions,zsh/site-functions}
+
+./target/release/tunelo completions bash > "completions/bash-completion/completions/tunelo"
+./target/release/tunelo completions fish > "completions/fish/completions/tunelo.fish"
+./target/release/tunelo completions zsh > "completions/zsh/site-functions/_tunelo"
+'''
+]
+dependencies = ["build-release"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
