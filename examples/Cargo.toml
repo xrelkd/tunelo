@@ -17,14 +17,6 @@ name = "myip"
 path = "myip.rs"
 
 [[example]]
-name = "socks_server"
-path = "socks_server.rs"
-
-[[example]]
-name = "proxy_chain"
-path = "proxy_chain.rs"
-
-[[example]]
 name = "proxy_checker"
 path = "proxy_checker.rs"
 

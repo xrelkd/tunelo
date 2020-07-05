@@ -1,8 +1,14 @@
+use std::path::Path;
+
+use snafu::Snafu;
+use structopt::StructOpt;
+
 use tunelo::{client::ProxyChecker, common::ProxyHost};
 
-use crate::command::Error;
-
-pub async fn run() -> Result<(), Error> {
+pub async fn run<P: AsRef<Path>>(
+    _config: Config,
+    _config_file: Option<P>,
+) -> Result<(), crate::error::Error> {
     let proxy_servers = vec![
         ("127.0.0.1", 9050),
         ("127.0.0.1", 9051),
@@ -34,6 +40,12 @@ pub async fn run() -> Result<(), Error> {
 
     Ok(())
 }
+
+#[derive(Debug, StructOpt)]
+pub struct Config {}
+
+#[derive(Debug, Snafu)]
+pub enum Error {}
 
 #[cfg(test)]
 mod tests {}

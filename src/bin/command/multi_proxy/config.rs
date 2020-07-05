@@ -6,17 +6,19 @@ use std::{
     time::Duration,
 };
 
-use crate::config::error::Error;
+pub use crate::command::multi_proxy::Error;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct MultiProxyConfig {
+pub struct Config {
     pub proxy_servers: HashSet<ProxyServer>,
 
     pub socks_server: Option<SocksServer>,
     pub http_server: Option<HttpServer>,
 }
 
-impl MultiProxyConfig {
+impl Config {
+    impl_config_load!(Config);
+
     pub fn enable_socks(&self) -> bool {
         self.proxy_servers.contains(&ProxyServer::Socks) && self.socks_server.is_some()
     }
@@ -24,25 +26,13 @@ impl MultiProxyConfig {
     pub fn enable_http(&self) -> bool {
         self.proxy_servers.contains(&ProxyServer::Http) && self.http_server.is_some()
     }
-
-    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<MultiProxyConfig, Error> {
-        let content = std::fs::read(&file_path).map_err(|source| Error::ReadConfigFile {
-            source,
-            file_name: file_path.as_ref().to_owned(),
-        })?;
-        let config = toml::from_slice(&content).map_err(|source| Error::DeserializeConfig {
-            source,
-            file_name: file_path.as_ref().to_owned(),
-        })?;
-        Ok(config)
-    }
 }
 
-impl Default for MultiProxyConfig {
-    fn default() -> MultiProxyConfig {
+impl Default for Config {
+    fn default() -> Config {
         let proxy_servers = vec![ProxyServer::Http, ProxyServer::Socks].into_iter().collect();
 
-        MultiProxyConfig {
+        Config {
             proxy_servers,
             http_server: Some(HttpServer::default()),
             socks_server: Some(SocksServer::default()),

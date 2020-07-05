@@ -1,17 +1,19 @@
-use std::{convert::TryInto, future::Future, path::PathBuf, pin::Pin, sync::Arc};
+use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
 use structopt::{clap::Shell as ClapShell, StructOpt};
 
 use tunelo::transport::{DefaultResolver, Resolver};
 
-use crate::{config::MultiProxyConfig, error::Error};
+use crate::error::Error;
 
-mod http_server;
-mod multi_proxy;
-pub mod options;
-mod proxy_chain;
-mod proxy_checker;
-mod socks_server;
+#[macro_use]
+pub mod macros;
+
+pub mod http_server;
+pub mod multi_proxy;
+pub mod proxy_chain;
+pub mod proxy_checker;
+pub mod socks_server;
 
 #[derive(Debug, StructOpt)]
 pub enum Command {
@@ -21,29 +23,46 @@ pub enum Command {
     #[structopt(about = "Shows shell completions")]
     Completions { shell: ClapShell },
 
-    #[structopt(about = "Runs as proxy checker")]
-    ProxyChecker(options::ProxyCheckerOptions),
-
     #[structopt(about = "Starts multiple proxy server")]
     MultiProxy {
         #[structopt(long = "config", short = "c")]
         config_file: Option<PathBuf>,
     },
 
-    #[structopt(about = "Runs as SOCKS proxy server")]
-    SocksServer(options::SocksOptions),
-
-    #[structopt(about = "Runs as HTTP proxy server")]
-    HttpServer(options::HttpOptions),
-
-    // #[structopt(about = "Runs as proxy chain server")]
-    // ProxyChain(options::ProxyChainOptions),
     #[structopt(about = "Runs as proxy chain server")]
     ProxyChain {
+        #[structopt(long = "config", short = "c")]
         config_file: Option<PathBuf>,
 
         #[structopt(flatten)]
-        options: options::ProxyChainOptions,
+        options: proxy_chain::Options,
+    },
+
+    #[structopt(about = "Runs as proxy checker")]
+    ProxyChecker {
+        #[structopt(long = "config", short = "c")]
+        config_file: Option<PathBuf>,
+
+        #[structopt(flatten)]
+        options: proxy_checker::Config,
+    },
+
+    #[structopt(about = "Runs as SOCKS proxy server")]
+    SocksServer {
+        #[structopt(long = "config", short = "c")]
+        config_file: Option<PathBuf>,
+
+        #[structopt(flatten)]
+        options: socks_server::Options,
+    },
+
+    #[structopt(about = "Runs as HTTP proxy server")]
+    HttpServer {
+        #[structopt(long = "config", short = "c")]
+        config_file: Option<PathBuf>,
+
+        #[structopt(flatten)]
+        options: http_server::Options,
     },
 }
 
@@ -68,28 +87,19 @@ impl Command {
                 Ok(())
             }
             Command::MultiProxy { config_file } => {
-                let config = match config_file {
-                    Some(path) => MultiProxyConfig::load(&path).map_err(|source| {
-                        Error::ReadConfigFile { source, file_path: path.to_owned() }
-                    })?,
-                    None => MultiProxyConfig::default(),
-                };
-                execute(move |resolver| Box::pin(multi_proxy::run(resolver, config)))
+                execute(move |resolver| Box::pin(multi_proxy::run(resolver, config_file)))
             }
             Command::ProxyChain { options, config_file } => {
-                let options = options.into();
-                execute(move |resolver| Box::pin(proxy_chain::run(resolver, options)))
+                execute(move |resolver| Box::pin(proxy_chain::run(resolver, options, config_file)))
             }
-            Command::SocksServer(options) => {
-                let options = options.try_into()?;
-                execute(move |resolver| Box::pin(socks_server::run(resolver, options)))
+            Command::SocksServer { options, config_file } => {
+                execute(move |resolver| Box::pin(socks_server::run(resolver, options, config_file)))
             }
-            Command::HttpServer(options) => {
-                let options = options.into();
-                execute(move |resolver| Box::pin(http_server::run(resolver, options)))
+            Command::HttpServer { options, config_file } => {
+                execute(move |resolver| Box::pin(http_server::run(resolver, options, config_file)))
             }
-            Command::ProxyChecker(_options) => {
-                execute(move |_resolver| Box::pin(proxy_checker::run()))
+            Command::ProxyChecker { options, config_file } => {
+                execute(move |_resolver| Box::pin(proxy_checker::run(options, config_file)))
             }
         }
     }
