@@ -1,4 +1,4 @@
-use std::{fmt, path::Path};
+use std::fmt;
 
 use snafu::Snafu;
 use url::Url;
@@ -50,14 +50,6 @@ impl ProxyHost {
         let host = self.host();
         HostAddress::new(host, port)
     }
-
-    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<Vec<ProxyHost>, ProxyHostError> {
-        let file = std::fs::File::open(&file_path)
-            .map_err(|source| ProxyHostError::LoadProxyHostFile { source })?;
-        let chain = serde_json::from_reader(&file)
-            .map_err(|source| ProxyHostError::ParseProxyHost { source })?;
-        Ok(chain)
-    }
 }
 
 impl std::str::FromStr for ProxyHost {
@@ -108,12 +100,6 @@ pub enum ProxyHostError {
 
     #[snafu(display("Could not parse URL, error: {}", source))]
     ParseUrlError { source: url::ParseError },
-
-    #[snafu(display("Could not parse ProxyHost, error: {}", source))]
-    ParseProxyHost { source: serde_json::Error },
-
-    #[snafu(display("Could not load ProxyHost file, error: {}", source))]
-    LoadProxyHostFile { source: std::io::Error },
 
     #[snafu(display("Invalid scheme: {}", scheme))]
     InvalidScheme { scheme: String },

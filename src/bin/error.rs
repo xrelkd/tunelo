@@ -1,59 +1,44 @@
-use std::path::PathBuf;
-
 use snafu::Snafu;
-
-use crate::{command::options, config::ConfigError};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("Options error: {}", source))]
-    OptionsError {
-        source: options::OptionsError,
-    },
-
-    #[snafu(display("Could not read configuration from {:?}, error: {}", file_path.display(), source))]
-    ReadConfigFile {
-        file_path: PathBuf,
-        source: ConfigError,
-    },
-
     #[snafu(display("Could not initialize tokio runtime, error: {}", source))]
-    InitializeTokioRuntime {
-        source: tokio::io::Error,
-    },
+    InitializeTokioRuntime { source: tokio::io::Error },
 
     #[snafu(display("Transport error, error: {}", source))]
-    Transport {
-        source: tunelo::transport::Error,
-    },
+    Transport { source: tunelo::transport::Error },
 
-    #[snafu(display("Could not run SOCKs proxy service, error: {}", source))]
-    RunSocksService {
-        source: tunelo::service::socks::Error,
-    },
+    #[snafu(display("Could not run SOCKs proxy server, error: {}", source))]
+    RunSocksServer { source: crate::command::socks_server::Error },
 
-    #[snafu(display("Could not run HTTP proxy service, error: {}", source))]
-    RunHttpService {
-        source: tunelo::service::http::Error,
-    },
+    #[snafu(display("Could not run HTTP proxy server, error: {}", source))]
+    RunHttpServer { source: crate::command::http_server::Error },
 
-    ErrorCollection {
-        errors: Vec<Error>,
-    },
-}
+    #[snafu(display("Could not run proxy chain, error: {}", source))]
+    RunProxyChain { source: crate::command::proxy_chain::Error },
 
-impl From<options::OptionsError> for Error {
-    fn from(source: options::OptionsError) -> Error { Error::OptionsError { source } }
+    #[snafu(display("Could not multi proxy, error: {}", source))]
+    RunMultiProxy { source: crate::command::multi_proxy::Error },
 }
 
 impl From<tunelo::transport::Error> for Error {
     fn from(source: tunelo::transport::Error) -> Error { Error::Transport { source } }
 }
 
-impl From<tunelo::service::http::Error> for Error {
-    fn from(source: tunelo::service::http::Error) -> Error { Error::RunHttpService { source } }
+impl From<crate::command::http_server::Error> for Error {
+    fn from(source: crate::command::http_server::Error) -> Error { Error::RunHttpServer { source } }
 }
 
-impl From<tunelo::service::socks::Error> for Error {
-    fn from(source: tunelo::service::socks::Error) -> Error { Error::RunSocksService { source } }
+impl From<crate::command::socks_server::Error> for Error {
+    fn from(source: crate::command::socks_server::Error) -> Error {
+        Error::RunSocksServer { source }
+    }
+}
+
+impl From<crate::command::proxy_chain::Error> for Error {
+    fn from(source: crate::command::proxy_chain::Error) -> Error { Error::RunProxyChain { source } }
+}
+
+impl From<crate::command::multi_proxy::Error> for Error {
+    fn from(source: crate::command::multi_proxy::Error) -> Error { Error::RunMultiProxy { source } }
 }
