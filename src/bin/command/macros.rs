@@ -1,9 +1,3 @@
-macro_rules! merge_bool_field {
-    ($config:ident, $opt:ident) => {
-        $config.$opt = $opt;
-    };
-}
-
 macro_rules! merge_option_field {
     ($config:ident, $opt:ident) => {
         $opt.take().map(|opt| $config.$opt = opt);

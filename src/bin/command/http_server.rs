@@ -1,30 +1,26 @@
 use std::{
     net::{IpAddr, Ipv4Addr},
-    path::{Path, PathBuf},
+    path::Path,
     sync::Arc,
 };
 
-use snafu::Snafu;
 use structopt::StructOpt;
 use tokio::sync::Mutex;
 
 use tunelo::{
     authentication::AuthenticationManager,
     filter::DefaultFilter,
-    server::{
-        http,
-        http::{Server, ServerOptions},
-    },
+    server::http::{self, Server, ServerOptions},
     transport::{Resolver, Transport},
 };
 
-use crate::{shutdown, signal_handler};
+use crate::{error::Error, shutdown, signal_handler};
 
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
     opts: Options,
     config_file: Option<P>,
-) -> Result<(), crate::error::Error> {
+) -> Result<(), Error> {
     let config = match config_file {
         Some(path) => Config::load(path)?.merge(opts),
         None => Config::default().merge(opts),
@@ -40,8 +36,7 @@ pub async fn run<P: AsRef<Path>>(
         };
         let transport = Arc::new(Transport::direct(resolver, filter));
         let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
-        let server = Server::new(server_config, transport, authentication_manager);
-        server
+        Server::new(server_config, transport, authentication_manager)
     };
 
     let (tx, mut rx) = shutdown::new();
@@ -52,7 +47,7 @@ pub async fn run<P: AsRef<Path>>(
             rx.wait().await;
         })
         .await
-        .map_err(|source| Error::RunHttpService { source })?;
+        .map_err(|source| Error::RunHttpServer { source })?;
 
     Ok(())
 }
@@ -81,8 +76,10 @@ impl Config {
 
     pub fn merge(mut self, opts: Options) -> Config {
         let Options { mut ip, mut port } = opts;
-        port.take().map(|port| self.port = port);
-        ip.take().map(|ip| self.ip = ip);
+
+        merge_option_field!(self, ip);
+        merge_option_field!(self, port);
+
         self
     }
 }
@@ -94,16 +91,4 @@ impl Into<http::ServerOptions> for Config {
 
         http::ServerOptions { listen_address, listen_port }
     }
-}
-
-#[derive(Debug, Snafu)]
-pub enum Error {
-    #[snafu(display("Could not run HTTP proxy service, error: {}", source))]
-    RunHttpService { source: tunelo::service::http::Error },
-
-    #[snafu(display("Read configuration file {}, error: {}", file_path.display(), source))]
-    ReadConfigFile { source: std::io::Error, file_path: PathBuf },
-
-    #[snafu(display("Deserialize configuration file {:?}, error: {}", file_path.display(), source))]
-    DeserializeConfig { source: toml::de::Error, file_path: PathBuf },
 }

@@ -9,7 +9,6 @@ use std::{
 };
 
 use futures::future::join_all;
-use snafu::Snafu;
 use structopt::StructOpt;
 use tokio::sync::Mutex;
 
@@ -21,13 +20,13 @@ use tunelo::{
     transport::{Resolver, Transport},
 };
 
-use crate::{shutdown, signal_handler};
+use crate::{error::Error, shutdown, signal_handler};
 
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
     options: Options,
     config_file: Option<P>,
-) -> Result<(), crate::error::Error> {
+) -> Result<(), Error> {
     let config = match config_file {
         Some(path) => Config::load(path)?.merge(options),
         None => Config::default().merge(options),
@@ -93,7 +92,10 @@ pub async fn run<P: AsRef<Path>>(
         Arc::new(f)
     };
 
-    let transport = Arc::new(Transport::proxy(resolver, filter, proxy_strategy)?);
+    let transport = Arc::new(
+        Transport::proxy(resolver, filter, proxy_strategy)
+            .map_err(|source| Error::CreateTransport { source })?,
+    );
     let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
 
     let (shutdown_sender, mut shutdown_receiver) = shutdown::new();
@@ -107,7 +109,7 @@ pub async fn run<P: AsRef<Path>>(
                 socks::Server::new(opts, transport.clone(), authentication_manager.clone());
 
             let signal = async move {
-                let _ = shutdown_receiver.wait().await;
+                shutdown_receiver.wait().await;
             };
             Box::pin(async {
                 Ok(server
@@ -124,7 +126,7 @@ pub async fn run<P: AsRef<Path>>(
             let server = http::Server::new(opts, transport, authentication_manager);
 
             let signal = async move {
-                let _ = shutdown_receiver.wait().await;
+                shutdown_receiver.wait().await;
             };
             Box::pin(async {
                 Ok(server
@@ -137,6 +139,10 @@ pub async fn run<P: AsRef<Path>>(
         futs.push(http_serve);
     }
 
+    if futs.is_empty() {
+        return Err(Error::NoProxyServer);
+    }
+
     signal_handler::start(Box::new(move || {
         let _ = shutdown_sender.shutdown();
     }));
@@ -144,7 +150,7 @@ pub async fn run<P: AsRef<Path>>(
     let handle = join_all(futs).await;
     let errors: Vec<_> = handle.into_iter().filter_map(Result::err).collect();
     if !errors.is_empty() {
-        return Err(Error::ErrorCollection { errors })?;
+        return Err(Error::ErrorCollection { errors });
     }
 
     Ok(())
@@ -176,9 +182,9 @@ impl Config {
 
     fn merge(mut self, opts: Options) -> Config {
         let Options {
-            enable_socks4a,
-            enable_socks5,
-            enable_http,
+            disable_socks4a,
+            disable_socks5,
+            disable_http,
             socks_ip,
             socks_port,
             http_ip,
@@ -195,9 +201,10 @@ impl Config {
             };
         }
 
-        merge_bool_field!(self, enable_socks4a);
-        merge_bool_field!(self, enable_socks5);
-        merge_bool_field!(self, enable_http);
+        self.enable_socks4a = !disable_socks4a;
+        self.enable_socks5 = !disable_socks5;
+        self.enable_http = !disable_http;
+
         merge_option!(self, socks_ip);
         merge_option!(self, socks_port);
         merge_option!(self, http_ip);
@@ -227,14 +234,14 @@ impl Default for Config {
 
 #[derive(Debug, StructOpt)]
 pub struct Options {
-    #[structopt(long = "enable-socks4a")]
-    enable_socks4a: bool,
+    #[structopt(long = "disable-socks4a")]
+    disable_socks4a: bool,
 
-    #[structopt(long = "enable-socks5")]
-    enable_socks5: bool,
+    #[structopt(long = "disable-socks5")]
+    disable_socks5: bool,
 
-    #[structopt(long = "enable-http")]
-    enable_http: bool,
+    #[structopt(long = "disable-http")]
+    disable_http: bool,
 
     #[structopt(long = "socks-ip")]
     socks_ip: Option<IpAddr>,
@@ -253,70 +260,4 @@ pub struct Options {
 
     #[structopt(long = "proxy-chain")]
     proxy_chain: Option<Vec<ProxyHost>>,
-}
-
-#[derive(Debug, Snafu)]
-pub enum Error {
-    #[snafu(display("Read configuration file {}, error: {}", file_path.display(), source))]
-    ReadConfigFile {
-        source: std::io::Error,
-        file_path: PathBuf,
-    },
-
-    #[snafu(display("Deserialize configuration file {:?}, error: {}", file_path.display(), source))]
-    DeserializeConfig {
-        source: toml::de::Error,
-        file_path: PathBuf,
-    },
-
-    #[snafu(display("Could not run SOCKs proxy server, error: {}", source))]
-    RunSocksServer {
-        source: tunelo::service::socks::Error,
-    },
-
-    #[snafu(display("Could not run HTTP proxy server, error: {}", source))]
-    RunHttpServer {
-        source: tunelo::service::http::Error,
-    },
-
-    ErrorCollection {
-        errors: Vec<Error>,
-    },
-
-    #[snafu(display("No SOCKS service is enabled"))]
-    NoSocksServiceEnabled,
-
-    #[snafu(display("UDP associate is enabled but no UDP port is provided"))]
-    NoUdpPortProvided,
-
-    #[snafu(display("TCP bind is not supported yet"))]
-    TcpBindNotSupported,
-
-    #[snafu(display("No SOCKS command is enabled, try to enable some commands"))]
-    NoSocksCommandEnabled,
-
-    #[snafu(display("No proxy chain provided"))]
-    NoProxyChain,
-
-    #[snafu(display("Miss SOCKS listen address"))]
-    NoSocksListenAddress,
-
-    #[snafu(display("Miss SOCKS listen port"))]
-    NoSocksListenPort,
-
-    #[snafu(display("Miss HTTP listen address"))]
-    NoHttpListenAddress,
-
-    #[snafu(display("Miss HTTP listen port"))]
-    NoHttpListenPort,
-
-    #[snafu(display("Could not parse ProxyHost, error: {}", source))]
-    ParseProxyHost {
-        source: serde_json::Error,
-    },
-
-    #[snafu(display("Could not load ProxyHost file, error: {}", source))]
-    LoadProxyHostFile {
-        source: std::io::Error,
-    },
 }

@@ -10,17 +10,16 @@ use tunelo::{
     transport::{Resolver, Transport},
 };
 
-use crate::{shutdown, signal_handler};
+use crate::{error::Error, shutdown, signal_handler};
 
 mod config;
-mod error;
 
-pub use self::{config::Config, error::Error};
+pub use self::config::Config;
 
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
     config_file: Option<P>,
-) -> Result<(), crate::error::Error> {
+) -> Result<(), Error> {
     let config = match config_file {
         Some(path) => Config::load(&path)?,
         None => Config::default(),
@@ -54,7 +53,7 @@ pub async fn run<P: AsRef<Path>>(
             );
 
             let signal = async move {
-                let _ = shutdown_receiver.wait().await;
+                shutdown_receiver.wait().await;
             };
             Box::pin(async {
                 Ok(server
@@ -63,6 +62,7 @@ pub async fn run<P: AsRef<Path>>(
                     .map_err(|source| Error::RunSocksServer { source })?)
             })
         };
+
         futs.push(socks_serve);
     }
 
@@ -71,7 +71,7 @@ pub async fn run<P: AsRef<Path>>(
             let server = http::Server::new(config.into(), transport, authentication_manager);
 
             let signal = async move {
-                let _ = shutdown_receiver.wait().await;
+                shutdown_receiver.wait().await;
             };
             Box::pin(async {
                 Ok(server
@@ -82,6 +82,10 @@ pub async fn run<P: AsRef<Path>>(
         };
 
         futs.push(http_serve);
+    }
+
+    if futs.is_empty() {
+        return Err(Error::NoProxyServer);
     }
 
     signal_handler::start(Box::new(move || {
