@@ -2,32 +2,29 @@ use std::{
     collections::HashSet,
     convert::TryInto,
     net::{IpAddr, Ipv4Addr},
-    path::{Path, PathBuf},
+    path::Path,
     sync::Arc,
     time::Duration,
 };
 
-use snafu::Snafu;
 use structopt::StructOpt;
-
-use tunelo::server::socks;
 
 use tokio::sync::Mutex;
 
 use tunelo::{
     authentication::AuthenticationManager,
     filter::DefaultFilter,
-    server::socks::{Server, ServerOptions},
+    server::socks::{self, Server, ServerOptions},
     transport::{Resolver, Transport},
 };
 
-use crate::{shutdown, signal_handler};
+use crate::{error::Error, shutdown, signal_handler};
 
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
     options: Options,
     config_file: Option<P>,
-) -> Result<(), crate::error::Error> {
+) -> Result<(), Error> {
     let config = match config_file {
         Some(path) => Config::load(&path)?.merge(options),
         None => Config::default().merge(options),
@@ -43,8 +40,7 @@ pub async fn run<P: AsRef<Path>>(
 
         let transport = Arc::new(Transport::direct(resolver, filter));
         let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
-        let server = Server::new(server_config, transport, authentication_manager);
-        server
+        Server::new(server_config, transport, authentication_manager)
     };
 
     let (tx, mut rx) = shutdown::new();
@@ -102,7 +98,7 @@ impl TryInto<socks::ServerOptions> for Config {
                 (true, false) => {
                     commands.insert(SocksCommand::UdpAssociate);
                 }
-                (true, true) => return Err(Error::NoUdpPortProvided),
+                (true, true) => return Err(Error::NoSocksUdpPort),
             }
 
             if self.enable_tcp_bind {
@@ -218,34 +214,4 @@ pub struct Options {
 
     #[structopt(long = "udp-ports", help = "UDP ports to provide UDP associate service")]
     udp_ports: Option<Vec<u16>>,
-}
-
-#[derive(Debug, Snafu)]
-pub enum Error {
-    #[snafu(display("Could not run SOCKS server, error: {}", source))]
-    RunSocksServer { source: tunelo::service::socks::Error },
-
-    #[snafu(display("Read configuration file {}, error: {}", file_path.display(), source))]
-    ReadConfigFile { source: std::io::Error, file_path: PathBuf },
-
-    #[snafu(display("Deserialize configuration file {:?}, error: {}", file_path.display(), source))]
-    DeserializeConfig { source: toml::de::Error, file_path: PathBuf },
-
-    #[snafu(display("No SOCKS service is enabled"))]
-    NoSocksServiceEnabled,
-
-    #[snafu(display("UDP associate is enabled but no UDP port is provided"))]
-    NoUdpPortProvided,
-
-    #[snafu(display("TCP bind is not supported yet"))]
-    TcpBindNotSupported,
-
-    #[snafu(display("No SOCKS command is enabled, try to enable some commands"))]
-    NoSocksCommandEnabled,
-
-    #[snafu(display("Miss SOCKS listen address"))]
-    NoSocksListenAddress,
-
-    #[snafu(display("Miss SOCKS listen port"))]
-    NoSocksListenPort,
 }

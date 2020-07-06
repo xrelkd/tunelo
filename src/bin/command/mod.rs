@@ -16,7 +16,16 @@ pub mod proxy_checker;
 pub mod socks_server;
 
 #[derive(Debug, StructOpt)]
-pub enum Command {
+pub struct Command {
+    #[structopt(long = "config", short = "c")]
+    config_file: Option<PathBuf>,
+
+    #[structopt(subcommand)]
+    subcommand: Option<SubCommand>,
+}
+
+#[derive(Debug, StructOpt)]
+pub enum SubCommand {
     #[structopt(about = "Shows current version")]
     Version,
 
@@ -74,33 +83,34 @@ impl Command {
     pub fn app_name() -> String { Command::clap().get_name().to_owned() }
 
     pub fn run(self) -> Result<(), Error> {
-        match self {
-            Command::Version => {
+        match self.subcommand {
+            Some(SubCommand::Version) => {
                 Command::clap()
                     .write_version(&mut std::io::stdout())
                     .expect("failed to write to stdout");
                 Ok(())
             }
-            Command::Completions { shell } => {
+            Some(SubCommand::Completions { shell }) => {
                 let app_name = Command::app_name();
                 Command::clap().gen_completions_to(app_name, shell, &mut std::io::stdout());
                 Ok(())
             }
-            Command::MultiProxy { config_file } => {
-                execute(move |resolver| Box::pin(multi_proxy::run(resolver, config_file)))
-            }
-            Command::ProxyChain { options, config_file } => {
+            Some(SubCommand::ProxyChain { options, config_file }) => {
                 execute(move |resolver| Box::pin(proxy_chain::run(resolver, options, config_file)))
             }
-            Command::SocksServer { options, config_file } => {
+            Some(SubCommand::SocksServer { options, config_file }) => {
                 execute(move |resolver| Box::pin(socks_server::run(resolver, options, config_file)))
             }
-            Command::HttpServer { options, config_file } => {
+            Some(SubCommand::HttpServer { options, config_file }) => {
                 execute(move |resolver| Box::pin(http_server::run(resolver, options, config_file)))
             }
-            Command::ProxyChecker { options, config_file } => {
+            Some(SubCommand::ProxyChecker { options, config_file }) => {
                 execute(move |_resolver| Box::pin(proxy_checker::run(options, config_file)))
             }
+            Some(SubCommand::MultiProxy { config_file }) => {
+                execute(move |resolver| Box::pin(multi_proxy::run(resolver, config_file)))
+            }
+            None => execute(move |resolver| Box::pin(multi_proxy::run(resolver, self.config_file))),
         }
     }
 }
@@ -122,7 +132,9 @@ where
 
     let resolver = {
         let handle = runtime.handle().clone();
-        runtime.block_on(async move { DefaultResolver::from_system_conf(handle).await })?
+        runtime
+            .block_on(async move { DefaultResolver::from_system_conf(handle).await })
+            .map_err(|source| Error::InitializeDomainNameResolver { source })?
     };
 
     runtime.block_on(f(Arc::new(resolver)))

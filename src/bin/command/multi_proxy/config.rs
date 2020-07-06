@@ -6,9 +6,9 @@ use std::{
     time::Duration,
 };
 
-pub use crate::command::multi_proxy::Error;
+pub use crate::error::Error;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     pub proxy_servers: HashSet<ProxyServer>,
 
@@ -34,13 +34,14 @@ impl Default for Config {
 
         Config {
             proxy_servers,
-            http_server: Some(HttpServer::default()),
             socks_server: Some(SocksServer::default()),
+            http_server: Some(HttpServer::default()),
         }
     }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum ProxyServer {
     Socks,
     Http,
@@ -67,7 +68,7 @@ impl ToString for ProxyServer {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct SocksServer {
     tcp_ip: IpAddr,
     tcp_port: u16,
@@ -169,7 +170,7 @@ impl SocksServer {
     pub fn listen_socket(&self) -> SocketAddr { SocketAddr::new(self.tcp_ip, self.tcp_port) }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct HttpServer {
     host: IpAddr,
     port: u16,
@@ -196,4 +197,70 @@ pub enum AuthenticationMethod {}
 
 impl ToString for AuthenticationMethod {
     fn to_string(&self) -> String { String::new() }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_load() {
+        let path = {
+            let mut p = std::env::temp_dir();
+            p.push(format!(".test-{:?}", std::time::Instant::now()));
+            p
+        };
+
+        let content = r#"
+proxy_servers = ["socks", "http"]
+
+[socks_server]
+tcp_ip = "127.0.0.1"
+tcp_port = 3128
+
+udp_ip = "127.0.0.1"
+udp_ports = [10001, 10002, 10003]
+
+enable_socks4a = true
+enable_socks5 = true
+
+enable_tcp_connect = true
+enable_tcp_bind = false
+enable_udp_associate = true
+
+connection_timeout = 10
+tcp_keepalive = 10
+udp_cache_expiry_duration = 10
+
+[http_server]
+host = "127.0.0.1"
+port = 8118
+"#;
+
+        let config = Config {
+            proxy_servers: vec![ProxyServer::Http, ProxyServer::Socks].into_iter().collect(),
+            socks_server: Some(SocksServer {
+                tcp_ip: "127.0.0.1".parse().unwrap(),
+                tcp_port: 3128,
+
+                udp_ip: "127.0.0.1".parse().unwrap(),
+                udp_ports: vec![10001, 10002, 10003],
+
+                enable_socks4a: true,
+                enable_socks5: true,
+
+                enable_tcp_connect: true,
+                enable_tcp_bind: false,
+                enable_udp_associate: true,
+
+                connection_timeout: 10,
+                tcp_keepalive: 10,
+                udp_cache_expiry_duration: 10,
+            }),
+            http_server: Some(HttpServer { host: "127.0.0.1".parse().unwrap(), port: 8118 }),
+        };
+        std::fs::write(&path, &content).unwrap();
+        assert_eq!(config, Config::load(&path).unwrap());
+        std::fs::remove_file(&path).unwrap();
+    }
 }
