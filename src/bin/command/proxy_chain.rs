@@ -74,15 +74,14 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let proxy_strategy = {
-        let chain = match (config.proxy_chain, config.proxy_chain_file) {
-            (Some(chain), _) => chain,
-            (_, Some(file)) => load_proxy_chain_file(file)?,
-            (None, None) => return Err(Error::NoProxyChain)?,
+        let strategy = match (config.proxy_chain, config.proxy_chain_file) {
+            (Some(chain), _) => ProxyStrategy::Chained(chain),
+            (_, Some(file)) => ProxyChain::load(file)?.into(),
+            (None, None) => return Err(Error::NoProxyChain),
         };
 
-        let chain = ProxyStrategy::Chained(chain);
-        info!("Proxy chain: {}", chain);
-        Arc::new(chain)
+        info!("Proxy chain: {}", strategy);
+        Arc::new(strategy)
     };
 
     let filter = {
@@ -118,6 +117,7 @@ pub async fn run<P: AsRef<Path>>(
                     .map_err(|source| Error::RunSocksServer { source })?)
             })
         };
+
         futs.push(socks_serve);
     }
 
@@ -156,15 +156,7 @@ pub async fn run<P: AsRef<Path>>(
     Ok(())
 }
 
-pub fn load_proxy_chain_file<P: AsRef<Path>>(file_path: P) -> Result<Vec<ProxyHost>, Error> {
-    let file =
-        std::fs::File::open(&file_path).map_err(|source| Error::LoadProxyHostFile { source })?;
-    let chain =
-        serde_json::from_reader(&file).map_err(|source| Error::ParseProxyHost { source })?;
-    Ok(chain)
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
 pub struct Config {
     enable_socks4a: bool,
     enable_socks5: bool,
@@ -260,4 +252,197 @@ pub struct Options {
 
     #[structopt(long = "proxy-chain")]
     proxy_chain: Option<Vec<ProxyHost>>,
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+pub struct ProxyChain {
+    proxy_chain: Vec<ProxyHost>,
+}
+
+impl ProxyChain {
+    pub fn from_json(json: &[u8]) -> Result<ProxyChain, Error> {
+        serde_json::from_slice(&json).map_err(|source| Error::ParseProxyChainJson { source })
+    }
+
+    pub fn from_toml(toml: &[u8]) -> Result<ProxyChain, Error> {
+        toml::from_slice(&toml).map_err(|source| Error::ParseProxyChainToml { source })
+    }
+
+    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
+        let file_path = file_path.as_ref();
+        match file_path.extension() {
+            None => return Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
+            Some(ext) => match ext.to_str() {
+                Some("json") => ProxyChain::load_json_file(file_path),
+                Some("toml") => ProxyChain::load_toml_file(file_path),
+                Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
+                None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
+            },
+        }
+    }
+
+    pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
+        let content =
+            std::fs::read(&file_path).map_err(|source| Error::LoadProxyChainFile { source })?;
+        Self::from_json(&content)
+    }
+
+    pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
+        let content =
+            std::fs::read(&file_path).map_err(|source| Error::LoadProxyChainFile { source })?;
+        Self::from_toml(&content)
+    }
+}
+
+impl Into<ProxyStrategy> for ProxyChain {
+    fn into(self) -> ProxyStrategy {
+        ProxyStrategy::Chained(self.proxy_chain)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_proxy_chain_from_json() {
+        let json = r#"
+{
+  "proxy_chain": [
+    { "type": "socks5", "host": "127.99.0.1", "port": 3128 },
+    { "type": "socks4a", "host": "127.99.0.2", "port": 3128 },
+    { "type": "httpTunnel", "host": "127.99.0.3", "port": 1080 }
+  ]
+}
+        "#;
+
+        let chain = ProxyChain {
+            proxy_chain: vec![
+                ProxyHost::Socks5 {
+                    host: "127.99.0.1".to_owned(),
+                    port: 3128,
+                    username: None,
+                    password: None,
+                },
+                ProxyHost::Socks4a { host: "127.99.0.2".to_owned(), port: 3128, id: None },
+                ProxyHost::HttpTunnel {
+                    host: "127.99.0.3".to_owned(),
+                    port: 1080,
+                    username: None,
+                    password: None,
+                    user_agent: None,
+                },
+            ],
+        };
+
+        assert_eq!(ProxyChain::from_json(&json.as_bytes()).unwrap(), chain);
+    }
+
+    #[test]
+    fn test_proxy_chain_from_toml() {
+        let toml = r#"
+[[proxy_chain]]
+type = "socks5"
+host = "127.99.0.1"
+port = 3128
+
+[[proxy_chain]]
+type = "socks4a"
+host = "127.99.0.2"
+port = 3128
+
+[[proxy_chain]]
+type = "httpTunnel"
+host = "127.99.0.3"
+port = 1080
+        "#;
+
+        let chain = ProxyChain {
+            proxy_chain: vec![
+                ProxyHost::Socks5 {
+                    host: "127.99.0.1".to_owned(),
+                    port: 3128,
+                    username: None,
+                    password: None,
+                },
+                ProxyHost::Socks4a { host: "127.99.0.2".to_owned(), port: 3128, id: None },
+                ProxyHost::HttpTunnel {
+                    host: "127.99.0.3".to_owned(),
+                    port: 1080,
+                    username: None,
+                    password: None,
+                    user_agent: None,
+                },
+            ],
+        };
+
+        assert_eq!(ProxyChain::from_toml(&toml.as_bytes()).unwrap(), chain);
+    }
+
+    #[test]
+    fn test_config() {
+        let config = Config {
+            enable_socks4a: true,
+            enable_socks5: true,
+            enable_http: true,
+            socks_ip: Some("127.0.83.1".parse().unwrap()),
+            socks_port: Some(3944),
+            http_ip: Some("127.0.83.1".parse().unwrap()),
+            http_port: Some(3293),
+            proxy_chain_file: Some(PathBuf::from("/tmp/proxy_file.json")),
+            proxy_chain: Some(vec![
+                ProxyHost::Socks5 {
+                    host: "127.99.0.1".to_owned(),
+                    port: 3128,
+                    username: None,
+                    password: None,
+                },
+                ProxyHost::Socks4a { host: "127.99.0.2".to_owned(), port: 3128, id: None },
+                ProxyHost::HttpTunnel {
+                    host: "127.99.0.3".to_owned(),
+                    port: 1080,
+                    username: None,
+                    password: None,
+                    user_agent: None,
+                },
+            ]),
+        };
+
+        let toml = r#"
+enable_socks4a = true
+enable_socks5 = true
+enable_http = true
+socks_ip = "127.0.83.1"
+socks_port = 3944
+http_ip = "127.0.83.1"
+http_port = 3293
+proxy_chain_file = "/tmp/proxy_file.json"
+
+[[proxy_chain]]
+type = "socks5"
+host = "127.99.0.1"
+port = 3128
+
+[[proxy_chain]]
+type = "socks4a"
+host = "127.99.0.2"
+port = 3128
+
+[[proxy_chain]]
+type = "httpTunnel"
+host = "127.99.0.3"
+port = 1080
+            "#;
+
+        let path = {
+            let mut p = PathBuf::from(std::env::temp_dir());
+            p.push(format!(".{:?}-test.toml", std::time::Instant::now()));
+            p
+        };
+
+        std::fs::write(&path, toml).unwrap();
+
+        assert_eq!(Config::load(&path).unwrap(), config);
+        std::fs::remove_file(&path).unwrap();
+    }
 }
