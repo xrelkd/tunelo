@@ -295,9 +295,7 @@ impl ProxyChain {
 }
 
 impl Into<ProxyStrategy> for ProxyChain {
-    fn into(self) -> ProxyStrategy {
-        ProxyStrategy::Chained(self.proxy_chain)
-    }
+    fn into(self) -> ProxyStrategy { ProxyStrategy::Chained(self.proxy_chain) }
 }
 
 #[cfg(test)]

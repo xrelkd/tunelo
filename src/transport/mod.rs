@@ -122,12 +122,27 @@ impl Transport<TcpStream> {
     }
 }
 
+impl<Stream> StatMonitor for Transport<Stream>
+where
+    Stream: Unpin + AsyncRead + AsyncWrite,
+{
+    fn increase_tx(&mut self, n: usize) {
+        self.metrics.increase_tx(n);
+    }
+
+    fn increase_rx(&mut self, n: usize) {
+        self.metrics.increase_rx(n);
+    }
+}
+
 impl<Stream> Transport<Stream>
 where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
     #[inline]
-    pub fn resolver(&self) -> Arc<dyn Resolver> { self.resolver.clone() }
+    pub fn resolver(&self) -> Arc<dyn Resolver> {
+        self.resolver.clone()
+    }
 
     #[inline]
     pub fn connector(&self) -> Arc<dyn Connector<Stream = Stream, Error = Error>> {
@@ -135,7 +150,18 @@ where
     }
 
     #[inline]
-    pub fn filter(&self) -> Arc<dyn HostFilter> { self.filter.clone() }
+    pub fn filter(&self) -> Arc<dyn HostFilter> {
+        self.filter.clone()
+    }
+
+    #[inline]
+    pub fn metrics(&self) -> &TransportMetrics {
+        &self.metrics
+    }
+
+    pub fn stat_monitor(&self) -> TransportMetrics {
+        self.metrics.clone()
+    }
 
     pub async fn resolve_host(&self, host: &str) -> Result<IpAddr, Error> {
         let addrs = self.resolver.resolve(host).await?;
@@ -164,12 +190,12 @@ where
             return Err(Error::ConnectForbiddenHosts { hosts: vec![host.clone()] });
         }
 
-        debug!("Try to connect remote host {}", host.to_string());
+        debug!("Try to connect remote host {}", host);
         let host_addr = self.resolve(host).await?;
         let stream = match self.connector.connect_addr(&host_addr).await {
             Ok(stream) => stream,
             Err(err) => {
-                error!("Failed to connect host: {}, error: {:?}", host, err);
+                error!("Failed to connect host: {}, error: {}", host, err);
                 return Err(err);
             }
         };

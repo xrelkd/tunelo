@@ -99,18 +99,15 @@ where
 
             let mut parts = line.trim().split_whitespace();
             match parts.next() {
+                None => return Err(ProtocolError::BadRequest),
                 Some(method) if method.to_uppercase() != "CONNECT" => {
                     return Err(ProtocolError::UnsupportedMethod { method: method.to_owned() });
                 }
                 Some(_) => {}
-                None => return Err(ProtocolError::BadRequest),
             }
 
             // get remote host
-            let remote_host = match parts.next() {
-                Some(r) => r,
-                None => return Err(ProtocolError::BadRequest),
-            };
+            let remote_host = parts.next().ok_or(ProtocolError::BadRequest)?;
 
             // HTTP version
             if parts.next().is_none() {
@@ -142,12 +139,8 @@ where
         let remote_host = {
             let parts: Vec<_> = remote_host.split(':').collect();
             let host = parts[0];
-            let port = match parts[1].parse() {
-                Ok(p) => p,
-                Err(_err) => return Err(ProtocolError::BadRequest),
-            };
-
-            HostAddress::DomainName(host.to_owned(), port)
+            let port = parts[1].parse().map_err(|_| ProtocolError::BadRequest)?;
+            HostAddress::new(host, port)
         };
 
         Ok(remote_host)

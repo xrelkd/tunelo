@@ -1,17 +1,25 @@
-use std::sync::{
-    atomic::{AtomicUsize, Ordering},
-    Arc,
+use std::{
+    collections::HashSet,
+    fmt,
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    },
 };
 
-use crate::transport::stream_ext::StatMonitor;
+use tokio::sync::Mutex;
+
+use crate::{common::HostAddress, transport::stream_ext::StatMonitor};
 
 #[derive(Debug, Clone)]
 pub struct TransportMetrics {
-    received: Arc<AtomicUsize>,
-    transmitted: Arc<AtomicUsize>,
+    received_bytes: Arc<AtomicUsize>,
+    transmitted_bytes: Arc<AtomicUsize>,
     relay_counter: Counter,
     client_counter: Counter,
     remote_counter: Counter,
+
+    destinations: Arc<Mutex<HashSet<HostAddress>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -47,6 +55,7 @@ impl Counter {
     #[inline]
     pub fn current(&self) -> usize { self.current.load(Ordering::Acquire) }
 
+    #[inline]
     pub fn accumulated(&self) -> usize { self.accumulated.load(Ordering::Acquire) }
 }
 
@@ -65,21 +74,34 @@ impl Drop for CounterHelper {
 }
 
 impl StatMonitor for TransportMetrics {
-    fn increase_tx(&mut self, n: usize) { self.transmitted.fetch_add(n, Ordering::SeqCst); }
+    fn increase_tx(&mut self, n: usize) { self.transmitted_bytes.fetch_add(n, Ordering::SeqCst); }
 
-    fn increase_rx(&mut self, n: usize) { self.received.fetch_add(n, Ordering::SeqCst); }
+    fn increase_rx(&mut self, n: usize) { self.received_bytes.fetch_add(n, Ordering::SeqCst); }
 }
 
 impl TransportMetrics {
     pub fn new() -> TransportMetrics {
-        let received = Arc::new(AtomicUsize::new(0));
-        let transmitted = Arc::new(AtomicUsize::new(0));
+        let received_bytes = Arc::new(AtomicUsize::new(0));
+        let transmitted_bytes = Arc::new(AtomicUsize::new(0));
         let relay_counter = Counter::zero();
         let client_counter = Counter::zero();
         let remote_counter = Counter::zero();
 
-        TransportMetrics { received, transmitted, relay_counter, client_counter, remote_counter }
+        let destinations = Arc::new(Mutex::new(HashSet::new()));
+
+        TransportMetrics {
+            received_bytes,
+            transmitted_bytes,
+            relay_counter,
+            client_counter,
+            remote_counter,
+
+            destinations,
+        }
     }
+
+    #[inline]
+    pub fn reset(&mut self) { *self = Self::new(); }
 
     #[inline]
     pub fn current_relay(&self) -> usize { self.relay_counter.current() }
@@ -112,5 +134,22 @@ impl TransportMetrics {
     #[inline]
     pub fn count_remote(&self) -> (CounterHelper, usize) {
         CounterHelper::count(self.remote_counter.clone())
+    }
+}
+
+impl fmt::Display for TransportMetrics {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "rx: {} bytes, tx: {} bytes, client: {}/{}, relay: {}/{}, remote: {}/{}",
+            self.received_bytes.load(Ordering::SeqCst),
+            self.transmitted_bytes.load(Ordering::SeqCst),
+            self.current_client(),
+            self.accumulated_client(),
+            self.current_relay(),
+            self.accumulated_relay(),
+            self.current_remote(),
+            self.accumulated_remote(),
+        )
     }
 }
