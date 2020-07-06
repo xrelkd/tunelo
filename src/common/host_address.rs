@@ -36,6 +36,15 @@ impl HostAddress {
     }
 
     #[inline]
+    pub fn fit(&mut self) {
+        if let HostAddress::DomainName(host, port) = self {
+            if let Ok(ip) = host.parse() {
+                *self = HostAddress::Socket(SocketAddr::new(ip, *port));
+            }
+        }
+    }
+
+    #[inline]
     pub fn host(&self) -> String {
         match self {
             HostAddress::Socket(socket) => socket.ip().to_string(),
