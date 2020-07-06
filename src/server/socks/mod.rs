@@ -17,7 +17,7 @@ use crate::{
     common::utils::safe_duration,
     protocol::socks::{SocksCommand, SocksVersion},
     service::socks::{v5::UdpAssociateManager, Error, Service},
-    transport::{TimedStream, Transport},
+    transport::{MonitoredStream, TimedStream, Transport},
 };
 
 #[derive(Debug, Clone)]
@@ -139,7 +139,7 @@ impl Server {
         let enable_tcp_bind = self.supported_commands.contains(&SocksCommand::TcpBind);
         let service = Arc::new(Service::new(
             self.supported_versions,
-            self.transport,
+            self.transport.clone(),
             self.authentication_manager,
             enable_tcp_connect,
             enable_tcp_bind,
@@ -162,9 +162,11 @@ impl Server {
                 Ok((socket, socket_addr)) => {
                     let service = service.clone();
                     let connection_timeout = self.connection_timeout.clone();
+                    let stat_monitor = self.transport.stat_monitor();
                     tokio::spawn(async move {
                         // let _ = socket.set_keepalive(Some(tcp_keepalive));
                         let socket = TimedStream::new(socket, connection_timeout);
+                        let socket = MonitoredStream::new(socket, stat_monitor);
                         let _ = service.dispatch(socket, socket_addr).await;
                     });
                 }
