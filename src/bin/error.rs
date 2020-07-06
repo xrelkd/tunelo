@@ -46,23 +46,32 @@ pub enum Error {
     #[snafu(display("No proxy chain provided"))]
     NoProxyChain,
 
-    #[snafu(display("Miss SOCKS listen address"))]
+    #[snafu(display("SOCKS listen address is missed"))]
     NoSocksListenAddress,
 
-    #[snafu(display("Miss SOCKS listen port"))]
+    #[snafu(display("SOCKS listen port is missed"))]
     NoSocksListenPort,
 
-    #[snafu(display("Miss HTTP listen address"))]
+    #[snafu(display("HTTP listen address is missed"))]
     NoHttpListenAddress,
 
-    #[snafu(display("Miss HTTP listen port"))]
+    #[snafu(display("HTTP listen port is missed"))]
     NoHttpListenPort,
 
-    #[snafu(display("Could not parse ProxyHost, error: {}", source))]
-    ParseProxyHost { source: serde_json::Error },
+    #[snafu(display("Proxy chain format is not supported: {}", format))]
+    ProxyChainFormatNotSupported { format: String },
+
+    #[snafu(display("Could not detect proxy chain format for file: {}", file_path.display()))]
+    DetectProxyChainFormat { file_path: PathBuf },
+
+    #[snafu(display("Could not parse proxy chain from JSON slice, error: {}", source))]
+    ParseProxyChainJson { source: serde_json::Error },
+
+    #[snafu(display("Could not parse proxy chain from TOML slice, error: {}", source))]
+    ParseProxyChainToml { source: toml::de::Error },
 
     #[snafu(display("Could not load ProxyHost file, error: {}", source))]
-    LoadProxyHostFile { source: std::io::Error },
+    LoadProxyChainFile { source: std::io::Error },
 
     #[snafu(display("Invalid proxy server: {}", server))]
     InvalidProxyServer { server: String },
