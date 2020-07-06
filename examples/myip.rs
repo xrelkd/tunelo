@@ -1,7 +1,4 @@
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    runtime::Runtime,
-};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use tunelo::{
     client::ProxyStream,

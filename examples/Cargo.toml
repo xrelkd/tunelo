@@ -10,7 +10,8 @@ tunelo = { path = "../tunelo" }
 log = "0.4"
 simple_logger = "1"
 futures = "0.3"
-tokio = { version = "0.2", features = [ "full" ] }
+
+tokio = { version = "0.2", features = ["full"] }
 
 [[example]]
 name = "myip"
@@ -19,5 +20,3 @@ path = "myip.rs"
 [[example]]
 name = "proxy_checker"
 path = "proxy_checker.rs"
-
-
