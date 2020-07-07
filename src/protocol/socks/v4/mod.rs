@@ -82,14 +82,15 @@ impl Request {
     where
         R: AsyncRead + Unpin,
     {
-        let command = Command::try_from(rdr.read_u8().await?)?;
-        let port = rdr.read_u16().await?;
+        let command =
+            Command::try_from(rdr.read_u8().await.map_err(|source| Error::ReadStream { source })?)?;
+        let port = rdr.read_u16().await.map_err(|source| Error::ReadStream { source })?;
         let mut ip_buf = [0u8; 4];
-        let _ = rdr.read(&mut ip_buf).await?;
+        let _ = rdr.read(&mut ip_buf).await.map_err(|source| Error::ReadStream { source })?;
 
         let (id, host) = {
             let mut buf = [0u8; 128];
-            let _ = rdr.read(&mut buf).await?;
+            let _ = rdr.read(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
 
             let parts: Vec<_> = buf.split(|ch| *ch == 0x00).collect();
 
@@ -178,15 +179,17 @@ impl Reply {
     where
         R: AsyncRead + AsyncRead + Unpin,
     {
-        if rdr.read_u8().await? != 0x00 {
+        if rdr.read_u8().await.map_err(|source| Error::ReadStream { source })? != 0x00 {
             return Err(Error::BadReply);
         }
 
-        let reply = ReplyField::try_from(rdr.read_u8().await?)?;
+        let reply = ReplyField::try_from(
+            rdr.read_u8().await.map_err(|source| Error::ReadStream { source })?,
+        )?;
         let destination_socket = {
-            let port = rdr.read_u16().await?;
+            let port = rdr.read_u16().await.map_err(|source| Error::ReadStream { source })?;
             let mut ip = [0u8; 4];
-            rdr.read(&mut ip).await?;
+            rdr.read(&mut ip).await.map_err(|source| Error::ReadStream { source })?;
             SocketAddrV4::new(Ipv4Addr::from(ip), port)
         };
 

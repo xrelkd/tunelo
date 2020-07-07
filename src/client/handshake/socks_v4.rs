@@ -27,9 +27,15 @@ where
         let destination_socket = Address::from(destination_socket.clone());
         let req = Request { command, destination_socket, id: id.clone() };
 
-        let _ = self.stream.write(&req.into_bytes()).await?;
+        let _ = self
+            .stream
+            .write(&req.into_bytes())
+            .await
+            .map_err(|source| Error::WriteStream { source })?;
 
-        let reply = Reply::from_reader(&mut self.stream).await?;
+        let reply = Reply::from_reader(&mut self.stream)
+            .await
+            .map_err(|source| Error::ParseSocks4Reply { source })?;
         match reply.reply {
             ReplyField::Granted => Ok(()),
             ReplyField::Rejected => Err(Error::ProxyRejected),

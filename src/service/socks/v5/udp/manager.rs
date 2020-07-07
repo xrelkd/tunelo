@@ -124,7 +124,10 @@ where
                 let mut shutdown_slot = cache.insert(&cache_key).await;
 
                 let reply = Reply::success(Address::from(proxy_addr));
-                let _ = stream.write(&reply.into_bytes()).await?;
+                let _ = stream
+                    .write(&reply.into_bytes())
+                    .await
+                    .map_err(|source| Error::WriteStream { source })?;
 
                 async move {
                     let mut buf = [0u8; 1];

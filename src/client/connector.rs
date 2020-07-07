@@ -33,7 +33,9 @@ impl ProxyConnector {
         };
 
         if let Err(err) = res {
-            socket.shutdown(std::net::Shutdown::Both)?;
+            socket
+                .shutdown(std::net::Shutdown::Both)
+                .map_err(|source| Error::Shutdown { source })?;
             return Err(err);
         }
 
@@ -45,13 +47,17 @@ impl ProxyConnector {
         let socket = match strategy {
             ProxyStrategy::Single(proxy) => {
                 let host = proxy.host_address();
-                TcpStream::connect(host.to_string()).await?
+                TcpStream::connect(host.to_string())
+                    .await
+                    .map_err(|source| Error::ConnectProxyServer { source })?
             }
             ProxyStrategy::Chained(proxies) => match proxies.len() {
                 0 => return Err(Error::NoProxyProvided),
                 len => {
                     let proxy_host = proxies[0].host_address();
-                    let mut socket = TcpStream::connect(proxy_host.to_string()).await?;
+                    let mut socket = TcpStream::connect(proxy_host.to_string())
+                        .await
+                        .map_err(|source| Error::ConnectProxyServer { source })?;
 
                     for i in 0..(len - 1) {
                         let proxy_host = &proxies[i];
@@ -59,7 +65,9 @@ impl ProxyConnector {
                         if let Err(err) =
                             Self::handshake(&mut socket, proxy_host, &target_host).await
                         {
-                            socket.shutdown(std::net::Shutdown::Both)?;
+                            socket
+                                .shutdown(std::net::Shutdown::Both)
+                                .map_err(|source| Error::Shutdown { source })?;
                             return Err(err);
                         };
                     }
