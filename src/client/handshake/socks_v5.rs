@@ -33,9 +33,14 @@ where
         };
 
         let handshake_request = HandshakeRequest::new(vec![method]);
-        self.stream.write(&handshake_request.to_bytes()).await?;
+        self.stream
+            .write(&handshake_request.to_bytes())
+            .await
+            .map_err(|source| Error::WriteStream { source })?;
 
-        let handshake_reply = HandshakeReply::from_reader(&mut self.stream).await?;
+        let handshake_reply = HandshakeReply::from_reader(&mut self.stream)
+            .await
+            .map_err(|source| Error::ParseSocks5Reply { source })?;
 
         if handshake_reply.method != method {
             return Err(Error::UnsupportedSocksMethod { method });
@@ -51,8 +56,13 @@ where
                 user_name: user_name.clone(),
                 password: password.clone(),
             };
-            self.stream.write(&req.into_bytes()).await?;
-            let reply = UserPasswordHandshakeReply::from_reader(&mut self.stream).await?;
+            self.stream
+                .write(&req.into_bytes())
+                .await
+                .map_err(|source| Error::WriteStream { source })?;
+            let reply = UserPasswordHandshakeReply::from_reader(&mut self.stream)
+                .await
+                .map_err(|source| Error::ParseSocks5Reply { source })?;
             if reply.status != UserPasswordStatus::Success {
                 return Err(Error::AccessDenied { user_name, password });
             }
@@ -61,9 +71,15 @@ where
         let destination_socket = Address::from(destination_socket.clone());
         let req = Request { command, destination_socket };
 
-        let _ = self.stream.write(&req.into_bytes()).await?;
+        let _ = self
+            .stream
+            .write(&req.into_bytes())
+            .await
+            .map_err(|source| Error::WriteStream { source })?;
 
-        let reply = Reply::from_reader(&mut self.stream).await?;
+        let reply = Reply::from_reader(&mut self.stream)
+            .await
+            .map_err(|source| Error::ParseSocks5Reply { source })?;
         if reply.reply != ReplyField::Success {
             return Err(Error::HostUnreachable);
         }

@@ -30,10 +30,13 @@ where
             req.push_str("\r\n");
             req
         };
-        self.stream.write(request.as_bytes()).await?;
+        self.stream
+            .write(request.as_bytes())
+            .await
+            .map_err(|source| Error::WriteStream { source })?;
 
         let mut lines_reader = tokio::io::BufReader::new(&mut self.stream).lines();
-        match lines_reader.next_line().await? {
+        match lines_reader.next_line().await.map_err(|source| Error::ReadStream { source })? {
             None => return Err(Error::BadHttpResponse),
             Some(line) => {
                 let mut parts = line.split_whitespace();
@@ -55,7 +58,9 @@ where
             }
         }
 
-        while let Some(line) = lines_reader.next_line().await? {
+        while let Some(line) =
+            lines_reader.next_line().await.map_err(|source| Error::ReadStream { source })?
+        {
             if line.is_empty() {
                 break;
             }

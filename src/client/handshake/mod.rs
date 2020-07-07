@@ -30,7 +30,7 @@ where
     #[inline]
     pub async fn shutdown(mut self) -> Result<(), Error> {
         use tokio::io::AsyncWriteExt;
-        self.stream.shutdown().await?;
+        self.stream.shutdown().await.map_err(|source| Error::ShutdownStream { source })?;
         Ok(())
     }
 }
