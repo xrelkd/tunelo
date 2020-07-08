@@ -1,37 +1,62 @@
-use tunelo::{client::ProxyChecker, common::ProxyHost};
+use url::Url;
+
+use tunelo::{
+    checker::{BasicProber, HttpProber, SimpleProxyChecker},
+    common::{HostAddress, ProxyHost},
+};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    simple_logger::init_with_level(log::Level::Info).unwrap();
+    let mut task = SimpleProxyChecker::new(ProxyHost::Socks5 {
+        host: "127.96.0.3".to_owned(),
+        port: 3128,
+        username: None,
+        password: None,
+    });
 
-    let proxy_servers = {
-        let localhost = "127.0.0.1";
-        vec![
-            (localhost.to_owned(), 3128),
-            (localhost.to_owned(), 9050),
-            (localhost.to_owned(), 9051),
-            (localhost.to_owned(), 9052),
-            (localhost.to_owned(), 9053),
-            (localhost.to_owned(), 9054),
-            (localhost.to_owned(), 9055),
-            (localhost.to_owned(), 9056),
-            (localhost.to_owned(), 9057),
-            (localhost.to_owned(), 9058),
-            (localhost.to_owned(), 9059),
-            (localhost.to_owned(), 9060),
-            (localhost.to_owned(), 9061),
-            (localhost.to_owned(), 9062),
-        ]
-        .into_iter()
-        .map(|(host, port)| ProxyHost::Socks5 { host, port, username: None, password: None })
-        .collect()
-    };
+    task.add_prober(BasicProber::new(HostAddress::new("www.google.com", 80)).into());
+    task.add_prober(BasicProber::new(HostAddress::new("www.google.com", 443)).into());
+    task.add_prober(HttpProber::get(Url::parse("https://www.google.com/").unwrap(), 200).into());
+    task.add_prober(HttpProber::head(Url::parse("https://ifconfig.me/ip").unwrap(), 200).into());
+    task.add_prober(HttpProber::head(Url::parse("http://httpbin.org/get").unwrap(), 200).into());
+    task.add_prober(
+        HttpProber::delete(Url::parse("http://httpbin.org/delete").unwrap(), 200).into(),
+    );
 
-    let target_hosts = vec![];
-    let checker = ProxyChecker::with_parallel(6, proxy_servers, target_hosts);
-
-    let report = checker.run().await;
+    let report = task.run_parallel().await;
     println!("{:?}", report);
-
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    fn it_works() {
+        let buf = r#"HTTP/1.0 200 OK
+Date: Mon, 06 Jul 2020 12:24:26 GMT
+Content-Type: text/plain; charset=utf-8
+Content-Length: 12
+Access-Control-Allow-Origin: *
+Via: 1.1 google
+
+159.89.49.60"#;
+        let mut headers = [httparse::EMPTY_HEADER; 16];
+        let mut response = httparse::Response::new(&mut headers);
+
+        let res = response.parse(buf.as_bytes()).unwrap();
+        // assert_eq!(res, 0);
+        if res.is_complete() {
+            // assert_eq!(response.version, Some("HTTP/1.0".as_bytes()));
+            assert_eq!(response.code, Some(200));
+            // match res.version {
+            //     Some(ref path) => {
+            //         assert_eq!();
+            //         // check router for path.
+            //         // /404 doesn't exist? we could stop parsing
+            //     }
+            //     None => {
+            //         // must read more and parse again
+            //     }
+            // }
+        }
+    }
 }
