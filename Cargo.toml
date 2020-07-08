@@ -10,7 +10,7 @@ autobins = false
 [features]
 default = ["tunelo"]
 
-app = ["toml", "structopt", "simple_logger", "serde_json"]
+app = ["structopt", "simple_logger", "toml", "serde_json", "comfy-table"]
 
 tunelo = ["app"]
 
@@ -26,6 +26,11 @@ required-features = ["app"]
 [dependencies]
 futures = "0.3"
 tokio = { version = "0.2", features = ["full"] }
+tokio-rustls = { version = "0.14" }
+
+webpki = "0.21"
+webpki-roots = "0.20"
+
 trust-dns-resolver = "0.19"
 
 snafu = "0.6"
@@ -35,12 +40,17 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
 toml = { version = "0.5", optional = true }
 
-structopt = { version = "0.3", optional = true }
-
 byteorder = "1"
 bytes = "0.5"
 
 log = "0.4"
 simple_logger = { version = "1", optional = true }
 
+httparse = "1"
+
 lru_time_cache = "0.10"
+
+structopt = { version = "0.3", optional = true }
+
+comfy-table = { version = "1", optional = true }
+

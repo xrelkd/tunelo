@@ -53,7 +53,7 @@ pub enum SubCommand {
         config_file: Option<PathBuf>,
 
         #[structopt(flatten)]
-        options: proxy_checker::Config,
+        options: proxy_checker::Options,
     },
 
     #[structopt(about = "Runs as SOCKS proxy server")]

@@ -255,6 +255,7 @@ pub struct Options {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ProxyChain {
     proxy_chain: Vec<ProxyHost>,
 }
