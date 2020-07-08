@@ -50,6 +50,14 @@ impl ProxyHost {
         let host = self.host();
         HostAddress::new(host, port)
     }
+
+    pub fn proxy_type_str(&self) -> &str {
+        match self {
+            ProxyHost::Socks4a { .. } => "socks4a",
+            ProxyHost::Socks5 { .. } => "socks5",
+            ProxyHost::HttpTunnel { .. } => "http",
+        }
+    }
 }
 
 impl std::str::FromStr for ProxyHost {

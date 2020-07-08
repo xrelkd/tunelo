@@ -1,7 +1,10 @@
 use std::{
     fmt,
     net::{Ipv4Addr, Ipv6Addr, SocketAddr, SocketAddrV4, SocketAddrV6},
+    str::FromStr,
 };
+
+use snafu::Snafu;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum HostAddress {
@@ -98,6 +101,26 @@ impl From<SocketAddrV6> for HostAddress {
     fn from(addr: SocketAddrV6) -> HostAddress { HostAddress::Socket(SocketAddr::V6(addr)) }
 }
 
+impl FromStr for HostAddress {
+    type Err = HostAddressError;
+
+    fn from_str(s: &str) -> Result<HostAddress, Self::Err> {
+        if let Ok(addr) = s.parse() {
+            return Ok(HostAddress::Socket(addr));
+        }
+
+        let parts: Vec<_> = s.split(":").collect();
+        if parts.len() != 2 {
+            return Err(HostAddressError::InvalidFormat { addr: s.to_owned() });
+        }
+
+        let host = parts[0].to_owned();
+        let port =
+            parts[1].parse().map_err(|source| HostAddressError::ParsePortNumber { source })?;
+        Ok(HostAddress::DomainName(host, port))
+    }
+}
+
 impl fmt::Display for HostAddress {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -105,4 +128,16 @@ impl fmt::Display for HostAddress {
             HostAddress::DomainName(host, port) => write!(f, "{}:{}", host, port),
         }
     }
+}
+
+#[derive(Debug, Snafu)]
+pub enum HostAddressError {
+    #[snafu(display("Could not parse IP address: {}", addr))]
+    ParseIpAddress { addr: String },
+
+    #[snafu(display("Could not parse port number, error {}", source))]
+    ParsePortNumber { source: std::num::ParseIntError },
+
+    #[snafu(display("Invalid host address format: {}", addr))]
+    InvalidFormat { addr: String },
 }
