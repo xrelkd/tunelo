@@ -2,7 +2,7 @@ mod host_address;
 mod proxy;
 
 pub use self::{
-    host_address::HostAddress,
+    host_address::{HostAddress, HostAddressError},
     proxy::{ProxyHost, ProxyHostError, ProxyStrategy},
 };
 
