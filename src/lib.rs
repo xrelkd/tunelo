@@ -5,6 +5,7 @@ extern crate log;
 extern crate serde;
 
 pub mod authentication;
+pub mod checker;
 pub mod client;
 pub mod common;
 pub mod filter;

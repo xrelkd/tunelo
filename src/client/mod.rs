@@ -1,4 +1,3 @@
-mod checker;
 mod connector;
 mod datagram;
 mod error;
@@ -7,7 +6,6 @@ mod listener;
 mod stream;
 
 pub use self::{
-    checker::ProxyChecker,
     connector::ProxyConnector,
     datagram::{ProxyDatagram, Socks5Datagram},
     error::Error,
