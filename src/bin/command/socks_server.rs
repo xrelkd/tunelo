@@ -188,6 +188,12 @@ impl Config {
 
 #[derive(Debug, StructOpt)]
 pub struct Options {
+    #[structopt(long = "ip", help = "IP address to listen")]
+    ip: Option<IpAddr>,
+
+    #[structopt(long = "port", help = "Port number to listen")]
+    port: Option<u16>,
+
     #[structopt(long = "disable-socks4a", help = "Disable SOCKS4a support")]
     disable_socks4a: Option<bool>,
 
@@ -203,15 +209,9 @@ pub struct Options {
     #[structopt(long = "enable-udp-associate", help = "Enable \"UDP Associate\" support")]
     enable_udp_associate: Option<bool>,
 
-    #[structopt(long = "connection-timeout", help = "Connection timeout")]
-    connection_timeout: Option<u64>,
-
-    #[structopt(long = "ip", help = "IP address to listen")]
-    ip: Option<IpAddr>,
-
-    #[structopt(long = "port", help = "Port number to listen")]
-    port: Option<u16>,
-
     #[structopt(long = "udp-ports", help = "UDP ports to provide UDP associate service")]
     udp_ports: Option<Vec<u16>>,
+
+    #[structopt(long = "connection-timeout", help = "Connection timeout")]
+    connection_timeout: Option<u64>,
 }
