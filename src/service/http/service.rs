@@ -1,7 +1,8 @@
+use std::str::FromStr;
 use std::{net::SocketAddr, sync::Arc};
 
 use tokio::{
-    io::{AsyncBufReadExt, AsyncRead, AsyncWrite, AsyncWriteExt, BufReader},
+    io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     sync::Mutex,
 };
 
@@ -89,60 +90,81 @@ where
     }
 
     async fn parse_request(stream: &mut TransportStream) -> Result<HostAddress, ProtocolError> {
-        let mut buf_reader = BufReader::new(stream);
-        let mut remote_host = {
-            let mut line = String::new();
-            match buf_reader.read_line(&mut line).await {
-                Ok(0) | Err(_) => return Err(ProtocolError::BadRequest),
-                Ok(_) => {}
-            };
+        use bytes::BytesMut;
+        let mut buf = BytesMut::with_capacity(384);
+        let _n = stream.read_buf(&mut buf).await?;
 
-            let mut parts = line.trim().split_whitespace();
-            match parts.next() {
-                None => return Err(ProtocolError::BadRequest),
-                Some(method) if method.to_uppercase() != "CONNECT" => {
-                    return Err(ProtocolError::UnsupportedMethod { method: method.to_owned() });
-                }
-                Some(_) => {}
-            }
-
-            // get remote host
-            let remote_host = parts.next().ok_or(ProtocolError::BadRequest)?;
-
-            // HTTP version
-            if parts.next().is_none() {
-                return Err(ProtocolError::BadRequest);
-            }
-
-            remote_host.to_owned()
-        };
-
-        let mut line = String::new();
-        while let Ok(len) = buf_reader.read_line(&mut line).await {
-            if len == 0 || line == "\r\n" || line.trim_end().is_empty() {
-                break;
-            }
-
-            let mut parts = line.split(": ");
-            match parts.next() {
-                Some(field) if field.trim().to_lowercase() == "host" => {
-                    if let Some(host) = parts.next() {
-                        remote_host = host.trim().to_owned();
-                    }
-                }
-                Some(_) | None => {}
-            }
-
-            line.clear();
-        }
+        let mut headers = [httparse::EMPTY_HEADER; 16];
+        let mut request = httparse::Request::new(&mut headers);
+        let status = request.parse(&buf.as_ref()).map_err(|_source| ProtocolError::BadRequest)?;
 
         let remote_host = {
-            let parts: Vec<_> = remote_host.split(':').collect();
-            let host = parts[0];
-            let port = parts[1].parse().map_err(|_| ProtocolError::BadRequest)?;
-            HostAddress::new(host, port)
+            match status {
+                httparse::Status::Partial => return Err(ProtocolError::BadRequest),
+                httparse::Status::Complete(_parsed_len) => {
+                    let method = request.method.ok_or(ProtocolError::BadRequest)?;
+                    if method.to_uppercase() != "CONNECT" {
+                        return Err(ProtocolError::UnsupportedMethod { method: method.to_owned() });
+                    }
+
+                    let mut remote_host =
+                        request.path.map(|p| p.to_string()).ok_or(ProtocolError::BadRequest)?;
+
+                    for header in request.headers {
+                        if header.name.to_lowercase() == "host" {
+                            remote_host = String::from_utf8_lossy(header.value).to_string();
+                            break;
+                        }
+                    }
+
+                    remote_host
+                }
+            }
         };
 
+        let remote_host =
+            HostAddress::from_str(&remote_host).map_err(|_| ProtocolError::BadRequest)?;
+
         Ok(remote_host)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        let raw_request = r#"CONNECT cdnjs.cloudflare.com:443 HTTP/1.1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0
+Proxy-Connection: keep-alive
+Connection: keep-alive
+Host: cdnjs.cloudflare.com:443"#;
+
+        let raw_request2 = r#"CONNECT www.google.com:443 HTTP/1.1
+User-Agent: Mozilla/5.0 (X11; Linux x86_64; rv:77.0) Gecko/20100101 Firefox/77.0
+Proxy-Connection: keep-alive
+Connection: keep-alive
+Host: www.google.com:443"#;
+
+        let raw_request3 = r#"GET http://httpbin.org/ HTTP/1.1
+Host: httpbin.org
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: zh-TW,zh-CN;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+DNT: 1
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+"#;
+
+        let raw_request4 = r#"GET http://myip.com.tw/ HTTP/1.1
+Host: myip.com.tw
+User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:77.0) Gecko/20100101 Firefox/77.0
+Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+Accept-Language: zh-TW,zh-CN;q=0.8,en-US;q=0.5,en;q=0.3
+Accept-Encoding: gzip, deflate
+DNT: 1
+Connection: keep-alive
+Upgrade-Insecure-Requests: 1
+"#;
     }
 }
