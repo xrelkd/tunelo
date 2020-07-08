@@ -22,7 +22,7 @@ impl ProxyConnector {
 
     pub async fn connect(&self, host: &HostAddress) -> Result<ProxyStream, Error> {
         let strategy = self.strategy.clone();
-        let mut socket = ProxyConnector::build_socket(&strategy).await?;
+        let mut socket = Self::build_socket(&strategy).await?;
 
         let res = match self.strategy.as_ref() {
             ProxyStrategy::Single(proxy) => Self::handshake(&mut socket, &proxy, &host).await,
@@ -40,6 +40,12 @@ impl ProxyConnector {
         }
 
         Ok(ProxyStream::from_raw(socket, strategy))
+    }
+
+    pub async fn probe_liveness(strategy: &ProxyStrategy) -> Result<bool, Error> {
+        let socket = Self::build_socket(&strategy).await?;
+        socket.shutdown(std::net::Shutdown::Both).map_err(|source| Error::Shutdown { source })?;
+        Ok(true)
     }
 
     #[inline]
