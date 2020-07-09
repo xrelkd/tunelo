@@ -51,7 +51,7 @@ where
         Service { transport, _authentication_manager: authentication_manager }
     }
 
-    fn parse_header<'buf>(buf: &'buf mut BytesMut) -> Result<Option<ParsedMessage>, ProtocolError> {
+    fn parse_header(buf: &mut BytesMut) -> Result<Option<ParsedMessage>, ProtocolError> {
         if buf.is_empty() {
             return Ok(None);
         }
