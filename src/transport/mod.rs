@@ -1,5 +1,6 @@
 use std::{
     net::{IpAddr, SocketAddr},
+    path::Path,
     sync::Arc,
 };
 
@@ -44,29 +45,38 @@ pub struct Transport<Stream> {
 }
 
 impl Transport<File> {
-    pub fn open_device(path: String, filter: Arc<dyn HostFilter>) -> Transport<File> {
+    pub fn open_device<P>(path: P, filter: Arc<dyn HostFilter>) -> Transport<File>
+    where
+        P: AsRef<Path>,
+    {
         let metrics = TransportMetrics::new();
-
         let connector = connector::connect_fn(
             {
-                let path = path.clone();
+                let file_path = path.as_ref().to_path_buf();
                 Box::new(move |_host: &HostAddress| {
-                    let path = path.clone();
+                    let file_path = file_path.clone();
                     async move {
-                        let null_file = File::open(path).await?;
+                        let null_file = File::open(&file_path)
+                            .await
+                            .map_err(move |source| Error::OpenFile { file_path, source })?;
                         Ok(null_file)
                     }
                     .boxed()
                 })
             },
-            Box::new(move |_addr: &SocketAddr| {
-                let path = path.clone();
-                async move {
-                    let null_file = File::open(path).await?;
-                    Ok(null_file)
-                }
-                .boxed()
-            }),
+            {
+                let file_path = path.as_ref().to_path_buf();
+                Box::new(move |_addr: &SocketAddr| {
+                    let file_path = file_path.clone();
+                    async move {
+                        let null_file = File::open(&file_path)
+                            .await
+                            .map_err(move |source| Error::OpenFile { file_path, source })?;
+                        Ok(null_file)
+                    }
+                    .boxed()
+                })
+            },
         );
 
         let resolver = Arc::new(DummyResolver::new());
@@ -75,12 +85,12 @@ impl Transport<File> {
 
     #[inline]
     pub fn dev_random(filter: Arc<dyn HostFilter>) -> Transport<File> {
-        Self::open_device("/dev/random".to_owned(), filter)
+        Self::open_device(Path::new("/dev/random"), filter)
     }
 
     #[inline]
     pub fn dev_null(filter: Arc<dyn HostFilter>) -> Transport<File> {
-        Self::open_device("/dev/null".to_owned(), filter)
+        Self::open_device(Path::new("/dev/null"), filter)
     }
 }
 
@@ -93,12 +103,22 @@ impl Transport<TcpStream> {
 
         let connector = connector::connect_fn(
             Box::new(|host: &HostAddress| {
-                let host = host.to_string();
-                async move { Ok(TcpStream::connect(&host).await?) }.boxed()
+                let host = host.clone();
+                async move {
+                    Ok(TcpStream::connect(&host.to_string())
+                        .await
+                        .map_err(|source| Error::ConnectRemoteServer { source, host })?)
+                }
+                .boxed()
             }),
             Box::new(|addr: &SocketAddr| {
                 let addr = addr.clone();
-                async move { Ok(TcpStream::connect(&addr).await?) }.boxed()
+                async move {
+                    Ok(TcpStream::connect(&addr).await.map_err(|source| {
+                        Error::ConnectRemoteServer { source, host: HostAddress::from(addr) }
+                    })?)
+                }
+                .boxed()
             }),
         );
 
@@ -126,13 +146,9 @@ impl<Stream> StatMonitor for Transport<Stream>
 where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
-    fn increase_tx(&mut self, n: usize) {
-        self.metrics.increase_tx(n);
-    }
+    fn increase_tx(&mut self, n: usize) { self.metrics.increase_tx(n); }
 
-    fn increase_rx(&mut self, n: usize) {
-        self.metrics.increase_rx(n);
-    }
+    fn increase_rx(&mut self, n: usize) { self.metrics.increase_rx(n); }
 }
 
 impl<Stream> Transport<Stream>
@@ -140,9 +156,7 @@ where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
     #[inline]
-    pub fn resolver(&self) -> Arc<dyn Resolver> {
-        self.resolver.clone()
-    }
+    pub fn resolver(&self) -> Arc<dyn Resolver> { self.resolver.clone() }
 
     #[inline]
     pub fn connector(&self) -> Arc<dyn Connector<Stream = Stream, Error = Error>> {
@@ -150,18 +164,12 @@ where
     }
 
     #[inline]
-    pub fn filter(&self) -> Arc<dyn HostFilter> {
-        self.filter.clone()
-    }
+    pub fn filter(&self) -> Arc<dyn HostFilter> { self.filter.clone() }
 
     #[inline]
-    pub fn metrics(&self) -> &TransportMetrics {
-        &self.metrics
-    }
+    pub fn metrics(&self) -> &TransportMetrics { &self.metrics }
 
-    pub fn stat_monitor(&self) -> TransportMetrics {
-        self.metrics.clone()
-    }
+    pub fn stat_monitor(&self) -> TransportMetrics { self.metrics.clone() }
 
     pub async fn resolve_host(&self, host: &str) -> Result<IpAddr, Error> {
         let addrs = self.resolver.resolve(host).await?;

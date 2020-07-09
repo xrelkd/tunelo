@@ -1,11 +1,16 @@
+use std::path::PathBuf;
+
 use snafu::Snafu;
 
 use crate::{client, common::HostAddress};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
-    #[snafu(display("StdIo error: {}", source))]
-    StdIo { source: std::io::Error },
+    #[snafu(display("Could not open file {}, error: {}", file_path.display(), source))]
+    OpenFile { file_path: PathBuf, source: std::io::Error },
+
+    #[snafu(display("Could not connect remote server {}, error: {}", host, source))]
+    ConnectRemoteServer { host: HostAddress, source: std::io::Error },
 
     #[snafu(display("ProxyClient error: {}", source))]
     ProxyClient { source: client::Error },
@@ -21,10 +26,6 @@ pub enum Error {
 
     #[snafu(display("Could not resolve domain name via trust_dns_resolver, error: {}", error))]
     LookupTrustDnsResolver { error: String },
-}
-
-impl From<std::io::Error> for Error {
-    fn from(err: std::io::Error) -> Error { Error::StdIo { source: err } }
 }
 
 impl From<client::Error> for Error {

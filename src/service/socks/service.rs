@@ -8,7 +8,7 @@ use tokio::{
 use crate::{
     authentication::AuthenticationManager,
     common::HostAddress,
-    protocol::socks::{Error as ProtocolError, SocksVersion},
+    protocol::socks::SocksVersion,
     service::socks::{v4, v5, Error},
     transport::Transport,
 };
@@ -75,11 +75,11 @@ where
             },
             Ok(version) => {
                 let _ = stream.shutdown().await;
-                Err(ProtocolError::InvalidSocksVersion { version }.into())
+                Err(Error::InvalidSocksVersion { version })
             }
-            Err(err) => {
-                debug!("Failed to get SOCKS version from host: {:?}, error: {:?}", peer_addr, err);
-                Err(ProtocolError::BadRequest.into())
+            Err(source) => {
+                debug!("Failed to get SOCKS version from host: {}, error: {:?}", peer_addr, source);
+                Err(Error::DetectSocksVersion { source, peer_addr })
             }
         }
     }

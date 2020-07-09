@@ -67,12 +67,17 @@ where
     ) -> Result<(), Error> {
         info!("Receive request from {}", peer_addr);
 
-        let request = Request::from_reader(&mut stream).await?;
+        let request = Request::from_reader(&mut stream)
+            .await
+            .map_err(|source| Error::ParseRequest { source })?;
 
         if !self.supported_commands.contains(&request.command) {
             let reply = Reply::rejected(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0));
-            let _ = stream.write(&reply.into_bytes()).await?;
-            stream.shutdown().await?;
+            let _ = stream
+                .write(&reply.into_bytes())
+                .await
+                .map_err(|source| Error::WriteStream { source })?;
+            stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
             return Err(Error::UnsupportedCommand { command: request.command.into() });
         }
 
@@ -94,16 +99,26 @@ where
 
                         (socket, remote_addr)
                     }
-                    Err(err) => {
+                    Err(source) => {
                         let reply = Reply::unreachable(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0));
-                        let _ = stream.write(&reply.into_bytes()).await?;
-                        stream.shutdown().await?;
-                        return Err(err.into());
+                        let _ = stream
+                            .write(&reply.into_bytes())
+                            .await
+                            .map_err(|source| Error::WriteStream { source })?;
+                        stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
+
+                        return Err(Error::ConnectRemoteHost {
+                            source,
+                            host: remote_host.to_owned(),
+                        });
                     }
                 };
 
                 let reply = Reply::granted(remote_addr);
-                let _ = stream.write(&reply.into_bytes()).await?;
+                let _ = stream
+                    .write(&reply.into_bytes())
+                    .await
+                    .map_err(|source| Error::WriteStream { source })?;
 
                 self.transport
                     .relay(
@@ -113,13 +128,14 @@ where
                             info!("Remote host {} is disconnected", remote_addr);
                         })),
                     )
-                    .await?;
+                    .await
+                    .map_err(|source| Error::RelayStream { source })?;
 
                 Ok(())
             }
             Command::TcpBind => {
                 debug!("Unsupported SOCKS command, close connection: {:?}", peer_addr);
-                let _ = stream.shutdown().await?;
+                let _ = stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
                 Err(Error::UnsupportedCommand { command: Command::TcpBind.into() })
             }
         }

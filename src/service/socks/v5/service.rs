@@ -79,7 +79,9 @@ where
         self.handshake(&mut stream, client_addr).await?;
 
         let request = {
-            let req = Request::from_reader(&mut stream).await?;
+            let req = Request::from_reader(&mut stream)
+                .await
+                .map_err(|source| Error::ParseRequest { source })?;
 
             // check if we support this SOCKS5 command
             if !self.is_supported_command(req.command) {
@@ -89,9 +91,12 @@ where
                     "Command {:?} is not supported, close connection {}",
                     req.command, client_addr,
                 );
-                let _ = stream.write(&reply.into_bytes()).await?;
-                stream.flush().await?;
-                stream.shutdown().await?;
+                let _ = stream
+                    .write(&reply.into_bytes())
+                    .await
+                    .map_err(|source| Error::WriteStream { source })?;
+                stream.flush().await.map_err(|source| Error::FlushStream { source })?;
+                stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
 
                 return Err(Error::UnsupportedCommand { command: req.command.into() });
             }
@@ -101,25 +106,34 @@ where
 
         match request.command {
             Command::TcpConnect => {
-                let remote_addr: &HostAddress = request.destination_socket.as_ref();
+                let remote_host: &HostAddress = request.destination_socket.as_ref();
 
-                let (remote_socket, remote_addr) = match self.transport.connect(&remote_addr).await
+                let (remote_socket, remote_addr) = match self.transport.connect(&remote_host).await
                 {
                     Ok((socket, addr)) => {
-                        info!("Remote host {} is connected", remote_addr.to_string());
+                        info!("Remote host {} is connected", remote_host.to_string());
                         (socket, addr)
                     }
-                    Err(err) => {
+                    Err(source) => {
                         let reply = Reply::unreachable(request.address_type());
-                        let _ = stream.write(&reply.into_bytes()).await?;
-                        stream.flush().await?;
-                        stream.shutdown().await?;
-                        return Err(err.into());
+                        let _ = stream
+                            .write(&reply.into_bytes())
+                            .await
+                            .map_err(|source| Error::WriteStream { source })?;
+                        stream.flush().await.map_err(|source| Error::FlushStream { source })?;
+                        stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
+                        return Err(Error::ConnectRemoteHost {
+                            source,
+                            host: remote_host.to_owned(),
+                        });
                     }
                 };
 
                 let reply = Reply::success(Address::empty_ipv4());
-                let _ = stream.write(&reply.into_bytes()).await?;
+                let _ = stream
+                    .write(&reply.into_bytes())
+                    .await
+                    .map_err(|source| Error::WriteStream { source })?;
 
                 self.transport
                     .relay(
@@ -129,7 +143,8 @@ where
                             info!("Remote host {} is disconnected", remote_addr.to_string());
                         })),
                     )
-                    .await?;
+                    .await
+                    .map_err(|source| Error::RelayStream { source })?;
 
                 Ok(())
             }
@@ -153,7 +168,9 @@ where
         client: &mut ClientStream,
         client_addr: SocketAddr,
     ) -> Result<(), Error> {
-        let req = HandshakeRequest::from_reader(client).await?;
+        let req = HandshakeRequest::from_reader(client)
+            .await
+            .map_err(|source| Error::ParseHandshakeRequest { source })?;
         debug!("Received {:?}", req);
 
         let supported_method: Method =
@@ -161,18 +178,23 @@ where
 
         if !req.contains_method(supported_method) {
             let reply = HandshakeReply::new(Method::NotAcceptable);
-            client.write(&reply.into_bytes()).await?;
+            client
+                .write(&reply.into_bytes())
+                .await
+                .map_err(|source| Error::WriteStream { source })?;
 
             return Err(Error::UnsupportedMethod { method: supported_method });
         }
 
         let reply = HandshakeReply::new(supported_method);
-        client.write(&reply.into_bytes()).await?;
+        client.write(&reply.into_bytes()).await.map_err(|source| Error::WriteStream { source })?;
 
         match supported_method {
             Method::NoAuthentication => {}
             Method::UsernamePassword => {
-                let request = UserPasswordHandshakeRequest::from_reader(client).await?;
+                let request = UserPasswordHandshakeRequest::from_reader(client)
+                    .await
+                    .map_err(|source| Error::ParseHandshakeRequest { source })?;
 
                 // check authentication
                 info!(
@@ -190,15 +212,18 @@ where
 
                 if !auth_passed {
                     let reply = UserPasswordHandshakeReply::failure();
-                    client.write(&reply.into_bytes()).await?;
-                    client.flush().await?;
+                    client
+                        .write(&reply.into_bytes())
+                        .await
+                        .map_err(|source| Error::WriteStream { source })?;
+                    client.flush().await.map_err(|source| Error::FlushStream { source })?;
 
                     warn!(
                         "Invalid authentication from user: {}",
                         String::from_utf8_lossy(&request.user_name).to_owned()
                     );
 
-                    client.shutdown().await?;
+                    client.shutdown().await.map_err(|source| Error::Shutdown { source })?;
                     return Err(Error::AccessDenied {
                         user_name: request.user_name,
                         password: request.password,
@@ -206,12 +231,15 @@ where
                 }
 
                 let reply = UserPasswordHandshakeReply::success();
-                client.write(&reply.into_bytes()).await?;
-                client.flush().await?;
+                client
+                    .write(&reply.into_bytes())
+                    .await
+                    .map_err(|source| Error::WriteStream { source })?;
+                client.flush().await.map_err(|source| Error::FlushStream { source })?;
             }
             Method::GSSAPI => {
                 // TODO
-                client.shutdown().await?;
+                client.shutdown().await.map_err(|source| Error::Shutdown { source })?;
                 return Err(Error::UnsupportedMethod { method: Method::GSSAPI });
             }
             Method::NotAcceptable => unreachable!(),
