@@ -307,7 +307,7 @@ mod tests {
     fn test_proxy_chain_from_json() {
         let json = r#"
 {
-  "proxy_chain": [
+  "proxyChain": [
     { "type": "socks5", "host": "127.99.0.1", "port": 3128 },
     { "type": "socks4a", "host": "127.99.0.2", "port": 3128 },
     { "type": "httpTunnel", "host": "127.99.0.3", "port": 1080 }
@@ -340,17 +340,17 @@ mod tests {
     #[test]
     fn test_proxy_chain_from_toml() {
         let toml = r#"
-[[proxy_chain]]
+[[proxyChain]]
 type = "socks5"
 host = "127.99.0.1"
 port = 3128
 
-[[proxy_chain]]
+[[proxyChain]]
 type = "socks4a"
 host = "127.99.0.2"
 port = 3128
 
-[[proxy_chain]]
+[[proxyChain]]
 type = "httpTunnel"
 host = "127.99.0.3"
 port = 1080
