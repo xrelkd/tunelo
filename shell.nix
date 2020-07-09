@@ -1,5 +1,8 @@
 with import <nixpkgs> { };
 stdenv.mkDerivation {
   name = "tunelo-dev";
-  buildInputs = [ rustup ];
+
+  RUST_BACKTRACE = 1;
+
+  nativeBuildInputs = [ rustup ];
 }
