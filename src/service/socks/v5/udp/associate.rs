@@ -41,7 +41,9 @@ impl UdpAssociate {
     ) -> Result<UdpAssociate, Error> {
         let (mut socket_recv, mut socket_send) = {
             let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0);
-            let remote_socket = UdpSocket::bind(&local_addr).await?;
+            let remote_socket = UdpSocket::bind(&local_addr)
+                .await
+                .map_err(|source| Error::BindUdpSocket { addr: local_addr, source })?;
             remote_socket.split()
         };
 

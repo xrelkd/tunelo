@@ -1,6 +1,6 @@
 use snafu::Snafu;
 
-use crate::{protocol, transport};
+use crate::{common::HostAddress, protocol, transport};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -16,17 +16,12 @@ pub enum Error {
     #[snafu(display("HTTP request is too large"))]
     RequestTooLarge,
 
-    #[snafu(display("Transport error: {}", source))]
-    Transport { source: transport::Error },
+    #[snafu(display("Error occurred while relaying stream, error: {}", source))]
+    RelayStream { source: transport::Error },
 
-    #[snafu(display("Protocol error: {}", source))]
-    Protocol { source: protocol::http::Error },
-}
+    #[snafu(display("Could not establish connection with {}, error: {}", host, source))]
+    ConnectRemoteHost { host: HostAddress, source: transport::Error },
 
-impl From<transport::Error> for Error {
-    fn from(source: transport::Error) -> Error { Error::Transport { source } }
-}
-
-impl From<protocol::http::Error> for Error {
-    fn from(source: protocol::http::Error) -> Error { Error::Protocol { source } }
+    #[snafu(display("Occurred protocol error: {}", source))]
+    OtherProtocolError { source: protocol::http::Error },
 }

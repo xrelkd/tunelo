@@ -125,7 +125,7 @@ where
                             .await?;
                         return Ok(());
                     }
-                    err => return Err(err)?,
+                    source => return Err(Error::OtherProtocolError { source }),
                 },
             }
         };
@@ -170,13 +170,16 @@ where
                     .map_err(|source| Error::WriteStream { source })?;
                 (socket, addr)
             }
-            Err(_err) => return Err(Error::Protocol { source: ProtocolError::HostUnreachable }),
+            Err(source) => return Err(Error::ConnectRemoteHost { host: remote_host, source }),
         };
 
         let on_finished = Box::new(move || {
             info!("Remote host {} is disconnected", remote_host.to_string());
         });
-        self.transport.relay(client_stream, remote_socket, Some(on_finished)).await?;
+        self.transport
+            .relay(client_stream, remote_socket, Some(on_finished))
+            .await
+            .map_err(|source| Error::RelayStream { source })?;
 
         Ok(())
     }
