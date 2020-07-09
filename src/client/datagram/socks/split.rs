@@ -51,22 +51,25 @@ impl RecvHalf {
             return Err(Error::BadSocksReply);
         };
 
-        let (address, n) = match Address::from_bytes(&mut header[4..]) {
-            Ok((addr, n)) => (addr, n),
-            Err(_err) => return Err(Error::BadSocksReply),
-        };
+        let (address, n) =
+            Address::from_bytes(&mut header[4..]).map_err(|_err| Error::BadSocksReply)?;
 
         let mut data_len = header.len() - n;
         buf.copy_from_slice(&header[n..]);
-        data_len += self.socket_recv.recv(&mut buf[n + 1..]).await?;
+        data_len += self
+            .socket_recv
+            .recv(&mut buf[n + 1..])
+            .await
+            .map_err(|source| Error::RecvDatagram { source })?;
 
         Ok((data_len, address.into_inner()))
     }
 
     pub async fn recv_datagram(&mut self) -> Result<Datagram, Error> {
-        let mut buf = [0u8; 1024];
-        let (n, addr) = self.recv_from(&mut buf).await?;
-        Ok(Datagram::new(0, addr.into(), buf[..n].to_vec()))
+        use bytes::BytesMut;
+        let mut buf = BytesMut::with_capacity(1024);
+        let (_n, addr) = self.recv_from(&mut buf).await?;
+        Ok(Datagram::new(0, addr.into(), buf))
     }
 }
 
@@ -82,7 +85,12 @@ impl SendHalf {
 
         let mut data = Vec::with_capacity(3 + Address::max_len() + buf.len());
         let mut wrt = std::io::Cursor::new(&mut data);
-        let n = Datagram::serialize(&mut wrt, 0, target_addr, buf)?;
-        Ok(self.socket_send.send(&mut data[..n]).await?)
+        let n = Datagram::serialize(&mut wrt, 0, target_addr, buf)
+            .map_err(|source| Error::SerializeDatagram { source })?;
+        Ok(self
+            .socket_send
+            .send(&mut data[..n])
+            .await
+            .map_err(|source| Error::SendDatagram { source })?)
     }
 }

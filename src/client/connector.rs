@@ -28,7 +28,7 @@ impl ProxyConnector {
             ProxyStrategy::Single(proxy) => Self::handshake(&mut socket, &proxy, &host).await,
             ProxyStrategy::Chained(proxies) => match proxies.last() {
                 Some(proxy_host) => Self::handshake(&mut socket, &proxy_host, &host).await,
-                None => return Err(Error::NoProxyProvided),
+                None => return Err(Error::NoProxyServiceProvided),
             },
         };
 
@@ -58,7 +58,7 @@ impl ProxyConnector {
                     .map_err(|source| Error::ConnectProxyServer { source })?
             }
             ProxyStrategy::Chained(proxies) => match proxies.len() {
-                0 => return Err(Error::NoProxyProvided),
+                0 => return Err(Error::NoProxyServiceProvided),
                 len => {
                     let proxy_host = proxies[0].host_address();
                     let mut socket = TcpStream::connect(proxy_host.to_string())
