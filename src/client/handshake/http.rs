@@ -39,7 +39,10 @@ where
             write!(req, "\r\n").map_err(|source| Error::BuildHttpRequest { source })?;
             req
         };
-        self.stream.write(request.as_ref()).await.map_err(|source| Error::WriteStream { source })?;
+        self.stream
+            .write(request.as_ref())
+            .await
+            .map_err(|source| Error::WriteStream { source })?;
 
         let mut buf = BytesMut::with_capacity(INITIAL_BUF_SIZE);
         let msg = loop {

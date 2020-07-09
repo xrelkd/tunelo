@@ -1,0 +1,212 @@
+#compdef tunelo
+
+autoload -U is-at-least
+
+_tunelo() {
+    typeset -A opt_args
+    typeset -a _arguments_options
+    local ret=1
+
+    if is-at-least 5.2; then
+        _arguments_options=(-s -S -C)
+    else
+        _arguments_options=(-s -C)
+    fi
+
+    local context curcontext="$curcontext" state line
+    _arguments "${_arguments_options[@]}" \
+'-c+[]' \
+'--config=[]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+":: :_tunelo_commands" \
+"*::: :->tunelo" \
+&& ret=0
+    case $state in
+    (tunelo)
+        words=($line[1] "${words[@]}")
+        (( CURRENT += 1 ))
+        curcontext="${curcontext%:*:*}:tunelo-command-$line[1]:"
+        case $line[1] in
+            (version)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(completions)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+':shell:_files' \
+&& ret=0
+;;
+(multi-proxy)
+_arguments "${_arguments_options[@]}" \
+'-c+[]' \
+'--config=[]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(proxy-chain)
+_arguments "${_arguments_options[@]}" \
+'-c+[]' \
+'--config=[]' \
+'--socks-ip=[]' \
+'--socks-port=[]' \
+'--http-ip=[]' \
+'--http-port=[]' \
+'--proxy-chain-file=[]' \
+'*--proxy-chain=[]' \
+'--disable-socks4a[]' \
+'--disable-socks5[]' \
+'--disable-http[]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(proxy-checker)
+_arguments "${_arguments_options[@]}" \
+'-c+[]' \
+'--config=[]' \
+'*-s+[Proxy server list]' \
+'*--proxy-servers=[Proxy server list]' \
+'-f+[Proxy server list file]' \
+'--file=[Proxy server list file]' \
+'*-p+[Proxy probers]' \
+'*--probers=[Proxy probers]' \
+'-o+[]' \
+'--output-file=[]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(socks-server)
+_arguments "${_arguments_options[@]}" \
+'-c+[]' \
+'--config=[]' \
+'--ip=[IP address to listen]' \
+'--port=[Port number to listen]' \
+'--disable-socks4a=[Disable SOCKS4a support]' \
+'--disable-socks5=[Disable SOCKS5 support]' \
+'--enable-tcp-connect=[Enable "TCP Connect" support]' \
+'--enable-tcp-bind=[Enable "TCP Bind" support]' \
+'--enable-udp-associate=[Enable "UDP Associate" support]' \
+'*--udp-ports=[UDP ports to provide UDP associate service]' \
+'--connection-timeout=[Connection timeout]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(http-server)
+_arguments "${_arguments_options[@]}" \
+'-c+[]' \
+'--config=[]' \
+'--ip=[IP address to listen]' \
+'--port=[Port number to listen]' \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+(help)
+_arguments "${_arguments_options[@]}" \
+'-h[Prints help information]' \
+'--help[Prints help information]' \
+'-V[Prints version information]' \
+'--version[Prints version information]' \
+&& ret=0
+;;
+        esac
+    ;;
+esac
+}
+
+(( $+functions[_tunelo_commands] )) ||
+_tunelo_commands() {
+    local commands; commands=(
+        "version:Shows current version" \
+"completions:Shows shell completions" \
+"multi-proxy:Starts multiple proxy server" \
+"proxy-chain:Runs as proxy chain server" \
+"proxy-checker:Runs as proxy checker" \
+"socks-server:Runs as SOCKS proxy server" \
+"http-server:Runs as HTTP proxy server" \
+"help:Prints this message or the help of the given subcommand(s)" \
+    )
+    _describe -t commands 'tunelo commands' commands "$@"
+}
+(( $+functions[_tunelo__completions_commands] )) ||
+_tunelo__completions_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo completions commands' commands "$@"
+}
+(( $+functions[_tunelo__help_commands] )) ||
+_tunelo__help_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo help commands' commands "$@"
+}
+(( $+functions[_tunelo__http-server_commands] )) ||
+_tunelo__http-server_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo http-server commands' commands "$@"
+}
+(( $+functions[_tunelo__multi-proxy_commands] )) ||
+_tunelo__multi-proxy_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo multi-proxy commands' commands "$@"
+}
+(( $+functions[_tunelo__proxy-chain_commands] )) ||
+_tunelo__proxy-chain_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo proxy-chain commands' commands "$@"
+}
+(( $+functions[_tunelo__proxy-checker_commands] )) ||
+_tunelo__proxy-checker_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo proxy-checker commands' commands "$@"
+}
+(( $+functions[_tunelo__socks-server_commands] )) ||
+_tunelo__socks-server_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo socks-server commands' commands "$@"
+}
+(( $+functions[_tunelo__version_commands] )) ||
+_tunelo__version_commands() {
+    local commands; commands=(
+        
+    )
+    _describe -t commands 'tunelo version commands' commands "$@"
+}
+
+_tunelo "$@"
