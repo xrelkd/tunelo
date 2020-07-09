@@ -10,8 +10,7 @@ use tokio::{
 };
 
 use crate::{
-    authentication::AuthenticationManager,
-    service::http::{Error, Service},
+    authentication::AuthenticationManager, server::error::Error, service::http::Service,
     transport::Transport,
 };
 
@@ -55,7 +54,9 @@ impl Server {
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
-        let mut tcp_listener = TcpListener::bind(self.tcp_address).await?;
+        let mut tcp_listener = TcpListener::bind(self.tcp_address)
+            .await
+            .map_err(|source| Error::BindTcpListener { source })?;
         info!("Starting HTTP proxy server at {}", self.tcp_address);
 
         let service = Arc::new(Service::new(self.transport, self.authentication_manager));
@@ -79,8 +80,9 @@ impl Server {
                         let _ = service.handle(socket, socket_addr).await;
                     });
                 }
-                Err(err) => {
-                    warn!("Server error: {:?}", err);
+                Err(source) => {
+                    let err = Error::AcceptTcpStream { source };
+                    warn!("Server error: {}", err);
                 }
             }
         }
