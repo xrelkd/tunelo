@@ -71,7 +71,9 @@ impl HttpProber {
                 let mut config = ClientConfig::new();
                 config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
                 let config = TlsConnector::from(Arc::new(config));
-                let dnsname = DNSNameRef::try_from_ascii_str(&host).unwrap();
+                let dnsname = DNSNameRef::try_from_ascii_str(&host).map_err(|source| {
+                    Error::ConstructsDNSNameRef { source, name: host.to_owned() }
+                })?;
                 let stream = config
                     .connect(dnsname, stream)
                     .await

@@ -39,6 +39,9 @@ pub enum Error {
 
     #[snafu(display("Incomplete HTTP response"))]
     IncompleteHttpResponse,
+
+    #[snafu(display("Could not construct a DNSNameRef from `{}`, error: {}", name, source))]
+    ConstructsDNSNameRef { name: String, source: webpki::InvalidDNSNameError },
 }
 
 mod report {
@@ -83,6 +86,9 @@ mod report {
 
         #[snafu(display("Incomplete HTTP response"))]
         IncompleteHttpResponse,
+
+        #[snafu(display("Could not construct a DNSNameRef from `{}`, error: {}", name, source))]
+        ConstructsDNSNameRef { name: String, source: webpki::InvalidDNSNameError },
     }
 
     impl From<Error> for ReportError {
@@ -108,6 +114,9 @@ mod report {
                 Error::ParseHttpRequest { source } => ReportError::ParseHttpRequest { source },
                 Error::ParseHttpResponse { source } => ReportError::ParseHttpResponse { source },
                 Error::IncompleteHttpResponse => ReportError::IncompleteHttpResponse,
+                Error::ConstructsDNSNameRef { name, source } => {
+                    ReportError::ConstructsDNSNameRef { name, source }
+                }
             }
         }
     }
