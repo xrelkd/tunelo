@@ -16,7 +16,8 @@ use crate::{
     authentication::AuthenticationManager,
     common::utils::safe_duration,
     protocol::socks::{SocksCommand, SocksVersion},
-    service::socks::{v5::UdpAssociateManager, Error, Service},
+    server::error::Error,
+    service::socks::{v5::UdpAssociateManager, Service},
     transport::{MonitoredStream, TimedStream, Transport},
 };
 
@@ -116,7 +117,9 @@ impl Server {
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
-        let mut tcp_listener = TcpListener::bind(self.tcp_address).await?;
+        let mut tcp_listener = TcpListener::bind(self.tcp_address)
+            .await
+            .map_err(|source| Error::BindTcpListener { source })?;
         info!("Starting SOCKS server at {}", self.tcp_address);
 
         let (udp_associate_join_handle, udp_associate_stream_tx) =
@@ -170,7 +173,8 @@ impl Server {
                         let _ = service.dispatch(socket, socket_addr).await;
                     });
                 }
-                Err(err) => {
+                Err(source) => {
+                    let err = Error::AcceptTcpStream { source };
                     warn!("Server error: {:?}", err);
                 }
             }

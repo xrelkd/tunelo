@@ -31,10 +31,10 @@ pub enum Error {
     NoProxyProberProvided,
 
     #[snafu(display("Could not run SOCKs proxy server, error: {}", source))]
-    RunSocksServer { source: tunelo::service::socks::Error },
+    RunSocksServer { source: tunelo::server::Error },
 
     #[snafu(display("Could not run HTTP proxy server, error: {}", source))]
-    RunHttpServer { source: tunelo::service::http::Error },
+    RunHttpServer { source: tunelo::server::Error },
 
     #[snafu(display("Errors occurred: {}", Errors::from(errors)))]
     ErrorCollection { errors: Vec<Error> },
