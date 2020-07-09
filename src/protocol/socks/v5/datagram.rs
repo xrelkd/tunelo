@@ -1,5 +1,7 @@
 use std::{convert::TryFrom, net::SocketAddr};
 
+use bytes::BytesMut;
+
 use crate::{
     common::HostAddress,
     protocol::socks::{Address, AddressRef, AddressType, Error, SocksVersion},
@@ -10,12 +12,12 @@ use crate::{
 pub struct Datagram {
     frag: u8,
     destination_socket: Address,
-    data: Vec<u8>,
+    data: BytesMut,
 }
 
 impl Datagram {
     #[inline]
-    pub fn new(frag: u8, destination_socket: Address, data: Vec<u8>) -> Datagram {
+    pub fn new(frag: u8, destination_socket: Address, data: BytesMut) -> Datagram {
         Datagram { frag, destination_socket, data }
     }
 
@@ -64,8 +66,8 @@ impl Datagram {
             }
         };
 
-        let mut data = Vec::new();
-        input.read_to_end(&mut data).map_err(|source| Error::ReadStream { source })?;
+        let mut data = BytesMut::new();
+        input.read(&mut data[..]).map_err(|source| Error::ReadStream { source })?;
         Ok(Datagram { frag, destination_socket, data })
     }
 
@@ -80,7 +82,7 @@ impl Datagram {
     pub fn header(&self) -> Vec<u8> { self.header_internal(false) }
 
     #[inline]
-    pub fn data(&self) -> &Vec<u8> { &self.data }
+    pub fn data(&self) -> &[u8] { &self.data.as_ref() }
 
     #[inline]
     pub fn frag(&self) -> u8 { self.frag }
@@ -104,7 +106,7 @@ impl Datagram {
     }
 
     #[inline]
-    pub fn destruct(self) -> (u8, HostAddress, Vec<u8>) {
+    pub fn destruct(self) -> (u8, HostAddress, BytesMut) {
         (self.frag, self.destination_socket.into(), self.data)
     }
 

@@ -6,6 +6,7 @@ use std::{
     },
 };
 
+use bytes::BytesMut;
 use tokio::{
     net::UdpSocket,
     sync::{mpsc, Mutex},
@@ -100,16 +101,16 @@ impl UdpAssociate {
         tokio::spawn({
             let closed = closed.clone();
             async move {
-                let mut buf = [0u8; 1024];
                 while !closed.load(Ordering::Acquire) {
-                    match socket_recv.recv_from(&mut buf).await {
+                    let mut buf = BytesMut::with_capacity(1024);
+                    match socket_recv.recv_from(&mut buf[..]).await {
                         Ok((n, remote_addr)) => {
                             info!(
                                 "Received packet with {} bytes from remote host {}",
                                 n, remote_addr
                             );
 
-                            let datagram = Datagram::new(0, remote_addr.into(), buf[..n].to_vec());
+                            let datagram = Datagram::new(0, remote_addr.into(), buf);
                             if let Err(err) = response_tx.send((client_addr, datagram)).await {
                                 warn!(
                                     "Failed to send packet to remote host: {}, error: {:?}",
