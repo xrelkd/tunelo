@@ -67,7 +67,7 @@ impl std::str::FromStr for ProxyHost {
         let url = Url::parse(url)?;
 
         let host = url.host_str().ok_or(ProxyHostError::NoHostName)?.to_owned();
-        let port = url.port().ok_or(ProxyHostError::NoPortNumber)?;
+        let port = url.port_or_known_default().ok_or(ProxyHostError::NoPortNumber)?;
         let username =
             if !url.username().is_empty() { Some(url.username().to_owned()) } else { None };
         let password = url.password().map(|p| p.to_owned());
