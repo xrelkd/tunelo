@@ -42,6 +42,9 @@ pub enum Error {
 
     #[snafu(display("Could not construct a DNSNameRef from `{}`, error: {}", name, source))]
     ConstructsDNSNameRef { name: String, source: webpki::InvalidDNSNameError },
+
+    #[snafu(display("Operation timed out"))]
+    Timeout,
 }
 
 mod report {
@@ -89,6 +92,9 @@ mod report {
 
         #[snafu(display("Could not construct a DNSNameRef from `{}`, error: {}", name, source))]
         ConstructsDNSNameRef { name: String, source: webpki::InvalidDNSNameError },
+
+        #[snafu(display("Operation timed out"))]
+        Timeout,
     }
 
     impl From<Error> for ReportError {
@@ -117,6 +123,7 @@ mod report {
                 Error::ConstructsDNSNameRef { name, source } => {
                     ReportError::ConstructsDNSNameRef { name, source }
                 }
+                Error::Timeout => ReportError::Timeout,
             }
         }
     }
