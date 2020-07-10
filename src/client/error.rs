@@ -25,6 +25,9 @@ pub enum Error {
     #[snafu(display("Could not connect UDP socket {}, error: {}", addr, source))]
     ConnectUdpSocket { addr: HostAddress, source: std::io::Error },
 
+    #[snafu(display("Connection timed out"))]
+    Timeout,
+
     #[snafu(display("Error occurred while shutting down connection, error: {}", source))]
     Shutdown { source: std::io::Error },
 

@@ -7,15 +7,18 @@ use crate::{
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct LivenessProber;
 
-impl LivenessProber {
-    #[inline]
-    pub fn new() -> LivenessProber { LivenessProber }
+impl Default for LivenessProber {
+    fn default() -> LivenessProber { LivenessProber }
+}
 
+impl LivenessProber {
     #[inline]
     pub async fn probe(self, proxy_server: &ProxyHost) -> LivenessProberReport {
         let mut report = LivenessProberReport::default();
         let alive =
-            ProxyConnector::probe_liveness(&ProxyStrategy::Single(proxy_server.clone())).await;
+            ProxyConnector::probe_liveness(&ProxyStrategy::Single(proxy_server.clone()), None)
+                .await;
+
         match alive {
             Ok(alive) => {
                 report.alive = alive;
@@ -38,6 +41,12 @@ pub struct LivenessProberReport {
 }
 
 impl LivenessProberReport {
+    #[inline]
+    pub fn timeout() -> LivenessProberReport {
+        LivenessProberReport { alive: false, error: Some(ReportError::Timeout) }
+    }
+
+    #[inline]
     pub fn has_error(&self) -> bool { self.error.is_some() }
 }
 

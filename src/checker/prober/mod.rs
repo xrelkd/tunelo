@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::common::ProxyHost;
 
 mod basic;
@@ -26,7 +28,28 @@ impl Prober {
         }
     }
 
-    pub async fn probe(self, proxy_server: &ProxyHost) -> ProberReport {
+    fn timeout_report(&self) -> ProberReport {
+        match self {
+            Prober::Liveness(_) => LivenessProberReport::timeout().into(),
+            Prober::Basic(p) => BasicProberReport::timeout(p.destination().clone()).into(),
+            Prober::Http(p) => HttpProberReport::timeout(p.method(), p.url().clone()).into(),
+        }
+    }
+
+    pub async fn probe(self, proxy_server: &ProxyHost, timeout: Option<Duration>) -> ProberReport {
+        match timeout {
+            Some(timeout) => {
+                let timeout_report = self.timeout_report();
+                match tokio::time::timeout(timeout, self.probe_internal(proxy_server)).await {
+                    Ok(r) => r,
+                    Err(_err) => timeout_report,
+                }
+            }
+            None => self.probe_internal(proxy_server).await,
+        }
+    }
+
+    async fn probe_internal(self, proxy_server: &ProxyHost) -> ProberReport {
         match self {
             Prober::Liveness(prober) => ProberReport::Liveness(prober.probe(proxy_server).await),
             Prober::Basic(prober) => {

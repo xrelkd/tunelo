@@ -35,14 +35,17 @@ pub struct HttpProber {
 }
 
 impl HttpProber {
+    #[inline]
     pub fn get(url: Url, expected_response_code: u16) -> HttpProber {
         HttpProber { url, expected_response_code, method: HttpMethod::Get }
     }
 
+    #[inline]
     pub fn head(url: Url, expected_response_code: u16) -> HttpProber {
         HttpProber { url, expected_response_code, method: HttpMethod::Head }
     }
 
+    #[inline]
     pub fn delete(url: Url, expected_response_code: u16) -> HttpProber {
         HttpProber { url, expected_response_code, method: HttpMethod::Delete }
     }
@@ -128,19 +131,29 @@ impl HttpProber {
         Ok(req)
     }
 
+    #[inline]
     pub fn destination_address(&self) -> Result<HostAddress, Error> {
         Ok(HostAddress::new(&self.host()?, self.port()?))
     }
 
+    #[inline]
     pub fn host(&self) -> Result<String, Error> {
         Ok(self.url.host_str().ok_or(Error::NoHostProvided)?.to_owned())
     }
 
+    #[inline]
     pub fn port(&self) -> Result<u16, Error> {
         Ok(self.url.port_or_known_default().ok_or(Error::NoPortProvided)?)
     }
 
+    #[inline]
     pub fn path(&self) -> Result<String, Error> { Ok(self.url.path().to_owned()) }
+
+    #[inline]
+    pub fn method(&self) -> HttpMethod { self.method }
+
+    #[inline]
+    pub fn url(&self) -> &Url { &self.url }
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -153,6 +166,17 @@ pub struct HttpProberReport {
 }
 
 impl HttpProberReport {
+    #[inline]
+    pub fn timeout(method: HttpMethod, url: Url) -> HttpProberReport {
+        HttpProberReport {
+            destination_reachable: false,
+            method: Some(method),
+            url: Some(url),
+            response_code: None,
+            error: Some(ReportError::Timeout),
+        }
+    }
+
     #[inline]
     pub fn has_error(&self) -> bool { self.error.is_some() }
 }

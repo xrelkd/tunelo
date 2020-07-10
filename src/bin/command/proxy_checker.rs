@@ -2,6 +2,7 @@ use std::{
     convert::TryInto,
     path::{Path, PathBuf},
     str::FromStr,
+    time::Duration,
 };
 
 use structopt::StructOpt;
@@ -42,12 +43,15 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
         .map(|proxy_host| SimpleProxyChecker::with_probers(proxy_host, &probers))
         .collect();
 
-    let mut reports = vec![];
-    for checker in checkers {
-        println!("Checking proxy server: {}", checker.proxy_server().to_string());
-        let r = checker.run_parallel().await;
-        reports.push(r);
-    }
+    let reports = {
+        let max_timeout_per_probe = config.max_timeout_per_probe;
+        let report_futs = checkers.into_iter().map(|checker| async {
+            println!("Checking proxy server: {}", checker.proxy_server().to_string());
+            checker.run_parallel(max_timeout_per_probe).await
+        });
+
+        futures::future::join_all(report_futs).await
+    };
 
     write_reports_to(&mut std::io::stdout(), &reports)
         .map_err(|source| Error::WriteProxyCheckerReport { source })?;
@@ -170,6 +174,7 @@ pub struct Config {
     proxy_servers: Vec<ProxyHost>,
     proxy_server_file: Option<PathBuf>,
     probers: Vec<ProberConfig>,
+    max_timeout_per_probe: Option<Duration>,
 }
 
 impl Config {
@@ -188,6 +193,10 @@ impl Config {
             self.proxy_server_file = opts.proxy_server_file;
         }
 
+        if let Some(ms) = opts.max_timeout_per_probe {
+            self.max_timeout_per_probe = Some(Duration::from_millis(ms));
+        }
+
         self
     }
 }
@@ -201,7 +210,12 @@ impl Default for Config {
                 expected_response_code: 200,
             },
         ];
-        Config { proxy_servers: vec![], proxy_server_file: None, probers }
+        Config {
+            proxy_servers: vec![],
+            proxy_server_file: None,
+            probers,
+            max_timeout_per_probe: Some(Duration::from_millis(1500)),
+        }
     }
 }
 
@@ -213,11 +227,14 @@ pub struct Options {
     #[structopt(long = "file", short = "f", help = "Proxy server list file")]
     proxy_server_file: Option<PathBuf>,
 
+    #[structopt(long = "output-file", short = "o")]
+    output_path: Option<PathBuf>,
+
     #[structopt(long = "probers", short = "p", help = "Proxy probers")]
     probers: Vec<ProberConfig>,
 
-    #[structopt(long = "output-file", short = "o")]
-    output_path: Option<PathBuf>,
+    #[structopt(long = "max-timeout-per-probe", help = "Max timeout per probe in millisecond")]
+    max_timeout_per_probe: Option<u64>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -285,7 +302,7 @@ impl TryInto<Prober> for ProberConfig {
         }
 
         match self {
-            ProberConfig::Liveness => Ok(LivenessProber::new().into()),
+            ProberConfig::Liveness => Ok(LivenessProber::default().into()),
             ProberConfig::Basic { destination_address } => {
                 Ok(BasicProber::new(destination_address).into())
             }

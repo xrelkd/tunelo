@@ -12,6 +12,16 @@ pub struct BasicProberReport {
 }
 
 impl BasicProberReport {
+    #[inline]
+    pub fn timeout(destination: HostAddress) -> BasicProberReport {
+        BasicProberReport {
+            destination_reachable: false,
+            destination: Some(destination),
+            error: Some(ReportError::Timeout),
+        }
+    }
+
+    #[inline]
     pub fn has_error(&self) -> bool { self.error.is_some() }
 }
 
@@ -48,4 +58,7 @@ impl BasicProber {
 
         Ok(())
     }
+
+    #[inline]
+    pub fn destination(&self) -> &HostAddress { &self.destination }
 }

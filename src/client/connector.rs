@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::{sync::Arc, time::Duration};
 
 use tokio::{
     io::{AsyncRead, AsyncWrite},
@@ -42,8 +42,16 @@ impl ProxyConnector {
         Ok(ProxyStream::from_raw(socket, strategy))
     }
 
-    pub async fn probe_liveness(strategy: &ProxyStrategy) -> Result<bool, Error> {
-        let socket = Self::build_socket(&strategy).await?;
+    pub async fn probe_liveness(
+        strategy: &ProxyStrategy,
+        timeout: Option<Duration>,
+    ) -> Result<bool, Error> {
+        let socket = match timeout {
+            Some(t) => tokio::time::timeout(t, Self::build_socket(&strategy))
+                .await
+                .map_err(|_| Error::Timeout)??,
+            None => Self::build_socket(&strategy).await?,
+        };
         socket.shutdown(std::net::Shutdown::Both).map_err(|source| Error::Shutdown { source })?;
         Ok(true)
     }
