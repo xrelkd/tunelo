@@ -44,6 +44,7 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
 
     let mut reports = vec![];
     for checker in checkers {
+        println!("Checking proxy server: {}", checker.proxy_server().to_string());
         let r = checker.run_parallel().await;
         reports.push(r);
     }
@@ -194,12 +195,9 @@ impl Config {
 impl Default for Config {
     fn default() -> Config {
         let probers = vec![
-            ProberConfig::HttpHead {
-                url: "https://www.google.com".to_owned(),
-                expected_response_code: 200,
-            },
+            ProberConfig::Liveness,
             ProberConfig::HttpGet {
-                url: "https://ifconfig.me/ip".to_owned(),
+                url: "https://httpbin.org/ip".to_owned(),
                 expected_response_code: 200,
             },
         ];
@@ -311,6 +309,15 @@ pub struct ProxyServerFile {
 }
 
 impl ProxyServerFile {
+    pub fn from_text(text: &str) -> Result<ProxyServerFile, Error> {
+        let proxy_servers = text
+            .lines()
+            .map(str::trim)
+            .filter_map(|line| ProxyHost::from_str(&line).ok())
+            .collect();
+        Ok(ProxyServerFile { proxy_servers })
+    }
+
     pub fn from_json(json: &[u8]) -> Result<ProxyServerFile, Error> {
         serde_json::from_slice(&json).map_err(|source| Error::ParseProxyServerJson { source })
     }
@@ -324,12 +331,19 @@ impl ProxyServerFile {
         match file_path.extension() {
             None => return Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             Some(ext) => match ext.to_str() {
+                Some("txt") => ProxyServerFile::load_text_file(file_path),
                 Some("json") => ProxyServerFile::load_json_file(file_path),
                 Some("toml") => ProxyServerFile::load_toml_file(file_path),
                 Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
                 None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             },
         }
+    }
+
+    pub fn load_text_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
+        let content = std::fs::read_to_string(&file_path)
+            .map_err(|source| Error::LoadProxyServerFile { source })?;
+        Self::from_text(&content)
     }
 
     pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
@@ -346,4 +360,141 @@ impl ProxyServerFile {
 }
 
 #[cfg(test)]
-mod tests {}
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_proxy_server_file_from_text() {
+        let text = r#"
+socks4://50.235.92.65:32100
+socks5://96.69.174.252:39593
+socks4a://67.204.1.222:64312
+   http://50.233.42.98:30717
+http://52.2.42.8
+
+http://70.83.106.82:55801
+
+socks4a://45.5.94.34:56731
+socks5://50.30.24.217:54321
+"#;
+
+        use ProxyHost::*;
+        let file = ProxyServerFile {
+            proxy_servers: vec![
+                Socks4a { host: "50.235.92.65".to_owned(), port: 32100, id: None },
+                Socks5 {
+                    host: "96.69.174.252".to_owned(),
+                    port: 39593,
+                    username: None,
+                    password: None,
+                },
+                Socks4a { host: "67.204.1.222".to_owned(), port: 64312, id: None },
+                HttpTunnel {
+                    host: "50.233.42.98".to_owned(),
+                    port: 30717,
+                    user_agent: None,
+                    username: None,
+                    password: None,
+                },
+                HttpTunnel {
+                    host: "52.2.42.8".to_owned(),
+                    port: 80,
+                    user_agent: None,
+                    username: None,
+                    password: None,
+                },
+                HttpTunnel {
+                    host: "70.83.106.82".to_owned(),
+                    port: 55801,
+                    user_agent: None,
+                    username: None,
+                    password: None,
+                },
+                Socks4a { host: "45.5.94.34".to_owned(), port: 56731, id: None },
+                Socks5 {
+                    host: "50.30.24.217".to_owned(),
+                    port: 54321,
+                    username: None,
+                    password: None,
+                },
+            ],
+        };
+
+        assert_eq!(ProxyServerFile::from_text(&text).unwrap(), file);
+    }
+
+    #[test]
+    fn test_proxy_server_file_from_json() {
+        let json = r#"
+{
+  "proxyServers": [
+    { "type": "socks5", "host": "127.99.0.1", "port": 3128 },
+    { "type": "socks4a", "host": "127.99.0.2", "port": 3128 },
+    { "type": "httpTunnel", "host": "127.99.0.3", "port": 1080 }
+  ]
+}
+        "#;
+
+        let file = ProxyServerFile {
+            proxy_servers: vec![
+                ProxyHost::Socks5 {
+                    host: "127.99.0.1".to_owned(),
+                    port: 3128,
+                    username: None,
+                    password: None,
+                },
+                ProxyHost::Socks4a { host: "127.99.0.2".to_owned(), port: 3128, id: None },
+                ProxyHost::HttpTunnel {
+                    host: "127.99.0.3".to_owned(),
+                    port: 1080,
+                    username: None,
+                    password: None,
+                    user_agent: None,
+                },
+            ],
+        };
+
+        assert_eq!(ProxyServerFile::from_json(&json.as_bytes()).unwrap(), file);
+    }
+
+    #[test]
+    fn test_proxy_server_file_from_toml() {
+        let toml = r#"
+[[proxyServers]]
+type = "socks5"
+host = "127.99.0.1"
+port = 3128
+
+[[proxyServers]]
+type = "socks4a"
+host = "127.99.0.2"
+port = 3128
+
+[[proxyServers]]
+type = "httpTunnel"
+host = "127.99.0.3"
+port = 1080
+        "#;
+
+        let file = ProxyServerFile {
+            proxy_servers: vec![
+                ProxyHost::Socks5 {
+                    host: "127.99.0.1".to_owned(),
+                    port: 3128,
+                    username: None,
+                    password: None,
+                },
+                ProxyHost::Socks4a { host: "127.99.0.2".to_owned(), port: 3128, id: None },
+                ProxyHost::HttpTunnel {
+                    host: "127.99.0.3".to_owned(),
+                    port: 1080,
+                    username: None,
+                    password: None,
+                    user_agent: None,
+                },
+            ],
+        };
+
+        assert_eq!(ProxyServerFile::from_toml(&toml.as_bytes()).unwrap(), file);
+    }
+}

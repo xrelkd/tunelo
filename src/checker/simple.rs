@@ -87,4 +87,7 @@ impl SimpleProxyChecker {
         task_report.prober_reports.sort();
         task_report
     }
+
+    #[inline]
+    pub fn proxy_server(&self) -> &ProxyHost { &self.proxy_server }
 }
