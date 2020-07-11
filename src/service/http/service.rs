@@ -1,7 +1,8 @@
 use std::{net::SocketAddr, str::FromStr, sync::Arc};
 
-use bytes::BytesMut;
-use http::{header::HeaderName, HeaderMap, HeaderValue, Method};
+use bytes::{Bytes, BytesMut};
+use http::{header::HeaderName, HeaderMap, HeaderValue, Method, StatusCode};
+use url::Url;
 
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
@@ -9,31 +10,13 @@ use tokio::{
 };
 
 use crate::{
-    authentication::AuthenticationManager,
-    common::HostAddress,
-    protocol::http::{Error as ProtocolError, StatusCode},
-    service::http::Error,
+    authentication::AuthenticationManager, common::HostAddress, service::http::Error,
     transport::Transport,
 };
 
 const INITIAL_BUF_SIZE: usize = 256;
 const BUF_ADDITIONAL_SIZE: usize = 128;
-const MAX_HEADER_BUF_SIZE: usize = 512;
-
-struct ParsedMessage {
-    req_method: Method,
-    headers: HeaderMap,
-    path: String,
-}
-
-impl ParsedMessage {
-    fn host_address(&self) -> Option<HostAddress> {
-        match self.headers.get(http::header::HOST) {
-            Some(host) => HostAddress::from_str(host.to_str().unwrap_or_default()).ok(),
-            None => HostAddress::from_str(&self.path).ok(),
-        }
-    }
-}
+const MAX_HEADER_BUF_SIZE: usize = 10240;
 
 pub struct Service<TransportStream> {
     transport: Arc<Transport<TransportStream>>,
@@ -51,42 +34,44 @@ where
         Service { transport, _authentication_manager: authentication_manager }
     }
 
-    fn parse_header(buf: &mut BytesMut) -> Result<Option<ParsedMessage>, ProtocolError> {
+    fn parse_header(buf: &mut BytesMut) -> Result<Option<ParsedMessage>, Error> {
         if buf.is_empty() {
             return Ok(None);
         }
 
         let mut empty_headers = [httparse::EMPTY_HEADER; 32];
         let mut request = httparse::Request::new(&mut empty_headers);
-        let status = request
-            .parse(&buf.as_ref())
-            .map_err(|source| ProtocolError::ParseRequest { source })?;
+        let status =
+            request.parse(&buf.as_ref()).map_err(|source| Error::ParseRequest { source })?;
 
         match status {
             httparse::Status::Partial => return Ok(None),
             httparse::Status::Complete(parsed_len) => {
-                let method = request.method.ok_or(ProtocolError::NoMethodProvided)?;
-                let method = Method::from_bytes(method.as_bytes())
-                    .map_err(|_| ProtocolError::InvalidMethod { method: method.to_owned() })?;
+                let method = {
+                    let method = request.method.ok_or(Error::NoMethodProvided)?;
+                    Method::from_bytes(method.as_bytes())
+                        .map_err(|_| Error::InvalidMethod { method: method.to_owned() })?
+                };
 
-                let path =
-                    request.path.map(|p| p.to_string()).ok_or(ProtocolError::NoPathProvided)?;
+                let url = match request.path {
+                    Some(p) => Url::from_str(p).map_err(|source| Error::ParseUrl { source })?,
+                    None => return Err(Error::NoPathProvided),
+                };
 
                 let mut headers = HeaderMap::with_capacity(request.headers.len());
                 for header in request.headers {
-                    let name = HeaderName::from_str(header.name).map_err(|_| {
-                        ProtocolError::InvalidHeaderName { name: header.name.to_string() }
-                    })?;
+                    let name = HeaderName::from_str(header.name)
+                        .map_err(|_| Error::InvalidHeaderName { name: header.name.to_string() })?;
                     let value = HeaderValue::from_bytes(header.value).map_err(|_| {
-                        ProtocolError::InvalidHeaderValue {
+                        Error::InvalidHeaderValue {
                             value: String::from_utf8_lossy(header.value).to_string(),
                         }
                     })?;
                     headers.append(name, value);
                 }
 
-                let _header_buf = buf.split_to(parsed_len);
-                Ok(Some(ParsedMessage { req_method: method, headers, path }))
+                let header_buf = buf.split_to(parsed_len).freeze();
+                Ok(Some(ParsedMessage { req_method: method, headers, url, header_buf }))
             }
         }
     }
@@ -105,86 +90,48 @@ where
             match Self::parse_header(&mut buf) {
                 Ok(Some(msg)) => break msg,
                 Ok(None) => {
-                    if buf.capacity() < MAX_HEADER_BUF_SIZE {
-                        buf.reserve(std::cmp::min(
+                    if buf.len() != 0 && buf.capacity() < MAX_HEADER_BUF_SIZE {
+                        let additional_size = std::cmp::min(
                             BUF_ADDITIONAL_SIZE,
                             MAX_HEADER_BUF_SIZE - buf.capacity(),
-                        ));
+                        );
+                        buf.reserve(additional_size);
                         continue;
                     }
+                    Self::shutdown_with_status(client_stream, StatusCode::BAD_REQUEST).await?;
                     return Err(Error::RequestTooLarge);
                 }
-                Err(err) => match err {
-                    ProtocolError::ParseRequest { .. } => {
-                        Self::shutdown_with_status(&mut client_stream, StatusCode::BadRequest)
-                            .await?;
-                        return Ok(());
-                    }
-                    ProtocolError::HostUnreachable => {
-                        Self::shutdown_with_status(&mut client_stream, StatusCode::NotFound)
-                            .await?;
-                        return Ok(());
-                    }
-                    source => return Err(Error::OtherProtocolError { source }),
-                },
+                Err(err) => {
+                    Self::shutdown_with_status(client_stream, StatusCode::BAD_REQUEST).await?;
+                    return Err(err);
+                }
             }
         };
 
-        match msg.req_method {
-            Method::CONNECT => self.handle_connect(client_stream, msg).await,
-            Method::GET | _ => self.handle_get(client_stream, msg, buf).await,
-        }
-    }
-
-    async fn handle_get(
-        &self,
-        mut client_stream: TransportStream,
-        msg: ParsedMessage,
-        mut _buf: BytesMut,
-    ) -> Result<(), Error> {
-        client_stream
-            .write(StatusCode::NotImplemented.status_line().as_bytes())
-            .await
-            .map_err(|source| Error::WriteStream { source })?;
-        client_stream
-            .write(
-                format!(
-                    "<html lang=\"en\"><body>HTTP method {} is NOT SUPPORTED</body></html>\r\n",
-                    msg.req_method
-                )
-                .as_bytes(),
-            )
-            .await
-            .map_err(|source| Error::WriteStream { source })?;
-        client_stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
-        Ok(())
-    }
-
-    async fn handle_connect(
-        &self,
-        mut client_stream: TransportStream,
-        msg: ParsedMessage,
-    ) -> Result<(), Error> {
         let remote_host = match msg.host_address() {
             Some(r) => r,
             None => {
-                client_stream
-                    .write(StatusCode::NotFound.status_line().as_bytes())
-                    .await
-                    .map_err(|source| Error::WriteStream { source })?;
-                client_stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
-                return Ok(());
+                Self::shutdown_with_status(client_stream, StatusCode::NOT_FOUND).await?;
+                return Err(Error::NoHostProvided);
             }
         };
 
         let (remote_socket, _remote_addr) = match self.transport.connect(&remote_host).await {
-            Ok((socket, addr)) => {
-                let response = "HTTP/1.1 200 Connection Established\r\n\r\n";
-                let _n = client_stream
-                    .write(response.as_ref())
-                    .await
-                    .map_err(|source| Error::WriteStream { source })?;
-                (socket, addr)
+            Ok((mut remote_socket, addr)) => {
+                match msg.req_method {
+                    Method::CONNECT => {
+                        const ESTABLISHED_RESPONSE: &[u8] =
+                            b"HTTP/1.1 200 Connection Established\r\n\r\n";
+                        let _n = client_stream
+                            .write(ESTABLISHED_RESPONSE)
+                            .await
+                            .map_err(|source| Error::WriteStream { source })?;
+                    }
+                    _ => {
+                        let _n = remote_socket.write(msg.header_buf.as_ref()).await;
+                    }
+                }
+                (remote_socket, addr)
             }
             Err(source) => return Err(Error::ConnectRemoteHost { host: remote_host, source }),
         };
@@ -200,8 +147,9 @@ where
         Ok(())
     }
 
+    #[inline]
     async fn shutdown_with_status(
-        stream: &mut TransportStream,
+        mut stream: TransportStream,
         status_code: StatusCode,
     ) -> Result<(), Error> {
         stream
@@ -210,6 +158,42 @@ where
             .map_err(|source| Error::WriteStream { source })?;
         stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
         Ok(())
+    }
+}
+
+trait StatusCodeExt {
+    fn status_line(&self) -> String;
+}
+
+impl StatusCodeExt for StatusCode {
+    fn status_line(&self) -> String {
+        match self.canonical_reason() {
+            Some(reason) => format!("HTTP/1.1 {} {}\r\n\r\n", self.as_u16(), reason),
+            None => format!("HTTP/1.1 {}\r\n\r\n", self.as_u16()),
+        }
+    }
+}
+
+#[derive(Debug)]
+struct ParsedMessage {
+    req_method: Method,
+    headers: HeaderMap,
+    url: Url,
+    header_buf: Bytes,
+}
+
+impl ParsedMessage {
+    fn host_address(&self) -> Option<HostAddress> {
+        match (&self.req_method, self.headers.get(http::header::HOST)) {
+            (&Method::CONNECT, Some(host)) => {
+                HostAddress::from_str(host.to_str().unwrap_or_default()).ok()
+            }
+            _ => {
+                let domain = &self.url.host_str()?;
+                let port = self.url.port_or_known_default()?;
+                Some(HostAddress::new(domain, port))
+            }
+        }
     }
 }
 

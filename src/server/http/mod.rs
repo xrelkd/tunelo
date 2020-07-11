@@ -77,7 +77,7 @@ impl Server {
                 Ok((socket, socket_addr)) => {
                     let service = service.clone();
                     tokio::spawn(async move {
-                        let _ = service.handle(socket, socket_addr).await;
+                        let _n = service.handle(socket, socket_addr).await;
                     });
                 }
                 Err(source) => {

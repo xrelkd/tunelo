@@ -1,6 +1,6 @@
 use snafu::Snafu;
 
-use crate::{common::HostAddress, protocol, transport};
+use crate::{common::HostAddress, transport};
 
 #[derive(Debug, Snafu)]
 pub enum Error {
@@ -22,6 +22,45 @@ pub enum Error {
     #[snafu(display("Could not establish connection with {}, error: {}", host, source))]
     ConnectRemoteHost { host: HostAddress, source: transport::Error },
 
-    #[snafu(display("Occurred protocol error: {}", source))]
-    OtherProtocolError { source: protocol::http::Error },
+    #[snafu(display("Unsupported method: {}", method))]
+    UnsupportedMethod { method: String },
+
+    #[snafu(display("Could not parse HTTP request, error: {}", source))]
+    ParseRequest { source: httparse::Error },
+
+    #[snafu(display("Could not parse HTTP response, error: {}", source))]
+    ParseResponse { source: httparse::Error },
+
+    #[snafu(display("Could not parse URL from HTTP header, error: {}", source))]
+    ParseUrl { source: url::ParseError },
+
+    #[snafu(display("Host is unreachable"))]
+    HostUnreachable,
+
+    #[snafu(display("Invalid HTTP method: {}", method))]
+    InvalidMethod { method: String },
+
+    #[snafu(display("Invalid path: {}", path))]
+    InvalidPath { path: String },
+
+    #[snafu(display("Invalid HTTP header name: {}", name))]
+    InvalidHeaderName { name: String },
+
+    #[snafu(display("Invalid HTTP header value: {}", value))]
+    InvalidHeaderValue { value: String },
+
+    #[snafu(display("No HTTP method provided"))]
+    NoMethodProvided,
+
+    #[snafu(display("No host is provided"))]
+    NoHostProvided,
+
+    #[snafu(display("No port is provided"))]
+    NoPortProvided,
+
+    #[snafu(display("No path is provided"))]
+    NoPathProvided,
+
+    #[snafu(display("No URL is provided"))]
+    NoUrlProvided,
 }
