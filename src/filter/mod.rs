@@ -179,7 +179,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_constructors() {
+    fn constructors() {
         let _filter = DefaultFilter::default();
         let _filter = DefaultFilter::allow_list();
         let _filter = DefaultFilter::deny_list();
@@ -205,7 +205,7 @@ mod tests {
     }
 
     #[test]
-    fn test_filters() {
+    fn filters() {
         let port = 8787;
         let ip: IpAddr = "220.181.38.148".parse().unwrap();
         let hostname = "baidu.com";

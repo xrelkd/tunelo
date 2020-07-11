@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use url::Url;
 
 use tunelo::{
@@ -23,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         HttpProber::delete(Url::parse("http://httpbin.org/delete").unwrap(), 200).into(),
     );
 
-    let report = task.run_parallel().await;
+    let report = task.run_parallel(Some(Duration::from_secs(3))).await;
     println!("{:?}", report);
     Ok(())
 }

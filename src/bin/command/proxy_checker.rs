@@ -381,7 +381,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_proxy_server_file_from_text() {
+    fn proxy_server_file_from_text() {
         let text = r#"
 socks4://50.235.92.65:32100
 socks5://96.69.174.252:39593
@@ -441,7 +441,7 @@ socks5://50.30.24.217:54321
     }
 
     #[test]
-    fn test_proxy_server_file_from_json() {
+    fn proxy_server_file_from_json() {
         let json = r#"
 {
   "proxyServers": [
@@ -475,7 +475,7 @@ socks5://50.30.24.217:54321
     }
 
     #[test]
-    fn test_proxy_server_file_from_toml() {
+    fn proxy_server_file_from_toml() {
         let toml = r#"
 [[proxyServers]]
 type = "socks5"
