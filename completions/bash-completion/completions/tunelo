@@ -199,7 +199,7 @@ _tunelo() {
             return 0
             ;;
         tunelo__proxy__checker)
-            opts=" -h -V -c -s -f -p -o  --help --version --config --proxy-servers --file --probers --output-file  "
+            opts=" -h -V -c -s -f -o -p  --help --version --config --proxy-servers --file --output-file --probers --max-timeout-per-probe  "
             if [[ ${cur} == -* || ${COMP_CWORD} -eq 2 ]] ; then
                 COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
                 return 0
@@ -230,6 +230,14 @@ _tunelo() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
+                --output-file)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
+                    -o)
+                    COMPREPLY=($(compgen -f "${cur}"))
+                    return 0
+                    ;;
                 --probers)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
@@ -238,11 +246,7 @@ _tunelo() {
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
-                --output-file)
-                    COMPREPLY=($(compgen -f "${cur}"))
-                    return 0
-                    ;;
-                    -o)
+                --max-timeout-per-probe)
                     COMPREPLY=($(compgen -f "${cur}"))
                     return 0
                     ;;
