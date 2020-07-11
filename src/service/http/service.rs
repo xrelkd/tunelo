@@ -130,25 +130,41 @@ where
             }
         };
 
-        if msg.req_method != Method::CONNECT {
-            client_stream
-                .write(StatusCode::NotImplemented.status_line().as_bytes())
-                .await
-                .map_err(|source| Error::WriteStream { source })?;
-            client_stream
-                .write(
-                    format!(
-                        "<html lang=\"en\"><body>HTTP method {} is NOT SUPPORTED</body></html>\r\n",
-                        msg.req_method
-                    )
-                    .as_bytes(),
-                )
-                .await
-                .map_err(|source| Error::WriteStream { source })?;
-            client_stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
-            return Ok(());
+        match msg.req_method {
+            Method::CONNECT => self.handle_connect(client_stream, msg).await,
+            Method::GET | _ => self.handle_get(client_stream, msg, buf).await,
         }
+    }
 
+    async fn handle_get(
+        &self,
+        mut client_stream: TransportStream,
+        msg: ParsedMessage,
+        mut _buf: BytesMut,
+    ) -> Result<(), Error> {
+        client_stream
+            .write(StatusCode::NotImplemented.status_line().as_bytes())
+            .await
+            .map_err(|source| Error::WriteStream { source })?;
+        client_stream
+            .write(
+                format!(
+                    "<html lang=\"en\"><body>HTTP method {} is NOT SUPPORTED</body></html>\r\n",
+                    msg.req_method
+                )
+                .as_bytes(),
+            )
+            .await
+            .map_err(|source| Error::WriteStream { source })?;
+        client_stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
+        Ok(())
+    }
+
+    async fn handle_connect(
+        &self,
+        mut client_stream: TransportStream,
+        msg: ParsedMessage,
+    ) -> Result<(), Error> {
         let remote_host = match msg.host_address() {
             Some(r) => r,
             None => {
