@@ -31,8 +31,9 @@ complete -c tunelo -n "__fish_seen_subcommand_from proxy-chain" -s V -l version 
 complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s c -l config
 complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s s -l proxy-servers -d 'Proxy server list'
 complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s f -l file -d 'Proxy server list file'
-complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s p -l probers -d 'Proxy probers'
 complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s o -l output-file
+complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s p -l probers -d 'Proxy probers'
+complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -l max-timeout-per-probe -d 'Max timeout per probe in millisecond'
 complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s h -l help -d 'Prints help information'
 complete -c tunelo -n "__fish_seen_subcommand_from proxy-checker" -s V -l version -d 'Prints version information'
 complete -c tunelo -n "__fish_seen_subcommand_from socks-server" -s c -l config

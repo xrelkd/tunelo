@@ -84,10 +84,11 @@ _arguments "${_arguments_options[@]}" \
 '*--proxy-servers=[Proxy server list]' \
 '-f+[Proxy server list file]' \
 '--file=[Proxy server list file]' \
-'*-p+[Proxy probers]' \
-'*--probers=[Proxy probers]' \
 '-o+[]' \
 '--output-file=[]' \
+'*-p+[Proxy probers]' \
+'*--probers=[Proxy probers]' \
+'--max-timeout-per-probe=[Max timeout per probe in millisecond]' \
 '-h[Prints help information]' \
 '--help[Prints help information]' \
 '-V[Prints version information]' \
