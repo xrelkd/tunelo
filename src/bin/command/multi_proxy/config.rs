@@ -204,14 +204,8 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_config_load() {
-        let path = {
-            let mut p = std::env::temp_dir();
-            p.push(format!(".test-{:?}", std::time::Instant::now()));
-            p
-        };
-
-        let content = r#"
+    fn config_load() -> Result<(), Box<dyn std::error::Error>> {
+        let toml = r#"
 proxy_servers = ["socks", "http"]
 
 [socks_server]
@@ -259,8 +253,8 @@ port = 8118
             }),
             http_server: Some(HttpServer { host: "127.0.0.1".parse().unwrap(), port: 8118 }),
         };
-        std::fs::write(&path, &content).unwrap();
-        assert_eq!(config, Config::load(&path).unwrap());
-        std::fs::remove_file(&path).unwrap();
+
+        assert_eq!(Config::from_toml(toml.as_bytes())?, config);
+        Ok(())
     }
 }

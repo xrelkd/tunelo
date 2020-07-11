@@ -11,11 +11,13 @@ macro_rules! impl_config_load {
                 source,
                 file_path: path.as_ref().to_owned(),
             })?;
-            let config = toml::from_slice(&content).map_err(|source| Error::DeserializeConfig {
-                source,
-                file_path: path.as_ref().to_owned(),
-            })?;
+
+            let config = Self::from_toml(&content)?;
             Ok(config)
+        }
+
+        pub fn from_toml(content: &[u8]) -> Result<$config, Error> {
+            toml::from_slice(&content).map_err(|source| Error::ParseConfigFromToml { source })
         }
     };
 }

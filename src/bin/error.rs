@@ -15,8 +15,8 @@ pub enum Error {
     #[snafu(display("Read configuration file {}, error: {}", file_path.display(), source))]
     ReadConfigFile { source: std::io::Error, file_path: PathBuf },
 
-    #[snafu(display("Deserialize configuration file {:?}, error: {}", file_path.display(), source))]
-    DeserializeConfig { source: toml::de::Error, file_path: PathBuf },
+    #[snafu(display("Parse configuration from TOML, error: {}", source))]
+    ParseConfigFromToml { source: toml::de::Error },
 
     #[snafu(display("No configuration is provided"))]
     NoConfiguration,

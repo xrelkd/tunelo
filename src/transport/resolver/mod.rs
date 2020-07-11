@@ -15,13 +15,13 @@ pub trait Resolver: Send + Sync {
     fn resolve(&self, host: &str) -> Resolve;
 }
 
-// pub type SharedResolver = Arc<Box<dyn Resolver>>;
-
 #[derive(Clone)]
-pub struct DummyResolver {}
+pub struct DummyResolver;
 
 impl DummyResolver {
-    pub fn new() -> DummyResolver { DummyResolver {} }
+    pub fn new() -> DummyResolver {
+        DummyResolver
+    }
 }
 
 impl Resolver for DummyResolver {
@@ -37,15 +37,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_dummy_resolver() {
+    fn dummy_resolver() -> Result<(), Box<dyn std::error::Error>> {
         let resolver = DummyResolver::new();
-        let mut r = Runtime::new().unwrap();
 
-        r.block_on(async move {
-            assert_eq!(
-                resolver.resolve("www.google.com").await.unwrap(),
-                vec![IpAddr::from([0, 0, 0, 0])]
-            )
-        });
+        let result =
+            Runtime::new()?.block_on(async move { resolver.resolve("www.google.com").await })?;
+        assert_eq!(result, vec![IpAddr::from([0, 0, 0, 0])]);
+
+        Ok(())
     }
 }

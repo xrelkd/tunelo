@@ -304,7 +304,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_proxy_chain_from_json() {
+    fn proxy_chain_from_json() {
         let json = r#"
 {
   "proxyChain": [
@@ -338,7 +338,7 @@ mod tests {
     }
 
     #[test]
-    fn test_proxy_chain_from_toml() {
+    fn proxy_chain_from_toml() {
         let toml = r#"
 [[proxyChain]]
 type = "socks5"
@@ -379,7 +379,7 @@ port = 1080
     }
 
     #[test]
-    fn test_config() {
+    fn config_from_toml() {
         let config = Config {
             enable_socks4a: true,
             enable_socks5: true,
@@ -433,15 +433,6 @@ host = "127.99.0.3"
 port = 1080
             "#;
 
-        let path = {
-            let mut p = PathBuf::from(std::env::temp_dir());
-            p.push(format!(".{:?}-test.toml", std::time::Instant::now()));
-            p
-        };
-
-        std::fs::write(&path, toml).unwrap();
-
-        assert_eq!(Config::load(&path).unwrap(), config);
-        std::fs::remove_file(&path).unwrap();
+        assert_eq!(Config::from_toml(toml.as_bytes()).unwrap(), config);
     }
 }
