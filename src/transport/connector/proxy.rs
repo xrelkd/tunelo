@@ -41,7 +41,7 @@ impl Connector for ProxyConnector {
     }
 
     fn connect_addr(&self, addr: &SocketAddr) -> Connect<Self::Stream, Self::Error> {
-        let host = HostAddress::from(addr.clone());
+        let host = HostAddress::from(*addr);
         self.connect(&host)
     }
 }

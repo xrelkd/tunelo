@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
+use tokio::io::{AsyncRead, AsyncWrite};
 
 pub trait StatMonitor: Send + Sync {
     fn increase_rx(&mut self, n: usize);
@@ -15,6 +15,9 @@ pub struct MonitoredStream<Stream, Monitor> {
     stream: Stream,
     monitor: Monitor,
 }
+
+type ReadHalf<Stream, Monitor> = tokio::io::ReadHalf<MonitoredStream<Stream, Monitor>>;
+type WriteHalf<Stream, Monitor> = tokio::io::WriteHalf<MonitoredStream<Stream, Monitor>>;
 
 impl<Stream, Monitor> MonitoredStream<Stream, Monitor>
 where
@@ -27,10 +30,7 @@ where
     }
 
     #[inline]
-    pub fn split(
-        self,
-    ) -> (ReadHalf<MonitoredStream<Stream, Monitor>>, WriteHalf<MonitoredStream<Stream, Monitor>>)
-    {
+    pub fn split(self) -> (ReadHalf<Stream, Monitor>, WriteHalf<Stream, Monitor>) {
         tokio::io::split(self)
     }
 

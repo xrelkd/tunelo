@@ -57,7 +57,7 @@ impl UdpAssociateCache {
     pub async fn remove(&self, addr: &HostAddress) {
         let key = CacheKey::from(addr);
         let mut cache = self.cache.lock().await;
-        if let Some(_) = cache.remove(&key) {
+        if cache.remove(&key).is_some() {
             info!("Drop UDP association {}", addr.to_string());
         }
     }

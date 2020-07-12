@@ -45,7 +45,7 @@ where
             request.parse(&buf.as_ref()).map_err(|source| Error::ParseRequest { source })?;
 
         match status {
-            httparse::Status::Partial => return Ok(None),
+            httparse::Status::Partial => Ok(None),
             httparse::Status::Complete(parsed_len) => {
                 let method = {
                     let method = request.method.ok_or(Error::NoMethodProvided)?;
@@ -90,7 +90,7 @@ where
             match Self::parse_header(&mut buf) {
                 Ok(Some(msg)) => break msg,
                 Ok(None) => {
-                    if buf.len() != 0 && buf.capacity() < MAX_HEADER_BUF_SIZE {
+                    if !buf.is_empty() && buf.capacity() < MAX_HEADER_BUF_SIZE {
                         let additional_size = std::cmp::min(
                             BUF_ADDITIONAL_SIZE,
                             MAX_HEADER_BUF_SIZE - buf.capacity(),

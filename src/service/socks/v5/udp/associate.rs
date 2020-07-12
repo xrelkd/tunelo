@@ -57,7 +57,7 @@ impl UdpAssociate {
                 while let Some(datagram) = rx.recv().await {
                     use crate::common::HostAddress;
                     let remote_host = match datagram.destination_address() {
-                        HostAddress::Socket(addr) => addr.clone(),
+                        HostAddress::Socket(addr) => *addr,
                         HostAddress::DomainName(host, port) => {
                             match resolver.resolve(&host).await {
                                 Ok(addrs) => {

@@ -25,9 +25,8 @@ impl Resolver for TokioResolver {
                 move || {
                     (host.as_str(), 0)
                         .to_socket_addrs()
-                        .unwrap_or(vec![].into_iter())
-                        .into_iter()
-                        .map(|addr| addr.ip().clone())
+                        .unwrap_or_else(|_| vec![].into_iter())
+                        .map(|addr| addr.ip())
                         .collect()
                 }
             })

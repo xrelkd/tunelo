@@ -102,12 +102,8 @@ impl UdpServer {
                     associate.send_to(datagram).await;
                 }
                 (true, None) => {
-                    match UdpAssociate::new(
-                        client_addr.clone(),
-                        pkt_tx.clone(),
-                        self.resolver.clone(),
-                    )
-                    .await
+                    match UdpAssociate::new(client_addr, pkt_tx.clone(), self.resolver.clone())
+                        .await
                     {
                         Ok(associate) => {
                             associate.send_to(datagram).await;

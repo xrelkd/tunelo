@@ -115,10 +115,10 @@ impl Datagram {
         frag: u8,
         destination_socket: &HostAddress,
     ) -> Result<usize, std::io::Error> {
-        let mut dest_sock_vec = AddressRef(destination_socket).to_bytes(SocksVersion::V5);
+        let dest_sock_vec = AddressRef(destination_socket).to_bytes(SocksVersion::V5);
 
         let mut n = wrt.write(&[0x00, 0x00, frag])?;
-        n += wrt.write(&mut dest_sock_vec)?;
+        n += wrt.write(&dest_sock_vec)?;
         Ok(n)
     }
 

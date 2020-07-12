@@ -80,10 +80,7 @@ where
 {
     let proxy_servers: Vec<_> = reports
         .iter()
-        .filter_map(|r| match r.is_proxy_server_alive() {
-            true => Some(r.proxy_server.clone()),
-            false => None,
-        })
+        .filter_map(|r| if r.is_proxy_server_alive() { Some(r.proxy_server.clone()) } else { None })
         .collect();
 
     let file = ProxyServerFile { proxy_servers };
@@ -154,8 +151,11 @@ where
 
             for r in report.http_reports() {
                 let method = r.method.as_ref().map(|m| m.to_string()).unwrap_or_default();
-                let response_code =
-                    r.response_code.as_ref().map(|n| n.to_string()).unwrap_or("N/A".to_owned());
+                let response_code = r
+                    .response_code
+                    .as_ref()
+                    .map(|n| n.to_string())
+                    .unwrap_or_else(|| "N/A".to_owned());
                 let url = r.url.as_ref().map(|u| u.to_string()).unwrap_or_default();
                 let err = r.error.as_ref().map(|e| e.to_string()).unwrap_or_default();
 
@@ -251,9 +251,9 @@ impl FromStr for ProberConfig {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<_> = s.split(",").map(|s| s.trim()).collect();
+        let parts: Vec<_> = s.split(',').map(|s| s.trim()).collect();
 
-        let probe_type = parts[0].to_lowercase().to_owned();
+        let probe_type = parts[0].to_lowercase();
         if probe_type.starts_with("http") {
             if parts.len() < 3 {
                 return Err(Error::InvalidProxyProber { prober: s.to_owned() });
@@ -346,7 +346,7 @@ impl ProxyServerFile {
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
         let file_path = file_path.as_ref();
         match file_path.extension() {
-            None => return Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
+            None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             Some(ext) => match ext.to_str() {
                 Some("txt") => ProxyServerFile::load_text_file(file_path),
                 Some("json") => ProxyServerFile::load_json_file(file_path),

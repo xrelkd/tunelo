@@ -85,7 +85,7 @@ where
         for port in &self.ports {
             let socket_addr = SocketAddr::new(self.server_addr, *port);
             let (server, shutdown_signal) =
-                UdpServer::new(socket_addr.clone(), self.cache.clone(), self.resolver.clone());
+                UdpServer::new(socket_addr, self.cache.clone(), self.resolver.clone());
             self.server_addrs.push(socket_addr);
             server_shutdown_signals.push(shutdown_signal);
             server_handles.push(tokio::spawn({

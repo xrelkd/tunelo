@@ -86,8 +86,12 @@ pub async fn run<P: AsRef<Path>>(
 
     let filter = {
         let mut f = SimpleFilter::deny_list();
-        socks_opts.as_ref().map(|config| f.add_socket(config.listen_socket()));
-        http_opts.as_ref().map(|config| f.add_socket(config.listen_socket()));
+        if let Some(config) = socks_opts.as_ref() {
+            f.add_socket(config.listen_socket())
+        }
+        if let Some(config) = http_opts.as_ref() {
+            f.add_socket(config.listen_socket())
+        }
         Arc::new(f)
     };
 
@@ -99,7 +103,8 @@ pub async fn run<P: AsRef<Path>>(
 
     let (shutdown_sender, mut shutdown_receiver) = shutdown::new();
 
-    let mut futs: Vec<Pin<Box<dyn Future<Output = Result<(), Error>>>>> = Vec::new();
+    type ServeFuture = Pin<Box<dyn Future<Output = Result<(), Error>>>>;
+    let mut futs: Vec<ServeFuture> = Vec::new();
 
     if let Some(opts) = socks_opts {
         let socks_serve = {
@@ -272,7 +277,7 @@ impl ProxyChain {
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
         let file_path = file_path.as_ref();
         match file_path.extension() {
-            None => return Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
+            None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             Some(ext) => match ext.to_str() {
                 Some("json") => ProxyChain::load_json_file(file_path),
                 Some("toml") => ProxyChain::load_toml_file(file_path),

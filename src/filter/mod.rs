@@ -3,7 +3,7 @@ use std::{
     net::{IpAddr, SocketAddr},
 };
 
-use crate::common::{HostAddress, ProxyStrategy};
+use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
 pub enum FilterAction {
@@ -33,7 +33,7 @@ pub trait HostFilter: Send + Sync {
         match strategy {
             ProxyStrategy::Single(proxy) => {
                 if self.filter_host_address(&proxy.host_address()) == FilterAction::Deny {
-                    return (false, vec![proxy.host_address().clone()]);
+                    return (false, vec![proxy.host_address()]);
                 }
             }
             ProxyStrategy::Chained(proxies) => {
@@ -42,7 +42,7 @@ pub trait HostFilter: Send + Sync {
                     .filter(|proxy| {
                         self.filter_host_address(&proxy.host_address()) == FilterAction::Deny
                     })
-                    .map(|proxy| proxy.host_address().clone())
+                    .map(ProxyHost::host_address)
                     .collect();
                 return (denied.is_empty(), denied);
             }

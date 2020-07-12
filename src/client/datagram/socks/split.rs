@@ -89,7 +89,7 @@ impl SendHalf {
             .map_err(|source| Error::SerializeDatagram { source })?;
         Ok(self
             .socket_send
-            .send(&mut data[..n])
+            .send(&data[..n])
             .await
             .map_err(|source| Error::SendDatagram { source })?)
     }

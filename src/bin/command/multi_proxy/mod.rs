@@ -32,8 +32,12 @@ pub async fn run<P: AsRef<Path>>(
     let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
     let filter = {
         let mut f = SimpleFilter::deny_list();
-        socks_server_config.as_ref().map(|config| f.add_socket(config.listen_socket()));
-        http_server_config.as_ref().map(|config| f.add_socket(config.listen_socket()));
+        if let Some(config) = socks_server_config.as_ref() {
+            f.add_socket(config.listen_socket())
+        }
+        if let Some(config) = http_server_config.as_ref() {
+            f.add_socket(config.listen_socket())
+        }
         Arc::new(f)
     };
 
@@ -41,7 +45,8 @@ pub async fn run<P: AsRef<Path>>(
 
     let (shutdown_sender, mut shutdown_receiver) = shutdown::new();
 
-    let mut futs: Vec<Pin<Box<dyn Future<Output = Result<(), Error>>>>> = Vec::new();
+    type ServeFuture = Pin<Box<dyn Future<Output = Result<(), Error>>>>;
+    let mut futs: Vec<ServeFuture> = Vec::new();
 
     if let Some(config) = socks_server_config {
         let socks_serve = {
@@ -95,7 +100,7 @@ pub async fn run<P: AsRef<Path>>(
     let handle = join_all(futs).await;
     let errors: Vec<_> = handle.into_iter().filter_map(Result::err).collect();
     if !errors.is_empty() {
-        return Err(Error::ErrorCollection { errors })?;
+        return Err(Error::ErrorCollection { errors });
     }
 
     Ok(())
