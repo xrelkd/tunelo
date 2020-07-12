@@ -12,8 +12,11 @@ pub enum Error {
     #[snafu(display("Could not connect remote server {}, error: {}", host, source))]
     ConnectRemoteServer { host: HostAddress, source: std::io::Error },
 
-    #[snafu(display("ProxyClient error: {}", source))]
-    ProxyClient { source: client::Error },
+    #[snafu(display("Could not create proxy connector, error: {}", source))]
+    CreateProxyConnector { source: client::Error },
+
+    #[snafu(display("Could not connect proxy server, error: {}", source))]
+    ConnectProxyServer { source: client::Error },
 
     #[snafu(display("Could not resolve domain name: {}", domain_name))]
     ResolveDomainName { domain_name: String },
@@ -26,8 +29,4 @@ pub enum Error {
 
     #[snafu(display("Could not resolve domain name via trust_dns_resolver, error: {}", error))]
     LookupTrustDnsResolver { error: String },
-}
-
-impl From<client::Error> for Error {
-    fn from(err: client::Error) -> Error { Error::ProxyClient { source: err } }
 }
