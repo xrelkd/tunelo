@@ -20,7 +20,8 @@ pub struct ProxyConnector {
 impl ProxyConnector {
     #[inline]
     pub fn new(proxy_strategy: Arc<ProxyStrategy>) -> Result<ProxyConnector, Error> {
-        let connector = client::ProxyConnector::new(proxy_strategy)?;
+        let connector = client::ProxyConnector::new(proxy_strategy)
+            .map_err(|source| Error::CreateProxyConnector { source })?;
         Ok(ProxyConnector { connector })
     }
 }
@@ -34,8 +35,11 @@ impl Connector for ProxyConnector {
         let connector = self.connector.clone();
 
         async move {
-            let stream = connector.connect(&host).await?.into_inner();
-            Ok(stream)
+            let stream = connector
+                .connect(&host)
+                .await
+                .map_err(|source| Error::ConnectProxyServer { source })?;
+            Ok(stream.into_inner())
         }
         .boxed()
     }
