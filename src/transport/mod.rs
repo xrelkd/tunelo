@@ -33,7 +33,7 @@ use self::{
 };
 
 pub use self::{
-    resolver::{DefaultResolver, Resolver, TokioResolver},
+    resolver::{Resolver, TokioResolver, TrustDnsResolver},
     stream_ext::{MonitoredStream, StreamExt, TimedStream},
 };
 
