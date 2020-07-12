@@ -15,7 +15,7 @@ use tokio::sync::Mutex;
 use tunelo::{
     authentication::AuthenticationManager,
     common::{ProxyHost, ProxyStrategy},
-    filter::DefaultFilter,
+    filter::SimpleFilter,
     server::{http, socks},
     transport::{Resolver, Transport},
 };
@@ -85,7 +85,7 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let filter = {
-        let mut f = DefaultFilter::deny_list();
+        let mut f = SimpleFilter::deny_list();
         socks_opts.as_ref().map(|config| f.add_socket(config.listen_socket()));
         http_opts.as_ref().map(|config| f.add_socket(config.listen_socket()));
         Arc::new(f)
