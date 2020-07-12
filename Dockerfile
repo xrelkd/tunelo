@@ -11,5 +11,7 @@ FROM debian:stable-slim
 
 COPY --from=builder /usr/bin/tunelo /usr/bin/
 
-ENTRYPOINT [ "/usr/bin/tunelo", "--version" ]
+EXPOSE 3128 3129/udp
+
+ENTRYPOINT [ "/usr/bin/tunelo", "socks-server" ]
 
