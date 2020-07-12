@@ -13,7 +13,7 @@ use tokio::sync::Mutex;
 
 use tunelo::{
     authentication::AuthenticationManager,
-    filter::DefaultFilter,
+    filter::SimpleFilter,
     server::socks::{self, Server, ServerOptions},
     transport::{Resolver, Transport},
 };
@@ -33,7 +33,7 @@ pub async fn run<P: AsRef<Path>>(
 
     let socks_server = {
         let filter = {
-            let mut f = DefaultFilter::deny_list();
+            let mut f = SimpleFilter::deny_list();
             f.add_socket(server_config.listen_socket());
             Arc::new(f)
         };

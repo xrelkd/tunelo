@@ -53,7 +53,7 @@ pub trait HostFilter: Send + Sync {
 }
 
 #[derive(Debug, Clone, Default)]
-pub struct DefaultFilter {
+pub struct SimpleFilter {
     hostnames: HashSet<String>,
     addresses: HashSet<IpAddr>,
     hosts: HashSet<(String, u16)>,
@@ -68,7 +68,7 @@ pub enum FilterMode {
     DenyList,
 }
 
-impl DefaultFilter {
+impl SimpleFilter {
     #[inline]
     pub fn new(
         hostnames: HashSet<String>,
@@ -77,18 +77,18 @@ impl DefaultFilter {
         sockets: HashSet<SocketAddr>,
         ports: HashSet<u16>,
         mode: FilterMode,
-    ) -> DefaultFilter {
-        DefaultFilter { hostnames, addresses, hosts, sockets, ports, mode }
+    ) -> SimpleFilter {
+        SimpleFilter { hostnames, addresses, hosts, sockets, ports, mode }
     }
 
     #[inline]
-    pub fn allow_list() -> DefaultFilter {
-        DefaultFilter { mode: FilterMode::AllowList, ..Default::default() }
+    pub fn allow_list() -> SimpleFilter {
+        SimpleFilter { mode: FilterMode::AllowList, ..Default::default() }
     }
 
     #[inline]
-    pub fn deny_list() -> DefaultFilter {
-        DefaultFilter { mode: FilterMode::DenyList, ..Default::default() }
+    pub fn deny_list() -> SimpleFilter {
+        SimpleFilter { mode: FilterMode::DenyList, ..Default::default() }
     }
 
     pub fn set_mode(&mut self, mode: FilterMode) { self.mode = mode; }
@@ -149,7 +149,7 @@ impl Default for FilterMode {
     fn default() -> Self { FilterMode::DenyList }
 }
 
-impl HostFilter for DefaultFilter {
+impl HostFilter for SimpleFilter {
     #[inline]
     fn filter_port(&self, port: u16) -> FilterAction { self.filter(self.ports.contains(&port)) }
 
@@ -180,16 +180,16 @@ mod tests {
 
     #[test]
     fn constructors() {
-        let _filter = DefaultFilter::default();
-        let _filter = DefaultFilter::allow_list();
-        let _filter = DefaultFilter::deny_list();
+        let _filter = SimpleFilter::default();
+        let _filter = SimpleFilter::allow_list();
+        let _filter = SimpleFilter::deny_list();
 
         let port = 8787;
         let ip: IpAddr = "220.181.38.148".parse().unwrap();
         let hostname = "baidu.com";
         let socket = SocketAddr::new("127.0.3.1".parse().unwrap(), 9332);
 
-        let filter = DefaultFilter::new(
+        let filter = SimpleFilter::new(
             vec![hostname.to_owned()].into_iter().collect(),
             vec![ip].into_iter().collect(),
             vec![(hostname.to_owned(), port)].into_iter().collect(),
@@ -210,7 +210,7 @@ mod tests {
         let ip: IpAddr = "220.181.38.148".parse().unwrap();
         let hostname = "baidu.com";
         let socket = SocketAddr::new("127.0.3.1".parse().unwrap(), 9332);
-        let mut filter = DefaultFilter::default();
+        let mut filter = SimpleFilter::default();
 
         filter.add_port(port);
         filter.add_address(ip.clone());
