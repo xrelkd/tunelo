@@ -8,10 +8,10 @@ use crate::transport::{
 };
 
 #[derive(Clone)]
-pub struct TokioResolver {}
+pub struct TokioResolver;
 
 impl TokioResolver {
-    pub fn new() -> Result<TokioResolver, Error> { Ok(TokioResolver {}) }
+    pub fn new() -> Result<TokioResolver, Error> { Ok(TokioResolver) }
 }
 
 impl Resolver for TokioResolver {
@@ -33,10 +33,7 @@ impl Resolver for TokioResolver {
             })
             .await;
 
-            match res {
-                Ok(addrs) => Ok(addrs),
-                Err(_err) => Err(Error::ResolveDomainName { domain_name: host.to_owned() }),
-            }
+            res.map_err(|_err| Error::ResolveDomainName { domain_name: host.to_owned() })
         }
         .boxed()
     }

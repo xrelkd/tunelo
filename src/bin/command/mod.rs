@@ -2,7 +2,7 @@ use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
 use structopt::{clap::Shell as ClapShell, StructOpt};
 
-use tunelo::transport::{DefaultResolver, Resolver};
+use tunelo::transport::{Resolver, TrustDnsResolver};
 
 use crate::error::Error;
 
@@ -133,7 +133,7 @@ where
     let resolver = {
         let handle = runtime.handle().clone();
         runtime
-            .block_on(async move { DefaultResolver::from_system_conf(handle).await })
+            .block_on(async move { TrustDnsResolver::from_system_conf(handle).await })
             .map_err(|source| Error::InitializeDomainNameResolver { source })?
     };
 

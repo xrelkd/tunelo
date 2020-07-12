@@ -11,31 +11,31 @@ use crate::transport::{
 };
 
 #[derive(Clone)]
-pub struct DefaultResolver {
+pub struct TrustDnsResolver {
     resolver: TokioAsyncResolver,
 }
 
-impl DefaultResolver {
+impl TrustDnsResolver {
     pub async fn new(
         runtime_handle: Handle,
         resolver_config: ResolverConfig,
         resolver_opts: ResolverOpts,
-    ) -> Result<DefaultResolver, Error> {
+    ) -> Result<TrustDnsResolver, Error> {
         AsyncResolver::new(resolver_config, resolver_opts, runtime_handle)
             .await
-            .map(|resolver| DefaultResolver { resolver })
+            .map(|resolver| TrustDnsResolver { resolver })
             .map_err(|err| Error::InitializeTrustDnsResolver { error: err.to_string() })
     }
 
-    pub async fn from_system_conf(runtime_handle: Handle) -> Result<DefaultResolver, Error> {
+    pub async fn from_system_conf(runtime_handle: Handle) -> Result<TrustDnsResolver, Error> {
         AsyncResolver::from_system_conf(runtime_handle)
             .await
-            .map(|resolver| DefaultResolver { resolver })
+            .map(|resolver| TrustDnsResolver { resolver })
             .map_err(|err| Error::InitializeTrustDnsResolver { error: err.to_string() })
     }
 }
 
-impl Resolver for DefaultResolver {
+impl Resolver for TrustDnsResolver {
     fn resolve(&self, host: &str) -> Resolve {
         let host = host.to_owned();
         let resolver = self.resolver.clone();
