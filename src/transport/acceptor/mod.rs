@@ -36,7 +36,7 @@ where
 
     fn accept(&mut self) -> Accept<Self::Stream, Self::Address, Self::Error> {
         let listener = self.listener.clone();
-        let timeout = self.timeout.clone();
+        let timeout = self.timeout;
         let monitor = self.monitor.clone();
         Box::pin(async move {
             let mut listener = listener.lock().await;

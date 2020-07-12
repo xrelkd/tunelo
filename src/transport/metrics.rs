@@ -41,16 +41,12 @@ impl Counter {
 
     #[inline]
     pub fn increase(&self) -> usize {
-        let prev = self.current.fetch_add(1, Ordering::SeqCst);
         self.accumulated.fetch_add(1, Ordering::SeqCst);
-        prev
+        self.current.fetch_add(1, Ordering::SeqCst)
     }
 
     #[inline]
-    pub fn decrease(&self) -> usize {
-        let prev = self.current.fetch_sub(1, Ordering::SeqCst);
-        prev
-    }
+    pub fn decrease(&self) -> usize { self.current.fetch_sub(1, Ordering::SeqCst) }
 
     #[inline]
     pub fn current(&self) -> usize { self.current.load(Ordering::Acquire) }
@@ -79,8 +75,8 @@ impl StatMonitor for TransportMetrics {
     fn increase_rx(&mut self, n: usize) { self.received_bytes.fetch_add(n, Ordering::SeqCst); }
 }
 
-impl TransportMetrics {
-    pub fn new() -> TransportMetrics {
+impl Default for TransportMetrics {
+    fn default() -> TransportMetrics {
         let received_bytes = Arc::new(AtomicUsize::new(0));
         let transmitted_bytes = Arc::new(AtomicUsize::new(0));
         let relay_counter = Counter::zero();
@@ -99,6 +95,11 @@ impl TransportMetrics {
             destinations,
         }
     }
+}
+
+impl TransportMetrics {
+    #[inline]
+    pub fn new() -> TransportMetrics { Self::default() }
 
     #[inline]
     pub fn reset(&mut self) { *self = Self::new(); }

@@ -22,7 +22,7 @@ impl ProxyDatagram {
                 )
                 .await?,
             )),
-            _ => return Err(Error::NoProxyServiceProvided),
+            _ => Err(Error::NoProxyServiceProvided),
         }
     }
 }

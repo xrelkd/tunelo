@@ -109,7 +109,7 @@ impl FromStr for HostAddress {
             return Ok(HostAddress::Socket(addr));
         }
 
-        let parts: Vec<_> = s.split(":").collect();
+        let parts: Vec<_> = s.split(':').collect();
         if parts.len() != 2 {
             return Err(HostAddressError::InvalidFormat { addr: s.to_owned() });
         }

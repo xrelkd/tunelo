@@ -16,11 +16,19 @@ pub struct AuthenticationManager {
     user_list: HashMap<Vec<u8>, Vec<u8>>,
 }
 
+impl Default for AuthenticationManager {
+    fn default() -> AuthenticationManager {
+        AuthenticationManager { user_list: HashMap::default() }
+    }
+}
+
 impl AuthenticationManager {
+    #[inline]
     pub fn new() -> AuthenticationManager {
         AuthenticationManager { user_list: HashMap::default() }
     }
 
+    #[inline]
     pub fn supported_method(&self, _addr: &SocketAddr) -> AuthenticationMethod {
         AuthenticationMethod::NoAuthentication
     }
@@ -29,7 +37,7 @@ impl AuthenticationManager {
         match auth {
             Authentication::UsernamePassword { user_name, password } => {
                 match self.user_list.get(&user_name) {
-                    Some(passwd) => return passwd == &password,
+                    Some(passwd) => passwd == &password,
                     None => false,
                 }
             }

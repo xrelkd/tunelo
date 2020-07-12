@@ -239,6 +239,7 @@ impl UserPasswordHandshakeRequest {
         SocksVersion::serialized_len() + self.user_name.len() + self.password.len()
     }
 
+    #[inline]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(self.serialized_len());
         buf.push(self.version.into());
@@ -247,7 +248,8 @@ impl UserPasswordHandshakeRequest {
         buf
     }
 
-    pub fn into_bytes(&self) -> Vec<u8> { self.to_bytes() }
+    #[inline]
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
     pub async fn from_reader<R>(client: &mut R) -> Result<UserPasswordHandshakeRequest, Error>
     where

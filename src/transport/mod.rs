@@ -112,7 +112,7 @@ impl Transport<TcpStream> {
                 .boxed()
             }),
             Box::new(|addr: &SocketAddr| {
-                let addr = addr.clone();
+                let addr = *addr;
                 async move {
                     Ok(TcpStream::connect(&addr).await.map_err(|source| {
                         Error::ConnectRemoteServer { source, host: HostAddress::from(addr) }
@@ -224,7 +224,7 @@ where
                 return Err(err);
             }
         };
-        Ok((stream, addr.clone()))
+        Ok((stream, *addr))
     }
 
     pub async fn relay<Client>(
@@ -254,7 +254,9 @@ where
 
         let _ = fut.await;
 
-        on_finished.map(|f| f());
+        if let Some(on_finished) = on_finished {
+            on_finished();
+        }
 
         let mut client = client_reader.unsplit(client_writer);
         let mut remote = remote_reader.unsplit(remote_writer);

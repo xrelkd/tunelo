@@ -5,7 +5,7 @@ use std::{
     time::Duration,
 };
 
-use tokio::io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf};
+use tokio::io::{AsyncRead, AsyncWrite};
 
 mod monitored;
 mod timed;
@@ -18,6 +18,9 @@ pub use self::{
 pub struct StreamExt<Stream, Monitor> {
     stream: MonitoredStream<TimedStream<Stream>, Monitor>,
 }
+
+type ReadHalf<Stream, Monitor> = tokio::io::ReadHalf<StreamExt<Stream, Monitor>>;
+type WriteHalf<Stream, Monitor> = tokio::io::WriteHalf<StreamExt<Stream, Monitor>>;
 
 impl<Stream, Monitor> StreamExt<Stream, Monitor>
 where
@@ -36,9 +39,7 @@ where
     }
 
     #[inline]
-    pub fn split(
-        self,
-    ) -> (ReadHalf<StreamExt<Stream, Monitor>>, WriteHalf<StreamExt<Stream, Monitor>>) {
+    pub fn split(self) -> (ReadHalf<Stream, Monitor>, WriteHalf<Stream, Monitor>) {
         tokio::io::split(self)
     }
 }

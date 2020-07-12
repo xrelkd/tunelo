@@ -164,7 +164,7 @@ impl Server {
             match stream {
                 Ok((socket, socket_addr)) => {
                     let service = service.clone();
-                    let connection_timeout = self.connection_timeout.clone();
+                    let connection_timeout = self.connection_timeout;
                     let stat_monitor = self.transport.stat_monitor();
                     tokio::spawn(async move {
                         // let _ = socket.set_keepalive(Some(tcp_keepalive));
@@ -180,9 +180,8 @@ impl Server {
             }
         }
 
-        match udp_associate_join_handle {
-            Some(join_handle) => join_handle.shutdown_and_wait().await,
-            None => {}
+        if let Some(join_handle) = udp_associate_join_handle {
+            join_handle.shutdown_and_wait().await;
         }
 
         info!("SOCKS Server stopped");

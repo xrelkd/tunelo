@@ -18,7 +18,7 @@ pub trait Connector: Send + Sync {
     fn connect(&self, host: &HostAddress) -> Connect<Self::Stream, Self::Error>;
 
     fn connect_addr(&self, addr: &SocketAddr) -> Connect<Self::Stream, Self::Error> {
-        let host = HostAddress::from(addr.clone());
+        let host = HostAddress::from(*addr);
         self.connect(&host)
     }
 }

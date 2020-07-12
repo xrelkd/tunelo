@@ -113,7 +113,8 @@ impl Request {
         Ok(Request { command, destination_socket, id })
     }
 
-    pub fn into_bytes(&self) -> Vec<u8> { self.to_bytes() }
+    #[inline]
+    pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
     pub fn to_bytes(&self) -> Vec<u8> {
         // +----+----+----+----+----+----+----+----+----+----+....+----+

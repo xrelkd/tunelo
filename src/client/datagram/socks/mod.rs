@@ -75,7 +75,7 @@ impl Socks5Datagram {
             }
         });
 
-        let (rx, tx) = split::split(socket, closed.clone());
+        let (rx, tx) = split::split(socket, closed);
         Ok(Socks5Datagram { rx, tx })
     }
 

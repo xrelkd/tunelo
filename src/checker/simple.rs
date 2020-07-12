@@ -38,7 +38,7 @@ impl SimpleProxyChecker {
             None => self.check_liveness().await,
             Some(t) => tokio::time::timeout(t, self.check_liveness())
                 .await
-                .unwrap_or(LivenessProberReport::timeout()),
+                .unwrap_or_else(|_| LivenessProberReport::timeout()),
         };
 
         let mut probers = self.probers;
@@ -51,7 +51,7 @@ impl SimpleProxyChecker {
 
         let task_report = TaskReport {
             proxy_server: self.proxy_server.clone(),
-            liveness_report: liveness_report.into(),
+            liveness_report,
             prober_reports: vec![],
         };
 
