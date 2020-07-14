@@ -22,9 +22,25 @@ command = "cargo"
 args = ["test"]
 
 [tasks.build-docker]
-command = "docker"
-args = ["build", "--tag=tunelo:latest", "."]
 dependencies = ["format"]
+script = [
+'''
+IMAGE_TAG=$(git describe --tags --abbrev=0)
+OUT_LINK=tunelo.docker
+nix-build containers/nix/default.nix --out-link $OUT_LINK --argstr version $IMAGE_TAG
+docker load < $OUT_LINK
+rm $OUT_LINK
+'''
+]
+
+[tasks.build-docker-slim]
+dependencies = ["format"]
+script = [
+'''
+IMAGE_TAG=$(git describe --tags --abbrev=0)
+docker build --file containers/debian/Dockerfile --tag=tunelo:$IMAGE_TAG-slim .
+'''
+]
 
 [tasks.generate-completions]
 script = [
