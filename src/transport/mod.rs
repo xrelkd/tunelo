@@ -231,7 +231,7 @@ where
         &self,
         client: Client,
         remote: Stream,
-        on_finished: Option<Box<dyn FnOnce() -> () + Send>>,
+        on_finished: Option<Box<dyn FnOnce() + Send>>,
     ) -> Result<(), Error>
     where
         Client: Unpin + AsyncRead + AsyncWrite,

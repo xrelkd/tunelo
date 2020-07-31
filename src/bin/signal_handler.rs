@@ -5,7 +5,7 @@ use tokio::signal::unix::{signal, SignalKind};
 
 use crate::SHUTDOWN;
 
-pub type ShutdownHookFn = Box<dyn FnOnce() -> () + Send>;
+pub type ShutdownHookFn = Box<dyn FnOnce() + Send>;
 
 #[allow(clippy::never_loop)]
 async fn run(shutdown_hook: ShutdownHookFn) {
