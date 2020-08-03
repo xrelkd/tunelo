@@ -102,6 +102,7 @@ jobs:
           mkdir $dist
           cp \
             README.md \
+            LICENSE \
             target/$target/release/tunelo \
             $dist
 
