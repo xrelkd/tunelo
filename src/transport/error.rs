@@ -5,6 +5,7 @@ use snafu::Snafu;
 use crate::{client, common::HostAddress};
 
 #[derive(Debug, Snafu)]
+#[snafu(visibility = "pub(crate)")]
 pub enum Error {
     #[snafu(display("Could not open file {}, error: {}", file_path.display(), source))]
     OpenFile { file_path: PathBuf, source: std::io::Error },
@@ -24,9 +25,9 @@ pub enum Error {
     #[snafu(display("Connect to forbidden hosts: {:?}", hosts))]
     ConnectForbiddenHosts { hosts: Vec<HostAddress> },
 
-    #[snafu(display("Could not initialize trust_dns_resolver, error: {}", error))]
-    InitializeTrustDnsResolver { error: String },
+    #[snafu(display("Could not initialize trust_dns_resolver, error: {}", source))]
+    InitializeTrustDnsResolver { source: trust_dns_resolver::error::ResolveError },
 
-    #[snafu(display("Could not resolve domain name via trust_dns_resolver, error: {}", error))]
-    LookupTrustDnsResolver { error: String },
+    #[snafu(display("Could not resolve domain name via trust_dns_resolver, error: {}", source))]
+    LookupTrustDnsResolver { source: trust_dns_resolver::error::ResolveError },
 }

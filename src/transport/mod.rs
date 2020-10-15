@@ -18,7 +18,7 @@ use crate::{
 
 mod acceptor;
 mod connector;
-mod error;
+pub mod error;
 mod metrics;
 mod resolver;
 mod stream_ext;
