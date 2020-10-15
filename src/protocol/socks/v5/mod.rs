@@ -164,7 +164,7 @@ impl HandshakeRequest {
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut methods_vec = self.methods.iter().cloned().map(Into::into).collect::<Vec<u8>>();
-        methods_vec.sort();
+        methods_vec.sort_unstable();
         let nmethods = methods_vec.len() as u8;
 
         let mut buf = Vec::with_capacity(self.serialized_len());
