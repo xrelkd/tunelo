@@ -6,6 +6,8 @@ extern crate serde;
 
 use std::sync::atomic;
 
+use simple_logger::SimpleLogger;
+
 pub static SHUTDOWN: atomic::AtomicBool = atomic::AtomicBool::new(false);
 
 mod command;
@@ -20,8 +22,8 @@ mod consts {
 }
 
 fn main() {
-    use log::Level;
-    simple_logger::init_with_level(Level::Info).unwrap();
+    use log::LevelFilter;
+    SimpleLogger::new().with_level(LevelFilter::Info).init().unwrap();
 
     let cmd = Command::new();
     if let Err(err) = cmd.run() {
