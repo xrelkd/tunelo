@@ -5,6 +5,7 @@ use std::{
     time::Duration,
 };
 
+use snafu::ResultExt;
 use structopt::StructOpt;
 use url::Url;
 
@@ -13,7 +14,7 @@ use tunelo::{
     common::{HostAddress, ProxyHost},
 };
 
-use crate::error::Error;
+use crate::error::{self, Error};
 
 pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Result<(), Error> {
     let output_path = options.output_path.clone();
@@ -53,8 +54,7 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
         futures::future::join_all(report_futs).await
     };
 
-    write_reports_to(&mut std::io::stdout(), &reports)
-        .map_err(|source| Error::WriteProxyCheckerReport { source })?;
+    write_reports_to(&mut std::io::stdout(), &reports).context(error::WriteProxyCheckerReport)?;
 
     if let Some(ref path) = &output_path {
         let mut file = std::fs::OpenOptions::new()
@@ -62,10 +62,9 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
             .truncate(true)
             .create(true)
             .open(&path)
-            .map_err(|source| Error::WriteProxyHosts { source })?;
+            .context(error::WriteProxyHosts)?;
 
-        write_available_proxy_servers(&mut file, &reports)
-            .map_err(|source| Error::WriteProxyHosts { source })?;
+        write_available_proxy_servers(&mut file, &reports).context(error::WriteProxyHosts)?;
     }
 
     Ok(())
@@ -336,11 +335,11 @@ impl ProxyServerFile {
     }
 
     pub fn from_json(json: &[u8]) -> Result<ProxyServerFile, Error> {
-        serde_json::from_slice(&json).map_err(|source| Error::ParseProxyServerJson { source })
+        serde_json::from_slice(&json).context(error::ParseProxyServerJson)
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyServerFile, Error> {
-        toml::from_slice(&toml).map_err(|source| Error::ParseProxyServerToml { source })
+        toml::from_slice(&toml).context(error::ParseProxyServerToml)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
@@ -358,20 +357,17 @@ impl ProxyServerFile {
     }
 
     pub fn load_text_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
-        let content = std::fs::read_to_string(&file_path)
-            .map_err(|source| Error::LoadProxyServerFile { source })?;
+        let content = std::fs::read_to_string(&file_path).context(error::LoadProxyServerFile)?;
         Self::from_text(&content)
     }
 
     pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
-        let content =
-            std::fs::read(&file_path).map_err(|source| Error::LoadProxyServerFile { source })?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyServerFile)?;
         Self::from_json(&content)
     }
 
     pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
-        let content =
-            std::fs::read(&file_path).map_err(|source| Error::LoadProxyServerFile { source })?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyServerFile)?;
         Self::from_toml(&content)
     }
 }

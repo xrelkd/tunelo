@@ -1,6 +1,6 @@
 use tokio::io::{AsyncRead, AsyncWrite};
 
-mod error;
+pub mod error;
 mod http;
 mod socks_v4;
 mod socks_v5;
@@ -29,8 +29,10 @@ where
     #[allow(dead_code)]
     #[inline]
     pub async fn shutdown(mut self) -> Result<(), Error> {
+        use snafu::ResultExt;
         use tokio::io::AsyncWriteExt;
-        self.stream.shutdown().await.map_err(|source| Error::ShutdownStream { source })?;
+
+        self.stream.shutdown().await.context(error::ShutdownStream)?;
         Ok(())
     }
 }

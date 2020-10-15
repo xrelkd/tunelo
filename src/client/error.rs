@@ -3,6 +3,7 @@ use snafu::Snafu;
 use crate::{client::handshake, common::HostAddress};
 
 #[derive(Debug, Snafu)]
+#[snafu(visibility = "pub(crate)")]
 pub enum Error {
     #[snafu(display("Could not receive datagram, error: {}", source))]
     RecvDatagram { source: std::io::Error },

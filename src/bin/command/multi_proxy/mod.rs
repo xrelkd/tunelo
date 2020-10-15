@@ -1,6 +1,7 @@
 use std::{future::Future, path::Path, pin::Pin, sync::Arc};
 
 use futures::future::join_all;
+use snafu::ResultExt;
 use tokio::sync::Mutex;
 
 use tunelo::{
@@ -10,7 +11,7 @@ use tunelo::{
     transport::{Resolver, Transport},
 };
 
-use crate::{error::Error, shutdown, signal_handler};
+use crate::{error, error::Error, shutdown, signal_handler};
 
 mod config;
 
@@ -61,10 +62,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server
-                    .serve_with_shutdown(signal)
-                    .await
-                    .map_err(|source| Error::RunSocksServer { source })?)
+                Ok(server.serve_with_shutdown(signal).await.context(error::RunSocksServer)?)
             })
         };
 
@@ -79,10 +77,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server
-                    .serve_with_shutdown(signal)
-                    .await
-                    .map_err(|source| Error::RunHttpServer { source })?)
+                Ok(server.serve_with_shutdown(signal).await.context(error::RunHttpServer)?)
             })
         };
 

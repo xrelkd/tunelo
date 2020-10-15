@@ -5,18 +5,18 @@ use std::{
     time::Duration,
 };
 
+use futures::FutureExt;
+use snafu::ResultExt;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::Mutex,
 };
 
-use futures::FutureExt;
-
 use crate::{
     authentication::AuthenticationManager,
     common::utils::safe_duration,
     protocol::socks::{SocksCommand, SocksVersion},
-    server::error::Error,
+    server::error::{self, Error},
     service::socks::{v5::UdpAssociateManager, Service},
     transport::{MonitoredStream, TimedStream, Transport},
 };
@@ -117,9 +117,8 @@ impl Server {
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
-        let mut tcp_listener = TcpListener::bind(self.tcp_address)
-            .await
-            .map_err(|source| Error::BindTcpListener { source })?;
+        let mut tcp_listener =
+            TcpListener::bind(self.tcp_address).await.context(error::BindTcpListener)?;
         tracing::info!("Starting SOCKS server at {}", self.tcp_address);
 
         let (udp_associate_join_handle, udp_associate_stream_tx) =

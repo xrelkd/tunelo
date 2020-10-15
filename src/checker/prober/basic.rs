@@ -1,5 +1,7 @@
+use snafu::ResultExt;
+
 use crate::{
-    checker::{Error, ReportError},
+    checker::{error, Error, ReportError},
     client::ProxyStream,
     common::{HostAddress, ProxyHost},
 };
@@ -49,12 +51,12 @@ impl BasicProber {
         report.destination = Some(self.destination.clone());
         let stream = ProxyStream::connect_with_proxy(&proxy_server, &self.destination)
             .await
-            .map_err(|source| Error::ConnectProxyServer { source })?;
+            .context(error::ConnectProxyServer)?;
 
         report.destination_reachable = true;
 
         let stream = stream.into_inner();
-        stream.shutdown(std::net::Shutdown::Both).map_err(|source| Error::Shutdown { source })?;
+        stream.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
 
         Ok(())
     }

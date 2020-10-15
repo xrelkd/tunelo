@@ -1,7 +1,8 @@
+use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
 use crate::{
-    client::handshake::{ClientHandshake, Error},
+    client::handshake::{error, ClientHandshake, Error},
     common::HostAddress,
     protocol::socks::{
         v4::{Command, Reply, ReplyField, Request},
@@ -27,15 +28,9 @@ where
         let destination_socket = Address::from(destination_socket.clone());
         let req = Request { command, destination_socket, id: id.clone() };
 
-        let _ = self
-            .stream
-            .write(&req.into_bytes())
-            .await
-            .map_err(|source| Error::WriteStream { source })?;
+        let _ = self.stream.write(&req.into_bytes()).await.context(error::WriteStream)?;
 
-        let reply = Reply::from_reader(&mut self.stream)
-            .await
-            .map_err(|source| Error::ParseSocks4Reply { source })?;
+        let reply = Reply::from_reader(&mut self.stream).await.context(error::ParseSocks4Reply)?;
         match reply.reply {
             ReplyField::Granted => Ok(()),
             ReplyField::Rejected => Err(Error::ProxyRejected),

@@ -3,11 +3,12 @@ use std::{
     net::{SocketAddr, SocketAddrV4, SocketAddrV6},
 };
 
+use snafu::ResultExt;
 use tokio::io::AsyncRead;
 
 use crate::common::HostAddress;
 
-mod error;
+pub mod error;
 
 pub mod v4;
 pub mod v5;
@@ -178,33 +179,29 @@ impl Address {
         use std::io::Read;
 
         let mut rdr = std::io::Cursor::new(buf);
-        let address_type =
-            AddressType::try_from(rdr.read_u8().map_err(|source| Error::ReadStream { source })?)?;
+        let address_type = AddressType::try_from(rdr.read_u8().context(error::ReadStream)?)?;
         match address_type {
             AddressType::Ipv4 => {
                 let mut buf = [0u8; 4];
-                rdr.read(&mut buf).map_err(|source| Error::ReadStream { source })?;
+                rdr.read(&mut buf).context(error::ReadStream)?;
 
-                let port =
-                    rdr.read_u16::<BigEndian>().map_err(|source| Error::ReadStream { source })?;
+                let port = rdr.read_u16::<BigEndian>().context(error::ReadStream)?;
                 Ok((SocketAddr::new(buf.into(), port).into(), rdr.position() as usize))
             }
             AddressType::Ipv6 => {
                 let mut buf = [0u8; 16];
-                rdr.read_exact(&mut buf).map_err(|source| Error::ReadStream { source })?;
+                rdr.read_exact(&mut buf).context(error::ReadStream)?;
 
-                let port =
-                    rdr.read_u16::<BigEndian>().map_err(|source| Error::ReadStream { source })?;
+                let port = rdr.read_u16::<BigEndian>().context(error::ReadStream)?;
                 Ok((SocketAddr::new(buf.into(), port).into(), rdr.position() as usize))
             }
             AddressType::Domain => {
-                let len = rdr.read_u8().map_err(|source| Error::ReadStream { source })? as usize;
+                let len = rdr.read_u8().context(error::ReadStream)? as usize;
 
                 let mut host = vec![0u8; len];
-                rdr.read_exact(&mut host).map_err(|source| Error::ReadStream { source })?;
+                rdr.read_exact(&mut host).context(error::ReadStream)?;
 
-                let port =
-                    rdr.read_u16::<BigEndian>().map_err(|source| Error::ReadStream { source })?;
+                let port = rdr.read_u16::<BigEndian>().context(error::ReadStream)?;
                 Ok((Address::new_domain(&host, port), rdr.position() as usize))
             }
         }
@@ -216,32 +213,29 @@ impl Address {
     {
         use tokio::io::AsyncReadExt;
 
-        let address_type = AddressType::try_from(
-            rdr.read_u8().await.map_err(|source| Error::ReadStream { source })?,
-        )?;
+        let address_type = AddressType::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
         match address_type {
             AddressType::Ipv4 => {
                 let mut buf = [0u8; 4];
-                rdr.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+                rdr.read_exact(&mut buf).await.context(error::ReadStream)?;
 
-                let port = rdr.read_u16().await.map_err(|source| Error::ReadStream { source })?;
+                let port = rdr.read_u16().await.context(error::ReadStream)?;
                 Ok(SocketAddr::new(buf.into(), port).into())
             }
             AddressType::Ipv6 => {
                 let mut buf = [0u8; 16];
-                rdr.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+                rdr.read_exact(&mut buf).await.context(error::ReadStream)?;
 
-                let port = rdr.read_u16().await.map_err(|source| Error::ReadStream { source })?;
+                let port = rdr.read_u16().await.context(error::ReadStream)?;
                 Ok(SocketAddr::new(buf.into(), port).into())
             }
             AddressType::Domain => {
-                let len =
-                    rdr.read_u8().await.map_err(|source| Error::ReadStream { source })? as usize;
+                let len = rdr.read_u8().await.context(error::ReadStream)? as usize;
 
                 let mut host = vec![0u8; len];
-                rdr.read_exact(&mut host).await.map_err(|source| Error::ReadStream { source })?;
+                rdr.read_exact(&mut host).await.context(error::ReadStream)?;
 
-                let port = rdr.read_u16().await.map_err(|source| Error::ReadStream { source })?;
+                let port = rdr.read_u16().await.context(error::ReadStream)?;
                 Ok(Address::new_domain(&host, port))
             }
         }

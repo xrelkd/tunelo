@@ -8,17 +8,17 @@ use std::{
     time::Duration,
 };
 
+use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
+use snafu::ResultExt;
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     sync::mpsc,
     time,
 };
 
-use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
-
 use crate::{
     common::HostAddress,
-    protocol::socks::{v5::Reply, Address, Error},
+    protocol::socks::{error, v5::Reply, Address, Error},
     service::socks::v5::udp::{shutdown, UdpAssociateCache, UdpServer},
     transport::Resolver,
 };
@@ -124,10 +124,7 @@ where
                 let mut shutdown_slot = cache.insert(&cache_key).await;
 
                 let reply = Reply::success(Address::from(proxy_addr));
-                let _ = stream
-                    .write(&reply.into_bytes())
-                    .await
-                    .map_err(|source| Error::WriteStream { source })?;
+                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
 
                 async move {
                     let mut buf = [0u8; 1];

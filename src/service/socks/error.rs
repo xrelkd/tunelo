@@ -10,6 +10,7 @@ use crate::{
 };
 
 #[derive(Debug, Snafu)]
+#[snafu(visibility = "pub(crate)")]
 pub enum Error {
     #[snafu(display("Failed to get SOCKS version from host: {}, error: {}", peer_addr, source))]
     DetectSocksVersion { peer_addr: std::net::SocketAddr, source: std::io::Error },

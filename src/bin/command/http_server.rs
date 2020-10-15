@@ -4,6 +4,7 @@ use std::{
     sync::Arc,
 };
 
+use snafu::ResultExt;
 use structopt::StructOpt;
 use tokio::sync::Mutex;
 
@@ -14,7 +15,7 @@ use tunelo::{
     transport::{Resolver, Transport},
 };
 
-use crate::{error::Error, shutdown, signal_handler};
+use crate::{error, error::Error, shutdown, signal_handler};
 
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
@@ -47,7 +48,7 @@ pub async fn run<P: AsRef<Path>>(
             rx.wait().await;
         })
         .await
-        .map_err(|source| Error::RunHttpServer { source })?;
+        .context(error::RunHttpServer)?;
 
     Ok(())
 }

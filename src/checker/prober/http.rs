@@ -1,11 +1,12 @@
 use std::{fmt, sync::Arc};
 
+use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 use url::Url;
 use webpki::DNSNameRef;
 
 use crate::{
-    checker::error::{Error, ReportError},
+    checker::error::{self, Error, ReportError},
     client::ProxyStream,
     common::{HostAddress, ProxyHost},
 };
@@ -61,7 +62,7 @@ impl HttpProber {
         let destination = self.destination_address()?;
         let stream = ProxyStream::connect_with_proxy(&proxy_server, &destination)
             .await
-            .map_err(|source| Error::ConnectProxyServer { source })?;
+            .context(error::ConnectProxyServer)?;
         report.destination_reachable = true;
 
         let stream = stream.into_inner();
@@ -77,10 +78,8 @@ impl HttpProber {
                 let dnsname = DNSNameRef::try_from_ascii_str(&host).map_err(|source| {
                     Error::ConstructsDNSNameRef { source, name: host.to_owned() }
                 })?;
-                let stream = config
-                    .connect(dnsname, stream)
-                    .await
-                    .map_err(|source| Error::InitializeTlsStream { source })?;
+                let stream =
+                    config.connect(dnsname, stream).await.context(error::InitializeTlsStream)?;
 
                 self.check_http(stream, report).await
             }
@@ -94,15 +93,15 @@ impl HttpProber {
         report: &mut HttpProberReport,
     ) -> Result<(), Error> {
         let request = self.build_request()?;
-        stream.write(&request).await.map_err(|source| Error::WriteHttpRequest { source })?;
+        stream.write(&request).await.context(error::WriteHttpRequest)?;
 
         let mut buf = vec![0u8; 1024];
-        stream.read(&mut buf[..]).await.map_err(|source| Error::ReadHttpResponse { source })?;
+        stream.read(&mut buf[..]).await.context(error::ReadHttpResponse)?;
 
         let mut headers = [httparse::EMPTY_HEADER; 32];
         let mut response = httparse::Response::new(&mut headers);
 
-        let res = response.parse(&buf).map_err(|source| Error::ParseHttpResponse { source })?;
+        let res = response.parse(&buf).context(error::ParseHttpResponse)?;
         if res.is_complete() {
             stream.shutdown();
             report.response_code = response.code;

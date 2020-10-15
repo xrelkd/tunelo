@@ -3,11 +3,12 @@ use std::{
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
 };
 
+use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{
     common::HostAddress,
-    protocol::socks::{consts, Address, Error, SocksVersion},
+    protocol::socks::{consts, error, Address, Error, SocksVersion},
 };
 
 #[derive(Debug, Hash, Clone, Copy, Eq, PartialEq)]
@@ -82,15 +83,14 @@ impl Request {
     where
         R: AsyncRead + Unpin,
     {
-        let command =
-            Command::try_from(rdr.read_u8().await.map_err(|source| Error::ReadStream { source })?)?;
-        let port = rdr.read_u16().await.map_err(|source| Error::ReadStream { source })?;
+        let command = Command::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
+        let port = rdr.read_u16().await.context(error::ReadStream)?;
         let mut ip_buf = [0u8; 4];
-        let _ = rdr.read(&mut ip_buf).await.map_err(|source| Error::ReadStream { source })?;
+        let _ = rdr.read(&mut ip_buf).await.context(error::ReadStream)?;
 
         let (id, host) = {
             let mut buf = [0u8; 128];
-            let _ = rdr.read(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+            let _ = rdr.read(&mut buf).await.context(error::ReadStream)?;
 
             let parts: Vec<_> = buf.split(|ch| *ch == 0x00).collect();
 
@@ -180,17 +180,15 @@ impl Reply {
     where
         R: AsyncRead + AsyncRead + Unpin,
     {
-        if rdr.read_u8().await.map_err(|source| Error::ReadStream { source })? != 0x00 {
+        if rdr.read_u8().await.context(error::ReadStream)? != 0x00 {
             return Err(Error::BadReply);
         }
 
-        let reply = ReplyField::try_from(
-            rdr.read_u8().await.map_err(|source| Error::ReadStream { source })?,
-        )?;
+        let reply = ReplyField::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
         let destination_socket = {
-            let port = rdr.read_u16().await.map_err(|source| Error::ReadStream { source })?;
+            let port = rdr.read_u16().await.context(error::ReadStream)?;
             let mut ip = [0u8; 4];
-            rdr.read(&mut ip).await.map_err(|source| Error::ReadStream { source })?;
+            rdr.read(&mut ip).await.context(error::ReadStream)?;
             SocketAddrV4::new(Ipv4Addr::from(ip), port)
         };
 
