@@ -41,24 +41,24 @@ where
         let supported_commands = {
             let mut commands = HashSet::new();
             if enable_tcp_connect {
-                info!("SOCKS5: TCP Connect is supported.");
+                tracing::info!("SOCKS5: TCP Connect is supported.");
                 commands.insert(Command::TcpConnect);
             }
 
             if enable_tcp_bind {
-                info!("SOCKS: TCP Bind is note supported yet.");
+                tracing::info!("SOCKS: TCP Bind is note supported yet.");
                 // FIXME TCP Bind is not supported yet
                 // info!("SOCKS: TCP Bind is supported.");
                 // commands.insert(Command::TcpBind);
             }
 
             if udp_associate_stream_tx.is_some() {
-                info!("SOCKS5: UDP Associate is supported.");
+                tracing::info!("SOCKS5: UDP Associate is supported.");
                 commands.insert(Command::UdpAssociate);
             }
 
             if commands.is_empty() {
-                warn!("No SOCKS5 command is supported.");
+                tracing::warn!("No SOCKS5 command is supported.");
             }
             commands
         };
@@ -87,9 +87,10 @@ where
             if !self.is_supported_command(req.command) {
                 let reply = Reply::not_supported(req.address_type());
 
-                debug!(
+                tracing::debug!(
                     "Command {:?} is not supported, close connection {}",
-                    req.command, client_addr,
+                    req.command,
+                    client_addr,
                 );
                 let _ = stream
                     .write(&reply.into_bytes())
@@ -111,7 +112,7 @@ where
                 let (remote_socket, remote_addr) = match self.transport.connect(&remote_host).await
                 {
                     Ok((socket, addr)) => {
-                        info!("Remote host {} is connected", remote_host.to_string());
+                        tracing::info!("Remote host {} is connected", remote_host.to_string());
                         (socket, addr)
                     }
                     Err(source) => {
@@ -140,7 +141,10 @@ where
                         stream,
                         remote_socket,
                         Some(Box::new(move || {
-                            info!("Remote host {} is disconnected", remote_addr.to_string());
+                            tracing::info!(
+                                "Remote host {} is disconnected",
+                                remote_addr.to_string()
+                            );
                         })),
                     )
                     .await
@@ -171,7 +175,7 @@ where
         let req = HandshakeRequest::from_reader(client)
             .await
             .map_err(|source| Error::ParseHandshakeRequest { source })?;
-        debug!("Received {:?}", req);
+        tracing::debug!("Received {:?}", req);
 
         let supported_method: Method =
             self.authentication_manager.lock().await.supported_method(&client_addr).into();
@@ -197,7 +201,7 @@ where
                     .map_err(|source| Error::ParseHandshakeRequest { source })?;
 
                 // check authentication
-                info!(
+                tracing::info!(
                     "Received authentication from user: {}",
                     String::from_utf8_lossy(&request.user_name).to_owned()
                 );
@@ -218,7 +222,7 @@ where
                         .map_err(|source| Error::WriteStream { source })?;
                     client.flush().await.map_err(|source| Error::FlushStream { source })?;
 
-                    warn!(
+                    tracing::warn!(
                         "Invalid authentication from user: {}",
                         String::from_utf8_lossy(&request.user_name).to_owned()
                     );

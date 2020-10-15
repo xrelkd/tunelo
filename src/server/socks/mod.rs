@@ -120,7 +120,7 @@ impl Server {
         let mut tcp_listener = TcpListener::bind(self.tcp_address)
             .await
             .map_err(|source| Error::BindTcpListener { source })?;
-        info!("Starting SOCKS server at {}", self.tcp_address);
+        tracing::info!("Starting SOCKS server at {}", self.tcp_address);
 
         let (udp_associate_join_handle, udp_associate_stream_tx) =
             if self.supported_commands.contains(&SocksCommand::UdpAssociate) {
@@ -156,7 +156,7 @@ impl Server {
             let stream = futures::select! {
                 stream = tcp_listener.accept().fuse() => stream,
                 _ = shutdown => {
-                    info!("Stopping SOCKS server");
+                    tracing::info!("Stopping SOCKS server");
                     break;
                 },
             };
@@ -175,7 +175,7 @@ impl Server {
                 }
                 Err(source) => {
                     let err = Error::AcceptTcpStream { source };
-                    warn!("Server error: {:?}", err);
+                    tracing::warn!("Server error: {:?}", err);
                 }
             }
         }
@@ -184,7 +184,7 @@ impl Server {
             join_handle.shutdown_and_wait().await;
         }
 
-        info!("SOCKS Server stopped");
+        tracing::info!("SOCKS Server stopped");
         Ok(())
     }
 }

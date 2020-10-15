@@ -10,7 +10,7 @@ autobins = false
 [features]
 default = ["tunelo"]
 
-app = ["structopt", "simple_logger", "toml", "serde_json", "comfy-table"]
+app = ["structopt", "tracing-subscriber", "toml", "serde_json", "comfy-table"]
 
 tunelo = ["app"]
 
@@ -46,8 +46,8 @@ bytes = "0.5"
 http = "0.2"
 httparse = "1"
 
-log = "0.4"
-simple_logger = { version = "1", optional = true }
+tracing = "0.1"
+tracing-subscriber = { version = "0.2", optional = true }
 
 lru_time_cache = "0.11"
 

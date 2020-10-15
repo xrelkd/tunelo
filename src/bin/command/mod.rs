@@ -83,6 +83,18 @@ impl Command {
     pub fn app_name() -> String { Command::clap().get_name().to_owned() }
 
     pub fn run(self) -> Result<(), Error> {
+        {
+            use tracing_subscriber::prelude::*;
+
+            let timer = tracing_subscriber::fmt::time::ChronoUtc::rfc3339();
+            let fmt_layer = tracing_subscriber::fmt::layer().with_timer(timer).with_target(true);
+            let filter_layer = tracing_subscriber::EnvFilter::try_from_default_env()
+                .or_else(|_| tracing_subscriber::EnvFilter::try_new("info"))
+                .unwrap();
+
+            tracing_subscriber::registry().with(filter_layer).with(fmt_layer).init();
+        }
+
         match self.subcommand {
             Some(SubCommand::Version) => {
                 Command::clap()

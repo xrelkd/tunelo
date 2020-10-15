@@ -37,17 +37,17 @@ where
         let supported_commands = {
             let mut commands = HashSet::new();
             if enable_tcp_connect {
-                info!("SOCKS4: TCP Connect is supported.");
+                tracing::info!("SOCKS4: TCP Connect is supported.");
                 commands.insert(Command::TcpConnect);
             }
 
             if enable_tcp_bind {
-                info!("SOCKS4: TCP Bind is supported.");
+                tracing::info!("SOCKS4: TCP Bind is supported.");
                 commands.insert(Command::TcpBind);
             }
 
             if commands.is_empty() {
-                warn!("No SOCKS4 command is supported.");
+                tracing::warn!("No SOCKS4 command is supported.");
             }
             commands
         };
@@ -65,7 +65,7 @@ where
         mut stream: ClientStream,
         peer_addr: SocketAddr,
     ) -> Result<(), Error> {
-        info!("Receive request from {}", peer_addr);
+        tracing::info!("Receive request from {}", peer_addr);
 
         let request = Request::from_reader(&mut stream)
             .await
@@ -89,7 +89,7 @@ where
                 let (remote_socket, remote_addr) = match self.transport.connect(&remote_host).await
                 {
                     Ok((socket, addr)) => {
-                        info!("Remote host {} is connected", remote_host.to_string());
+                        tracing::info!("Remote host {} is connected", remote_host.to_string());
                         let remote_addr = match addr {
                             HostAddress::Socket(SocketAddr::V4(addr)) => addr,
                             HostAddress::Socket(_) | HostAddress::DomainName(..) => {
@@ -125,7 +125,7 @@ where
                         stream,
                         remote_socket,
                         Some(Box::new(move || {
-                            info!("Remote host {} is disconnected", remote_addr);
+                            tracing::info!("Remote host {} is disconnected", remote_addr);
                         })),
                     )
                     .await
@@ -134,7 +134,7 @@ where
                 Ok(())
             }
             Command::TcpBind => {
-                debug!("Unsupported SOCKS command, close connection: {:?}", peer_addr);
+                tracing::debug!("Unsupported SOCKS command, close connection: {:?}", peer_addr);
                 let _ = stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
                 Err(Error::UnsupportedCommand { command: Command::TcpBind.into() })
             }
