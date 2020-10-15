@@ -1,12 +1,13 @@
 use std::{sync::Arc, time::Duration};
 
+use snafu::ResultExt;
 use tokio::{
     io::{AsyncRead, AsyncWrite},
     net::TcpStream,
 };
 
 use crate::{
-    client::{Error, ProxyStream},
+    client::{error, Error, ProxyStream},
     common::{HostAddress, ProxyHost, ProxyStrategy},
 };
 
@@ -33,9 +34,7 @@ impl ProxyConnector {
         };
 
         if let Err(err) = res {
-            socket
-                .shutdown(std::net::Shutdown::Both)
-                .map_err(|source| Error::Shutdown { source })?;
+            socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
             return Err(err);
         }
 
@@ -52,7 +51,7 @@ impl ProxyConnector {
                 .map_err(|_| Error::Timeout)??,
             None => Self::build_socket(&strategy).await?,
         };
-        socket.shutdown(std::net::Shutdown::Both).map_err(|source| Error::Shutdown { source })?;
+        socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
         Ok(true)
     }
 
@@ -61,9 +60,7 @@ impl ProxyConnector {
         let socket = match strategy {
             ProxyStrategy::Single(proxy) => {
                 let host = proxy.host_address();
-                TcpStream::connect(host.to_string())
-                    .await
-                    .map_err(|source| Error::ConnectProxyServer { source })?
+                TcpStream::connect(host.to_string()).await.context(error::ConnectProxyServer)?
             }
             ProxyStrategy::Chained(proxies) => match proxies.len() {
                 0 => return Err(Error::NoProxyServiceProvided),
@@ -71,7 +68,7 @@ impl ProxyConnector {
                     let proxy_host = proxies[0].host_address();
                     let mut socket = TcpStream::connect(proxy_host.to_string())
                         .await
-                        .map_err(|source| Error::ConnectProxyServer { source })?;
+                        .context(error::ConnectProxyServer)?;
 
                     for i in 0..(len - 1) {
                         let proxy_host = &proxies[i];
@@ -79,9 +76,7 @@ impl ProxyConnector {
                         if let Err(err) =
                             Self::handshake(&mut socket, proxy_host, &target_host).await
                         {
-                            socket
-                                .shutdown(std::net::Shutdown::Both)
-                                .map_err(|source| Error::Shutdown { source })?;
+                            socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
                             return Err(err);
                         };
                     }

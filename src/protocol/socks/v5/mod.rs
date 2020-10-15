@@ -1,10 +1,11 @@
 use std::{collections::HashSet, convert::TryFrom};
 
+use snafu::ResultExt;
 use tokio::io::AsyncRead;
 
 use crate::{
     authentication::AuthenticationMethod,
-    protocol::socks::{consts, Address, AddressType, Error, SocksCommand, SocksVersion},
+    protocol::socks::{consts, error, Address, AddressType, Error, SocksCommand, SocksVersion},
 };
 
 mod datagram;
@@ -143,13 +144,13 @@ impl HandshakeRequest {
         R: AsyncRead + Unpin,
     {
         use tokio::io::AsyncReadExt;
-        let nmethods = client.read_u8().await.map_err(|source| Error::ReadStream { source })?;
+        let nmethods = client.read_u8().await.context(error::ReadStream)?;
         if nmethods == 0 {
             return Err(Error::BadRequest);
         }
 
         let mut buf = vec![0u8; nmethods as usize];
-        client.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+        client.read_exact(&mut buf).await.context(error::ReadStream)?;
 
         let methods = buf.into_iter().map(Method::from).collect();
         tracing::debug!(
@@ -207,7 +208,7 @@ impl HandshakeReply {
         use tokio::io::AsyncReadExt;
 
         let mut buf = [0u8; 2];
-        rdr.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+        rdr.read_exact(&mut buf).await.context(error::ReadStream)?;
 
         match SocksVersion::try_from(buf[0]) {
             Ok(SocksVersion::V4) => return Err(Error::BadReply),
@@ -263,7 +264,7 @@ impl UserPasswordHandshakeRequest {
         use tokio::io::AsyncReadExt;
 
         let mut buf = [0u8; 2];
-        client.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+        client.read_exact(&mut buf).await.context(error::ReadStream)?;
 
         let user_len = buf[1] as usize;
         if user_len == 0 {
@@ -276,20 +277,16 @@ impl UserPasswordHandshakeRequest {
         }
 
         let mut user_name = vec![0u8; user_len];
-        client.read_exact(&mut user_name).await.map_err(|source| Error::ReadStream { source })?;
+        client.read_exact(&mut user_name).await.context(error::ReadStream)?;
 
         let password = {
-            let password_len =
-                client.read_u8().await.map_err(|source| Error::ReadStream { source })? as usize;
+            let password_len = client.read_u8().await.context(error::ReadStream)? as usize;
             if password_len == 0 {
                 return Err(Error::BadRequest);
             }
 
             let mut password = vec![0u8; password_len];
-            client
-                .read_exact(&mut password)
-                .await
-                .map_err(|source| Error::ReadStream { source })?;
+            client.read_exact(&mut password).await.context(error::ReadStream)?;
             password
         };
 
@@ -312,7 +309,7 @@ impl UserPasswordHandshakeReply {
         use tokio::io::AsyncReadExt;
 
         let mut buf = [0u8; 2];
-        reader.read(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+        reader.read(&mut buf).await.context(error::ReadStream)?;
         let version = UserPasswordVersion::try_from(buf[0])?;
         let status = UserPasswordStatus::from(buf[1]);
         Ok(UserPasswordHandshakeReply { version, status })
@@ -359,8 +356,7 @@ impl Request {
         use tokio::io::AsyncReadExt;
 
         let mut buf = [0u8; 3];
-        let _n =
-            client.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+        let _n = client.read_exact(&mut buf).await.context(error::ReadStream)?;
         let _rsv = buf[2];
 
         match SocksVersion::try_from(buf[0]) {
@@ -421,8 +417,7 @@ impl Reply {
         use tokio::io::AsyncReadExt;
 
         let mut buf = [0u8; 3];
-        let _n =
-            reader.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
+        let _n = reader.read_exact(&mut buf).await.context(error::ReadStream)?;
         let _rsv = buf[2];
 
         match SocksVersion::try_from(buf[0]) {

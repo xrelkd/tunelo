@@ -1,10 +1,11 @@
 use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
+use snafu::ResultExt;
 use structopt::{clap::Shell as ClapShell, StructOpt};
 
 use tunelo::transport::{Resolver, TrustDnsResolver};
 
-use crate::error::Error;
+use crate::error::{self, Error};
 
 #[macro_use]
 pub mod macros;
@@ -140,7 +141,7 @@ where
         .threaded_scheduler()
         .enable_all()
         .build()
-        .map_err(|source| Error::InitializeTokioRuntime { source })?;
+        .context(error::InitializeTokioRuntime)?;
 
     let resolver = {
         let handle = runtime.handle().clone();
@@ -158,7 +159,7 @@ where
                     }
                 }
             })
-            .map_err(|source| Error::InitializeDomainNameResolver { source })?
+            .context(error::InitializeDomainNameResolver)?
     };
 
     runtime.block_on(f(Arc::new(resolver)))

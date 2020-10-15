@@ -4,13 +4,16 @@ use bytes::{Bytes, BytesMut};
 use http::{header::HeaderName, HeaderMap, HeaderValue, Method, StatusCode};
 use url::Url;
 
+use snafu::ResultExt;
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     sync::Mutex,
 };
 
 use crate::{
-    authentication::AuthenticationManager, common::HostAddress, service::http::Error,
+    authentication::AuthenticationManager,
+    common::HostAddress,
+    service::http::{error, Error},
     transport::Transport,
 };
 
@@ -41,8 +44,7 @@ where
 
         let mut empty_headers = [httparse::EMPTY_HEADER; 32];
         let mut request = httparse::Request::new(&mut empty_headers);
-        let status =
-            request.parse(&buf.as_ref()).map_err(|source| Error::ParseRequest { source })?;
+        let status = request.parse(&buf.as_ref()).context(error::ParseRequest)?;
 
         match status {
             httparse::Status::Partial => Ok(None),
@@ -54,7 +56,7 @@ where
                 };
 
                 let url = match request.path {
-                    Some(p) => Url::from_str(p).map_err(|source| Error::ParseUrl { source })?,
+                    Some(p) => Url::from_str(p).context(error::ParseUrl)?,
                     None => return Err(Error::NoPathProvided),
                 };
 
@@ -83,10 +85,7 @@ where
     ) -> Result<(), Error> {
         let mut buf = BytesMut::with_capacity(INITIAL_BUF_SIZE);
         let msg = loop {
-            let _n = client_stream
-                .read_buf(&mut buf)
-                .await
-                .map_err(|source| Error::ReadBuf { source })?;
+            let _n = client_stream.read_buf(&mut buf).await.context(error::ReadBuf)?;
             match Self::parse_header(&mut buf) {
                 Ok(Some(msg)) => break msg,
                 Ok(None) => {
@@ -125,7 +124,7 @@ where
                         let _n = client_stream
                             .write(ESTABLISHED_RESPONSE)
                             .await
-                            .map_err(|source| Error::WriteStream { source })?;
+                            .context(error::WriteStream)?;
                     }
                     _ => {
                         let _n = remote_socket.write(msg.header_buf.as_ref()).await;
@@ -142,7 +141,7 @@ where
         self.transport
             .relay(client_stream, remote_socket, Some(on_finished))
             .await
-            .map_err(|source| Error::RelayStream { source })?;
+            .context(error::RelayStream)?;
 
         Ok(())
     }
@@ -152,11 +151,8 @@ where
         mut stream: TransportStream,
         status_code: StatusCode,
     ) -> Result<(), Error> {
-        stream
-            .write(status_code.status_line().as_bytes())
-            .await
-            .map_err(|source| Error::WriteStream { source })?;
-        stream.shutdown().await.map_err(|source| Error::Shutdown { source })?;
+        stream.write(status_code.status_line().as_bytes()).await.context(error::WriteStream)?;
+        stream.shutdown().await.context(error::Shutdown)?;
         Ok(())
     }
 }

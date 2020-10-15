@@ -5,6 +5,7 @@ use std::{
 };
 
 use futures::FutureExt;
+use snafu::ResultExt;
 use tokio::{
     fs::File,
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
@@ -56,9 +57,8 @@ impl Transport<File> {
                 Box::new(move |_host: &HostAddress| {
                     let file_path = file_path.clone();
                     async move {
-                        let null_file = File::open(&file_path)
-                            .await
-                            .map_err(move |source| Error::OpenFile { file_path, source })?;
+                        let null_file =
+                            File::open(&file_path).await.context(error::OpenFile { file_path })?;
                         Ok(null_file)
                     }
                     .boxed()
@@ -69,9 +69,8 @@ impl Transport<File> {
                 Box::new(move |_addr: &SocketAddr| {
                     let file_path = file_path.clone();
                     async move {
-                        let null_file = File::open(&file_path)
-                            .await
-                            .map_err(move |source| Error::OpenFile { file_path, source })?;
+                        let null_file =
+                            File::open(&file_path).await.context(error::OpenFile { file_path })?;
                         Ok(null_file)
                     }
                     .boxed()
@@ -107,16 +106,16 @@ impl Transport<TcpStream> {
                 async move {
                     Ok(TcpStream::connect(&host.to_string())
                         .await
-                        .map_err(|source| Error::ConnectRemoteServer { source, host })?)
+                        .context(error::ConnectRemoteServer { host })?)
                 }
                 .boxed()
             }),
             Box::new(|addr: &SocketAddr| {
                 let addr = *addr;
                 async move {
-                    Ok(TcpStream::connect(&addr).await.map_err(|source| {
-                        Error::ConnectRemoteServer { source, host: HostAddress::from(addr) }
-                    })?)
+                    Ok(TcpStream::connect(&addr)
+                        .await
+                        .context(error::ConnectRemoteServer { host: HostAddress::from(addr) })?)
                 }
                 .boxed()
             }),

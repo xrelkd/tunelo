@@ -1,7 +1,8 @@
+use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{
-    client::handshake::{ClientHandshake, Error},
+    client::handshake::{error, ClientHandshake, Error},
     common::HostAddress,
     protocol::socks::{
         v5::{
@@ -33,14 +34,10 @@ where
         };
 
         let handshake_request = HandshakeRequest::new(vec![method]);
-        self.stream
-            .write(&handshake_request.to_bytes())
-            .await
-            .map_err(|source| Error::WriteStream { source })?;
+        self.stream.write(&handshake_request.to_bytes()).await.context(error::WriteStream)?;
 
-        let handshake_reply = HandshakeReply::from_reader(&mut self.stream)
-            .await
-            .map_err(|source| Error::ParseSocks5Reply { source })?;
+        let handshake_reply =
+            HandshakeReply::from_reader(&mut self.stream).await.context(error::ParseSocks5Reply)?;
 
         if handshake_reply.method != method {
             return Err(Error::UnsupportedSocksMethod { method });
@@ -56,13 +53,10 @@ where
                 user_name: user_name.clone(),
                 password: password.clone(),
             };
-            self.stream
-                .write(&req.into_bytes())
-                .await
-                .map_err(|source| Error::WriteStream { source })?;
+            self.stream.write(&req.into_bytes()).await.context(error::WriteStream)?;
             let reply = UserPasswordHandshakeReply::from_reader(&mut self.stream)
                 .await
-                .map_err(|source| Error::ParseSocks5Reply { source })?;
+                .context(error::ParseSocks5Reply)?;
             if reply.status != UserPasswordStatus::Success {
                 return Err(Error::AccessDenied { user_name, password });
             }
@@ -71,15 +65,9 @@ where
         let destination_socket = Address::from(destination_socket.clone());
         let req = Request { command, destination_socket };
 
-        let _ = self
-            .stream
-            .write(&req.into_bytes())
-            .await
-            .map_err(|source| Error::WriteStream { source })?;
+        let _ = self.stream.write(&req.into_bytes()).await.context(error::WriteStream)?;
 
-        let reply = Reply::from_reader(&mut self.stream)
-            .await
-            .map_err(|source| Error::ParseSocks5Reply { source })?;
+        let reply = Reply::from_reader(&mut self.stream).await.context(error::ParseSocks5Reply)?;
         if reply.reply != ReplyField::Success {
             return Err(Error::HostUnreachable);
         }

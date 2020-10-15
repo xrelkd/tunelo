@@ -9,6 +9,7 @@ use std::{
 };
 
 use futures::future::join_all;
+use snafu::ResultExt;
 use structopt::StructOpt;
 use tokio::sync::Mutex;
 
@@ -20,7 +21,10 @@ use tunelo::{
     transport::{Resolver, Transport},
 };
 
-use crate::{error::Error, shutdown, signal_handler};
+use crate::{
+    error::{self, Error},
+    shutdown, signal_handler,
+};
 
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
@@ -96,8 +100,7 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let transport = Arc::new(
-        Transport::proxy(resolver, filter, proxy_strategy)
-            .map_err(|source| Error::CreateTransport { source })?,
+        Transport::proxy(resolver, filter, proxy_strategy).context(error::CreateTransport)?,
     );
     let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
 
@@ -116,10 +119,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server
-                    .serve_with_shutdown(signal)
-                    .await
-                    .map_err(|source| Error::RunSocksServer { source })?)
+                Ok(server.serve_with_shutdown(signal).await.context(error::RunSocksServer)?)
             })
         };
 
@@ -134,10 +134,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server
-                    .serve_with_shutdown(signal)
-                    .await
-                    .map_err(|source| Error::RunHttpServer { source })?)
+                Ok(server.serve_with_shutdown(signal).await.context(error::RunHttpServer)?)
             })
         };
 
@@ -267,11 +264,11 @@ pub struct ProxyChain {
 
 impl ProxyChain {
     pub fn from_json(json: &[u8]) -> Result<ProxyChain, Error> {
-        serde_json::from_slice(&json).map_err(|source| Error::ParseProxyChainJson { source })
+        serde_json::from_slice(&json).context(error::ParseProxyChainJson)
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyChain, Error> {
-        toml::from_slice(&toml).map_err(|source| Error::ParseProxyChainToml { source })
+        toml::from_slice(&toml).context(error::ParseProxyChainToml)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
@@ -288,14 +285,12 @@ impl ProxyChain {
     }
 
     pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
-        let content =
-            std::fs::read(&file_path).map_err(|source| Error::LoadProxyChainFile { source })?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyChainFile)?;
         Self::from_json(&content)
     }
 
     pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
-        let content =
-            std::fs::read(&file_path).map_err(|source| Error::LoadProxyChainFile { source })?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyChainFile)?;
         Self::from_toml(&content)
     }
 }

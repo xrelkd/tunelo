@@ -1,13 +1,12 @@
 use std::{net::SocketAddr, sync::Arc, time::Duration};
 
+use futures::FutureExt;
+use lru_time_cache::LruCache;
+use snafu::ResultExt;
 use tokio::{net::UdpSocket, sync::mpsc, time};
 
-use futures::FutureExt;
-
-use lru_time_cache::LruCache;
-
 use crate::{
-    protocol::socks::{v5::Datagram, Error},
+    protocol::socks::{error, v5::Datagram, Error},
     service::socks::v5::udp::{shutdown, UdpAssociate, UdpAssociateCache},
     transport::Resolver,
 };
@@ -34,9 +33,7 @@ impl UdpServer {
 
     pub async fn serve(self) -> Result<(), Error> {
         tracing::info!("Starting UDP server for UDP associate at {}", self.local_addr);
-        let udp_socket = UdpSocket::bind(&self.local_addr)
-            .await
-            .map_err(|source| Error::BindUdpSocket { source })?;
+        let udp_socket = UdpSocket::bind(&self.local_addr).await.context(error::BindUdpSocket)?;
         let mut shutdown_slot = self.shutdown_slot;
         let (mut udp_recv, mut udp_send) = udp_socket.split();
 

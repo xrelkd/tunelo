@@ -1,6 +1,6 @@
 mod connector;
 mod datagram;
-mod error;
+pub mod error;
 mod handshake;
 mod listener;
 mod stream;

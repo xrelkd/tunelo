@@ -3,13 +3,14 @@ use std::sync::{
     Arc,
 };
 
+use snafu::ResultExt;
 use tokio::net::{
     udp::{RecvHalf as UdpRecvHalf, SendHalf as UdpSendHalf},
     UdpSocket,
 };
 
 use crate::{
-    client::Error,
+    client::{error, Error},
     common::HostAddress,
     protocol::socks::{v5::Datagram, Address},
 };
@@ -56,11 +57,7 @@ impl RecvHalf {
 
         let mut data_len = header.len() - n;
         buf.copy_from_slice(&header[n..]);
-        data_len += self
-            .socket_recv
-            .recv(&mut buf[n + 1..])
-            .await
-            .map_err(|source| Error::RecvDatagram { source })?;
+        data_len += self.socket_recv.recv(&mut buf[n + 1..]).await.context(error::RecvDatagram)?;
 
         Ok((data_len, address.into_inner()))
     }
@@ -85,12 +82,8 @@ impl SendHalf {
 
         let mut data = Vec::with_capacity(3 + Address::max_len() + buf.len());
         let mut wrt = std::io::Cursor::new(&mut data);
-        let n = Datagram::serialize(&mut wrt, 0, target_addr, buf)
-            .map_err(|source| Error::SerializeDatagram { source })?;
-        Ok(self
-            .socket_send
-            .send(&data[..n])
-            .await
-            .map_err(|source| Error::SendDatagram { source })?)
+        let n =
+            Datagram::serialize(&mut wrt, 0, target_addr, buf).context(error::SerializeDatagram)?;
+        Ok(self.socket_send.send(&data[..n]).await.context(error::SendDatagram)?)
     }
 }
