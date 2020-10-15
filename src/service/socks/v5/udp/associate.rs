@@ -7,12 +7,17 @@ use std::{
 };
 
 use bytes::BytesMut;
+use snafu::ResultExt;
 use tokio::{
     net::UdpSocket,
     sync::{mpsc, Mutex},
 };
 
-use crate::{protocol::socks::v5::Datagram, service::socks::Error, transport::Resolver};
+use crate::{
+    protocol::socks::v5::Datagram,
+    service::socks::{error, Error},
+    transport::Resolver,
+};
 
 pub struct UdpAssociate {
     tx: Mutex<mpsc::Sender<Datagram>>,
@@ -44,7 +49,7 @@ impl UdpAssociate {
             let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0);
             let remote_socket = UdpSocket::bind(&local_addr)
                 .await
-                .map_err(|source| Error::BindUdpSocket { addr: local_addr, source })?;
+                .context(error::BindUdpSocket { addr: local_addr })?;
             remote_socket.split()
         };
 

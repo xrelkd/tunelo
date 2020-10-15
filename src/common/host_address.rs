@@ -4,7 +4,7 @@ use std::{
     str::FromStr,
 };
 
-use snafu::Snafu;
+use snafu::{ResultExt, Snafu};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
 pub enum HostAddress {
@@ -115,8 +115,7 @@ impl FromStr for HostAddress {
         }
 
         let host = parts[0].to_owned();
-        let port =
-            parts[1].parse().map_err(|source| HostAddressError::ParsePortNumber { source })?;
+        let port = parts[1].parse().context(ParsePortNumber)?;
         Ok(HostAddress::DomainName(host, port))
     }
 }

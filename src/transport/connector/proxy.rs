@@ -1,6 +1,7 @@
 use std::{net::SocketAddr, sync::Arc};
 
 use futures::FutureExt;
+use snafu::ResultExt;
 use tokio::net::TcpStream;
 
 use crate::{
@@ -8,7 +9,7 @@ use crate::{
     common::{HostAddress, ProxyStrategy},
     transport::{
         connector::{Connect, Connector},
-        Error,
+        error, Error,
     },
 };
 
@@ -20,8 +21,8 @@ pub struct ProxyConnector {
 impl ProxyConnector {
     #[inline]
     pub fn new(proxy_strategy: Arc<ProxyStrategy>) -> Result<ProxyConnector, Error> {
-        let connector = client::ProxyConnector::new(proxy_strategy)
-            .map_err(|source| Error::CreateProxyConnector { source })?;
+        let connector =
+            client::ProxyConnector::new(proxy_strategy).context(error::CreateProxyConnector)?;
         Ok(ProxyConnector { connector })
     }
 }
@@ -35,10 +36,7 @@ impl Connector for ProxyConnector {
         let connector = self.connector.clone();
 
         async move {
-            let stream = connector
-                .connect(&host)
-                .await
-                .map_err(|source| Error::ConnectProxyServer { source })?;
+            let stream = connector.connect(&host).await.context(error::ConnectProxyServer)?;
             Ok(stream.into_inner())
         }
         .boxed()

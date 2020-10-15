@@ -4,13 +4,16 @@ use std::{
 };
 
 use futures::FutureExt;
+use snafu::ResultExt;
 use tokio::{
     net::{TcpListener, TcpStream},
     sync::Mutex,
 };
 
 use crate::{
-    authentication::AuthenticationManager, server::error::Error, service::http::Service,
+    authentication::AuthenticationManager,
+    server::error::{self, Error},
+    service::http::Service,
     transport::Transport,
 };
 
@@ -54,9 +57,8 @@ impl Server {
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
-        let mut tcp_listener = TcpListener::bind(self.tcp_address)
-            .await
-            .map_err(|source| Error::BindTcpListener { source })?;
+        let mut tcp_listener =
+            TcpListener::bind(self.tcp_address).await.context(error::BindTcpListener)?;
         tracing::info!("Starting HTTP proxy server at {}", self.tcp_address);
 
         let service = Arc::new(Service::new(self.transport, self.authentication_manager));

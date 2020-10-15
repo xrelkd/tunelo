@@ -3,6 +3,7 @@ use snafu::Snafu;
 use crate::protocol::socks::SocksVersion;
 
 #[derive(Debug, Snafu)]
+#[snafu(visibility = "pub(crate)")]
 pub enum Error {
     #[snafu(display("Could not read stream, error: {}", source))]
     ReadStream { source: std::io::Error },

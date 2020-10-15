@@ -7,6 +7,7 @@ use std::{
     time::Duration,
 };
 
+use snafu::ResultExt;
 use tokio::{
     io::AsyncWriteExt,
     net::{TcpStream, UdpSocket},
@@ -14,7 +15,7 @@ use tokio::{
 };
 
 use crate::{
-    client::{handshake::*, Error},
+    client::{error, handshake::*, Error},
     common::HostAddress,
     protocol::socks::v5::Datagram,
 };
@@ -36,18 +37,15 @@ impl Socks5Datagram {
     ) -> Result<Socks5Datagram, Error> {
         let socket = {
             let addr = SocketAddr::new(IpAddr::from(Ipv4Addr::UNSPECIFIED), 0);
-            UdpSocket::bind(addr).await.map_err(|source| Error::BindUdpSocket { addr, source })?
+            UdpSocket::bind(addr).await.context(error::BindUdpSocket { addr })?
         };
 
         let (mut stream, endpoint_addr) = {
             let proxy_addr = proxy_addr.to_string();
-            let port =
-                socket.local_addr().map_err(|source| Error::GetLocalAddress { source })?.port();
+            let port = socket.local_addr().context(error::GetLocalAddress)?.port();
             let destination_socket =
                 HostAddress::from(SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port));
-            let stream = TcpStream::connect(proxy_addr)
-                .await
-                .map_err(|source| Error::ConnectProxyServer { source })?;
+            let stream = TcpStream::connect(proxy_addr).await.context(error::ConnectProxyServer)?;
             let mut handshake = ClientHandshake::new(stream);
             let bind_socket = handshake
                 .handshake_socks_v5_udp_associate(&destination_socket, user_name, password)
@@ -58,7 +56,7 @@ impl Socks5Datagram {
         socket
             .connect(endpoint_addr.to_string())
             .await
-            .map_err(|source| Error::ConnectUdpSocket { source, addr: endpoint_addr })?;
+            .context(error::ConnectUdpSocket { addr: endpoint_addr })?;
 
         let closed = Arc::new(AtomicBool::new(false));
         tokio::spawn({
