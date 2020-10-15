@@ -33,7 +33,7 @@ impl UdpServer {
     }
 
     pub async fn serve(self) -> Result<(), Error> {
-        info!("Starting UDP server for UDP associate at {}", self.local_addr);
+        tracing::info!("Starting UDP server for UDP associate at {}", self.local_addr);
         let udp_socket = UdpSocket::bind(&self.local_addr)
             .await
             .map_err(|source| Error::BindUdpSocket { source })?;
@@ -46,7 +46,7 @@ impl UdpServer {
         tokio::spawn(async move {
             while let Some((client_addr, datagram)) = pkt_rx.recv().await {
                 if let Err(err) = udp_send.send_to(&datagram.into_bytes(), &client_addr).await {
-                    error!("UDP packet send failed, error: {:?}", err);
+                    tracing::error!("UDP packet send failed, error: {:?}", err);
                     break;
                 }
             }
@@ -59,28 +59,28 @@ impl UdpServer {
 
         loop {
             let (buf_len, client_addr) = futures::select! {
-                _ = shutdown_slot.wait().fuse() => break,
-                res = time::timeout(timeout, udp_recv.recv_from(&mut buf)).fuse() => {
-                    match res {
-                        Ok(Ok((n, client_addr))) => {
-                            info!("Received {} byte(s) from {}", n, client_addr);
-                            (n, client_addr)
-                        },
-                        Ok(Err(err)) => {
-                            warn!(
-                                "Failed to receive data from local UDP listener {}, error: {:?}",
-                                self.local_addr, err
-                            );
-                            break;
-                        }
-                        Err(_err) => {
-                            debug!("Remove expired UDP associate objects");
-                            let _ = udp_associates.iter();
-                            continue;
+                    _ = shutdown_slot.wait().fuse() => break,
+                    res = time::timeout(timeout, udp_recv.recv_from(&mut buf)).fuse() => {
+                        match res {
+                            Ok(Ok((n, client_addr))) => {
+            tracing::                    info!("Received {} byte(s) from {}", n, client_addr);
+                                (n, client_addr)
+                            },
+                            Ok(Err(err)) => {
+                    tracing::            warn!(
+                                    "Failed to receive data from local UDP listener {}, error: {:?}",
+                                    self.local_addr, err
+                                );
+                                break;
+                            }
+                            Err(_err) => {
+                            tracing::    debug!("Remove expired UDP associate objects");
+                                let _ = udp_associates.iter();
+                                continue;
+                            }
                         }
                     }
-                }
-            };
+                };
 
             if buf_len == 0 {
                 continue;
@@ -89,7 +89,11 @@ impl UdpServer {
             let datagram = match Datagram::from_bytes(&buf[0..buf_len]) {
                 Ok(datagram) => datagram,
                 Err(err) => {
-                    info!("Failed to parse packet from client: {}, error: {:?}", client_addr, err);
+                    tracing::info!(
+                        "Failed to parse packet from client: {}, error: {:?}",
+                        client_addr,
+                        err
+                    );
                     continue;
                 }
             };
@@ -110,9 +114,10 @@ impl UdpServer {
                             udp_associates.insert(client_addr.to_string(), associate);
                         }
                         Err(err) => {
-                            warn!(
+                            tracing::warn!(
                                 "Failed to create UDP associate for client {}, error: {:?}",
-                                client_addr, err
+                                client_addr,
+                                err
                             );
 
                             self.cache.remove(&client_addr.into()).await;
@@ -123,7 +128,7 @@ impl UdpServer {
             }
         }
 
-        info!("UDP server {} is stopped", self.local_addr);
+        tracing::info!("UDP server {} is stopped", self.local_addr);
         Ok(())
     }
 }

@@ -57,7 +57,7 @@ impl Server {
         let mut tcp_listener = TcpListener::bind(self.tcp_address)
             .await
             .map_err(|source| Error::BindTcpListener { source })?;
-        info!("Starting HTTP proxy server at {}", self.tcp_address);
+        tracing::info!("Starting HTTP proxy server at {}", self.tcp_address);
 
         let service = Arc::new(Service::new(self.transport, self.authentication_manager));
 
@@ -68,7 +68,7 @@ impl Server {
             let stream = futures::select! {
                 stream = tcp_listener.accept().fuse() => stream,
                 _ = shutdown => {
-                    info!("Stopping HTTP server");
+                    tracing::info!("Stopping HTTP server");
                     break;
                 },
             };
@@ -82,12 +82,12 @@ impl Server {
                 }
                 Err(source) => {
                     let err = Error::AcceptTcpStream { source };
-                    warn!("Server error: {}", err);
+                    tracing::warn!("Server error: {}", err);
                 }
             }
         }
 
-        info!("HTTP Proxy Server stopped");
+        tracing::info!("HTTP Proxy Server stopped");
         Ok(())
     }
 }

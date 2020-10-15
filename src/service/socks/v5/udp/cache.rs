@@ -46,7 +46,7 @@ impl UdpAssociateCache {
             cache.insert(key, shutdown_signal);
         }
 
-        info!("Client {} is inserted into UDP associate", addr.to_string());
+        tracing::info!("Client {} is inserted into UDP associate", addr.to_string());
         shutdown_slot
     }
 
@@ -58,7 +58,7 @@ impl UdpAssociateCache {
         let key = CacheKey::from(addr);
         let mut cache = self.cache.lock().await;
         if cache.remove(&key).is_some() {
-            info!("Drop UDP association {}", addr.to_string());
+            tracing::info!("Drop UDP association {}", addr.to_string());
         }
     }
 

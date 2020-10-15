@@ -174,11 +174,11 @@ where
     pub async fn resolve_host(&self, host: &str) -> Result<IpAddr, Error> {
         let addrs = self.resolver.resolve(host).await?;
         if addrs.is_empty() {
-            warn!("Failed to resolve domain name {}", host);
+            tracing::warn!("Failed to resolve domain name {}", host);
             return Err(Error::ResolveDomainName { domain_name: host.to_owned() });
         }
         let addr = addrs[0];
-        debug!("Resolved {} => {}", host, addr);
+        tracing::debug!("Resolved {} => {}", host, addr);
         Ok(addr)
     }
 
@@ -198,12 +198,12 @@ where
             return Err(Error::ConnectForbiddenHosts { hosts: vec![host.clone()] });
         }
 
-        debug!("Try to connect remote host {}", host);
+        tracing::debug!("Try to connect remote host {}", host);
         let host_addr = self.resolve(host).await?;
         let stream = match self.connector.connect_addr(&host_addr).await {
             Ok(stream) => stream,
             Err(err) => {
-                error!("Failed to connect host: {}, error: {}", host, err);
+                tracing::error!("Failed to connect host: {}, error: {}", host, err);
                 return Err(err);
             }
         };
@@ -216,11 +216,11 @@ where
             return Err(Error::ConnectForbiddenHosts { hosts: vec![addr.clone().into()] });
         }
 
-        debug!("Try to connect remote host {}", addr);
+        tracing::debug!("Try to connect remote host {}", addr);
         let stream = match self.connector.connect_addr(&addr).await {
             Ok(stream) => stream,
             Err(err) => {
-                error!("Failed to connect host: {}, error: {:?}", addr, err);
+                tracing::error!("Failed to connect host: {}, error: {:?}", addr, err);
                 return Err(err);
             }
         };

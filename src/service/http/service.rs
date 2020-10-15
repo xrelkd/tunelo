@@ -137,7 +137,7 @@ where
         };
 
         let on_finished = Box::new(move || {
-            info!("Remote host {} is disconnected", remote_host.to_string());
+            tracing::info!("Remote host {} is disconnected", remote_host.to_string());
         });
         self.transport
             .relay(client_stream, remote_socket, Some(on_finished))

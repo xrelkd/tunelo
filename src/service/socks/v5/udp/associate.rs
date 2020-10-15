@@ -29,7 +29,7 @@ impl UdpAssociate {
         match self.tx.lock().await.send(datagram).await {
             Ok(_) => true,
             Err(err) => {
-                error!("Failed to send packet, error: {:?}", err);
+                tracing::error!("Failed to send packet, error: {:?}", err);
                 false
             }
         }
@@ -67,7 +67,7 @@ impl UdpAssociate {
                                     SocketAddr::new(addrs[0], *port)
                                 }
                                 Err(_err) => {
-                                    warn!(
+                                    tracing::warn!(
                                         "Failed to resolve host address: {}",
                                         datagram.destination_address()
                                     );
@@ -79,16 +79,17 @@ impl UdpAssociate {
 
                     match socket_send.send_to(datagram.data(), &remote_host).await {
                         Ok(n) => {
-                            debug!(
+                            tracing::debug!(
                                 "Send packet to remote host {} with {} bytes",
                                 remote_host.to_string(),
                                 n
                             );
                         }
                         Err(err) => {
-                            warn!(
+                            tracing::warn!(
                                 "Failed to send packet to remote host: {}, error: {:?}",
-                                remote_host, err
+                                remote_host,
+                                err
                             );
                             break;
                         }
@@ -105,22 +106,24 @@ impl UdpAssociate {
                     let mut buf = BytesMut::with_capacity(1024);
                     match socket_recv.recv_from(&mut buf[..]).await {
                         Ok((n, remote_addr)) => {
-                            info!(
+                            tracing::info!(
                                 "Received packet with {} bytes from remote host {}",
-                                n, remote_addr
+                                n,
+                                remote_addr
                             );
 
                             let datagram = Datagram::new(0, remote_addr.into(), buf);
                             if let Err(err) = response_tx.send((client_addr, datagram)).await {
-                                warn!(
+                                tracing::warn!(
                                     "Failed to send packet to remote host: {}, error: {:?}",
-                                    remote_addr, err
+                                    remote_addr,
+                                    err
                                 );
                                 break;
                             }
                         }
                         Err(err) => {
-                            warn!("Failed to receive packet, error: {:?}", err);
+                            tracing::warn!("Failed to receive packet, error: {:?}", err);
                             break;
                         }
                     }

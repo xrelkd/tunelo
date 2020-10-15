@@ -32,7 +32,7 @@ where
         udp_associate_stream_tx: Option<Mutex<mpsc::Sender<(ClientStream, HostAddress)>>>,
     ) -> Service<ClientStream, TransportStream> {
         let service_v4 = if supported_versions.contains(&SocksVersion::V4) {
-            info!("SOCKS4a is supported");
+            tracing::info!("SOCKS4a is supported");
             Some(v4::Service::new(
                 transport.clone(),
                 authentication_manager.clone(),
@@ -44,7 +44,7 @@ where
         };
 
         let service_v5 = if supported_versions.contains(&SocksVersion::V5) {
-            info!("SOCKS5 is supported");
+            tracing::info!("SOCKS5 is supported");
             Some(v5::Service::new(
                 transport,
                 authentication_manager,
@@ -78,7 +78,11 @@ where
                 Err(Error::InvalidSocksVersion { version })
             }
             Err(source) => {
-                debug!("Failed to get SOCKS version from host: {}, error: {:?}", peer_addr, source);
+                tracing::debug!(
+                    "Failed to get SOCKS version from host: {}, error: {:?}",
+                    peer_addr,
+                    source
+                );
                 Err(Error::DetectSocksVersion { source, peer_addr })
             }
         }

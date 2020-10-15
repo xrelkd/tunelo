@@ -152,7 +152,12 @@ impl HandshakeRequest {
         client.read_exact(&mut buf).await.map_err(|source| Error::ReadStream { source })?;
 
         let methods = buf.into_iter().map(Method::from).collect();
-        debug!("Got NegotiationRequest: {:?} {} {:?}", SocksVersion::V5, nmethods, methods);
+        tracing::debug!(
+            "Got NegotiationRequest: {:?} {} {:?}",
+            SocksVersion::V5,
+            nmethods,
+            methods
+        );
 
         Ok(HandshakeRequest { methods })
     }
@@ -370,7 +375,7 @@ impl Request {
         let destination_socket = Address::from_reader(client).await?;
 
         let req = Request { command, destination_socket };
-        debug!("Got Request: {:?}", req);
+        tracing::debug!("Got Request: {:?}", req);
 
         Ok(req)
     }

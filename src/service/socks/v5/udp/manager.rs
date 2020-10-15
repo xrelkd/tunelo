@@ -78,7 +78,7 @@ where
         mut stream_acceptor: mpsc::Receiver<(TransportStream, HostAddress)>,
         mut shutdown_slot: shutdown::ShutdownSlot,
     ) -> Result<(), Error> {
-        info!("Start UDP associate manager");
+        tracing::info!("Start UDP associate manager");
 
         let server_handles = FuturesUnordered::new();
         let mut server_shutdown_signals = vec![];
@@ -102,7 +102,7 @@ where
             let (mut stream, cache_key) = futures::select! {
                 _ = shutdown_slot.wait().fuse() => break,
                 _ = interval.tick().fuse() => {
-                    debug!("Remove expired UDP associate");
+                tracing::    debug!("Remove expired UDP associate");
                     self.cache.remove_stalled().await;
                     continue;
                 }
@@ -150,16 +150,16 @@ where
             });
         }
 
-        info!("Stop receiving UDP associate request");
+        tracing::info!("Stop receiving UDP associate request");
 
         server_shutdown_signals.into_iter().for_each(shutdown::ShutdownSignal::shutdown);
         let _ = server_handles.into_future().await;
 
-        info!("All UDP servers are stopped");
+        tracing::info!("All UDP servers are stopped");
 
         self.cache.clear().await;
 
-        info!("UDP associate manager is stopped");
+        tracing::info!("UDP associate manager is stopped");
         Ok(())
     }
 
