@@ -133,7 +133,19 @@ where
     let resolver = {
         let handle = runtime.handle().clone();
         runtime
-            .block_on(async move { TrustDnsResolver::from_system_conf(handle).await })
+            .block_on(async move {
+                match TrustDnsResolver::from_system_conf(handle.clone()).await {
+                    Ok(resolver) => Ok(resolver),
+                    Err(err) => {
+                        warn!(
+                            "Failed to initialize domain name resolver from system configuration, \
+                             try to initialize with fallback option, error: {}",
+                            err
+                        );
+                        TrustDnsResolver::new_default(handle).await
+                    }
+                }
+            })
             .map_err(|source| Error::InitializeDomainNameResolver { source })?
     };
 
