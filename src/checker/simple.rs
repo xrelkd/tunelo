@@ -47,7 +47,7 @@ impl SimpleProxyChecker {
         probers.remove(&LivenessProber::default().into());
 
         let mut probers: Vec<_> = probers.iter().cloned().collect();
-        probers.sort();
+        probers.sort_unstable();
 
         let task_report = TaskReport {
             proxy_server: self.proxy_server.clone(),
@@ -75,7 +75,7 @@ impl SimpleProxyChecker {
             task_report.prober_reports.push(report);
         }
 
-        task_report.prober_reports.sort();
+        task_report.prober_reports.sort_unstable();
         task_report
     }
 
@@ -93,7 +93,7 @@ impl SimpleProxyChecker {
 
         let mut reports: Vec<_> = futures::future::join_all(futs).await.into_iter().collect();
         task_report.prober_reports.append(&mut reports);
-        task_report.prober_reports.sort();
+        task_report.prober_reports.sort_unstable();
         task_report
     }
 
