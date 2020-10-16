@@ -22,12 +22,30 @@ command = "cargo"
 args = ["test"]
 
 [tasks.build-docker]
+dependencies = ["format", "build-docker-alpine"]
+script = [
+'''
+IMAGE_TAG=$(git describe --tags --abbrev=0)
+docker tag tunelo:$IMAGE_TAG-alpine tunelo:$IMAGE_TAG
+'''
+]
+
+[tasks.build-docker-alpine]
+dependencies = ["format"]
+script = [
+'''
+IMAGE_TAG=$(git describe --tags --abbrev=0)
+docker build --file containers/alpine/Dockerfile --tag=tunelo:$IMAGE_TAG-alpine .
+'''
+]
+
+[tasks.build-docker-nix]
 dependencies = ["format"]
 script = [
 '''
 IMAGE_TAG=$(git describe --tags --abbrev=0)
 OUT_LINK=tunelo.docker
-nix-build containers/nix/default.nix --out-link $OUT_LINK --argstr version $IMAGE_TAG
+nix-build containers/nix/default.nix --out-link $OUT_LINK --argstr version $IMAGE_TAG-nix
 docker load < $OUT_LINK
 rm $OUT_LINK
 '''
