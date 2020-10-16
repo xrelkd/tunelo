@@ -1,6 +1,7 @@
 **/target/
 **/*.rs.bk
 completions/
+containers/
 
 Dockerfile
 .dockerignore
@@ -9,7 +10,8 @@ docker
 docs
 ci
 
-.git
+.git/
+.github/
 .gitignore
 
 .envrc
