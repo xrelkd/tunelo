@@ -2,10 +2,14 @@ use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
 
 use snafu::ResultExt;
 use structopt::{clap::Shell as ClapShell, StructOpt};
+use tokio::runtime;
 
 use tunelo::transport::{Resolver, TrustDnsResolver};
 
-use crate::error::{self, Error};
+use crate::{
+    consts,
+    error::{self, Error},
+};
 
 #[macro_use]
 pub mod macros;
@@ -133,9 +137,14 @@ fn execute<F>(f: F) -> Result<(), Error>
 where
     F: FnOnce(Arc<dyn Resolver>) -> Pin<Box<dyn Future<Output = Result<(), Error>>>>,
 {
-    use tokio::runtime;
+    let long_version = {
+        let mut buf = vec![];
+        Command::clap().write_long_version(&mut buf).expect("failed to write version to buffer");
+        String::from_utf8_lossy(&buf).to_string()
+    };
+    tracing::info!("Starting {}", long_version);
 
-    use crate::consts;
+    tracing::info!("Initializing Tokio runtime");
     let mut runtime = runtime::Builder::new()
         .thread_name(consts::THREAD_NAME)
         .threaded_scheduler()
@@ -147,6 +156,8 @@ where
         let handle = runtime.handle().clone();
         runtime
             .block_on(async move {
+                tracing::info!("Initializing domain name resolver");
+
                 match TrustDnsResolver::from_system_conf(handle.clone()).await {
                     Ok(resolver) => Ok(resolver),
                     Err(err) => {
