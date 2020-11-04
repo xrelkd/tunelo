@@ -5,7 +5,7 @@ rustPlatform.buildRustPackage rec {
 
   src = builtins.fetchGit { url = ../..; };
 
-  cargoSha256 = "09sfgk7mhf9wh6q49r1bq5l7v5n248x9qhiqa7v82g58z6bh6pqs";
+  cargoSha256 = "1s379cnljhrarj6r2xif2vrqqb3nfk16qz951jyfb8a3i6crq6c3";
 
   meta = with lib; {
     description = "Proxy server that supports SOCKS4a, SOCKS5 and HTTP tunnel";
