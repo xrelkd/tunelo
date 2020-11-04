@@ -1,3 +1,5 @@
+#![type_length_limit = "2000000"]
+
 #[macro_use]
 extern crate tracing;
 
