@@ -49,7 +49,7 @@ impl UdpAssociate {
             let local_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0);
             let remote_socket = UdpSocket::bind(&local_addr)
                 .await
-                .context(error::BindUdpSocket { addr: local_addr })?;
+                .context(error::BindUdpSocketSnafu { addr: local_addr })?;
             remote_socket.split()
         };
 

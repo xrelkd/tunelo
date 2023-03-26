@@ -5,7 +5,7 @@ use snafu::Snafu;
 use tunelo::common::HostAddressError;
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
     #[snafu(display("Could not initialize tokio runtime, error: {}", source))]
     InitializeTokioRuntime { source: tokio::io::Error },

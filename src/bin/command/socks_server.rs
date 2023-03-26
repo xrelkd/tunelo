@@ -54,7 +54,7 @@ pub async fn run<P: AsRef<Path>>(
             rx.wait().await;
         })
         .await
-        .context(error::RunSocksServer)?;
+        .context(error::RunSocksServerSnafu)?;
 
     Ok(())
 }

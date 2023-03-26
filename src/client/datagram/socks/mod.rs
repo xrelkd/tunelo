@@ -37,15 +37,16 @@ impl Socks5Datagram {
     ) -> Result<Socks5Datagram, Error> {
         let socket = {
             let addr = SocketAddr::new(IpAddr::from(Ipv4Addr::UNSPECIFIED), 0);
-            UdpSocket::bind(addr).await.context(error::BindUdpSocket { addr })?
+            UdpSocket::bind(addr).await.context(error::BindUdpSocketSnafu { addr })?
         };
 
         let (mut stream, endpoint_addr) = {
             let proxy_addr = proxy_addr.to_string();
-            let port = socket.local_addr().context(error::GetLocalAddress)?.port();
+            let port = socket.local_addr().context(error::GetLocalAddressSnafu)?.port();
             let destination_socket =
                 HostAddress::from(SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), port));
-            let stream = TcpStream::connect(proxy_addr).await.context(error::ConnectProxyServer)?;
+            let stream =
+                TcpStream::connect(proxy_addr).await.context(error::ConnectProxyServerSnafu)?;
             let mut handshake = ClientHandshake::new(stream);
             let bind_socket = handshake
                 .handshake_socks_v5_udp_associate(&destination_socket, user_name, password)
@@ -56,7 +57,7 @@ impl Socks5Datagram {
         socket
             .connect(endpoint_addr.to_string())
             .await
-            .context(error::ConnectUdpSocket { addr: endpoint_addr })?;
+            .context(error::ConnectUdpSocketSnafu { addr: endpoint_addr })?;
 
         let closed = Arc::new(AtomicBool::new(false));
         tokio::spawn({

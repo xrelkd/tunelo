@@ -27,21 +27,21 @@ where
             use std::fmt::Write;
             let host = target_host.to_string();
             let mut req = BytesMut::with_capacity(128);
-            write!(req, "CONNECT {} HTTP/1.1\r\n", host).context(error::BuildHttpRequest)?;
-            write!(req, "Host: {}\r\n", host).context(error::BuildHttpRequest)?;
+            write!(req, "CONNECT {host} HTTP/1.1\r\n").context(error::BuildHttpRequestSnafu)?;
+            write!(req, "Host: {host}\r\n").context(error::BuildHttpRequestSnafu)?;
 
             if let Some(ua) = user_agent {
-                write!(req, "User-Agent: {}\r\n", ua).context(error::BuildHttpRequest)?;
+                write!(req, "User-Agent: {ua}\r\n").context(error::BuildHttpRequestSnafu)?;
             }
 
-            write!(req, "\r\n").context(error::BuildHttpRequest)?;
+            write!(req, "\r\n").context(error::BuildHttpRequestSnafu)?;
             req
         };
-        self.stream.write(request.as_ref()).await.context(error::WriteStream)?;
+        self.stream.write(request.as_ref()).await.context(error::WriteStreamSnafu)?;
 
         let mut buf = BytesMut::with_capacity(INITIAL_BUF_SIZE);
         let msg = loop {
-            let _n = self.stream.read_buf(&mut buf).await.context(error::ReadStream)?;
+            let _n = self.stream.read_buf(&mut buf).await.context(error::ReadStreamSnafu)?;
             match parse_header(&mut buf)? {
                 None => {
                     if buf.capacity() < MAX_BUF_SIZE {

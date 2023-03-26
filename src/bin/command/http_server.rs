@@ -48,7 +48,7 @@ pub async fn run<P: AsRef<Path>>(
             rx.wait().await;
         })
         .await
-        .context(error::RunHttpServer)?;
+        .context(error::RunHttpServerSnafu)?;
 
     Ok(())
 }

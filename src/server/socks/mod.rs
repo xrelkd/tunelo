@@ -118,7 +118,7 @@ impl Server {
         shutdown_signal: F,
     ) -> Result<(), Error> {
         let mut tcp_listener =
-            TcpListener::bind(self.tcp_address).await.context(error::BindTcpListener)?;
+            TcpListener::bind(self.tcp_address).await.context(error::BindTcpListenerSnafu)?;
         tracing::info!("Starting SOCKS server at {}", self.tcp_address);
 
         let (udp_associate_join_handle, udp_associate_stream_tx) =

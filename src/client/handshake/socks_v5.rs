@@ -34,10 +34,11 @@ where
         };
 
         let handshake_request = HandshakeRequest::new(vec![method]);
-        self.stream.write(&handshake_request.to_bytes()).await.context(error::WriteStream)?;
+        self.stream.write(&handshake_request.to_bytes()).await.context(error::WriteStreamSnafu)?;
 
-        let handshake_reply =
-            HandshakeReply::from_reader(&mut self.stream).await.context(error::ParseSocks5Reply)?;
+        let handshake_reply = HandshakeReply::from_reader(&mut self.stream)
+            .await
+            .context(error::ParseSocks5ReplySnafu)?;
 
         if handshake_reply.method != method {
             return Err(Error::UnsupportedSocksMethod { method });
@@ -53,10 +54,10 @@ where
                 user_name: user_name.clone(),
                 password: password.clone(),
             };
-            self.stream.write(&req.into_bytes()).await.context(error::WriteStream)?;
+            self.stream.write(&req.into_bytes()).await.context(error::WriteStreamSnafu)?;
             let reply = UserPasswordHandshakeReply::from_reader(&mut self.stream)
                 .await
-                .context(error::ParseSocks5Reply)?;
+                .context(error::ParseSocks5ReplySnafu)?;
             if reply.status != UserPasswordStatus::Success {
                 return Err(Error::AccessDenied { user_name, password });
             }
@@ -65,9 +66,10 @@ where
         let destination_socket = Address::from(destination_socket.clone());
         let req = Request { command, destination_socket };
 
-        let _ = self.stream.write(&req.into_bytes()).await.context(error::WriteStream)?;
+        let _ = self.stream.write(&req.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
-        let reply = Reply::from_reader(&mut self.stream).await.context(error::ParseSocks5Reply)?;
+        let reply =
+            Reply::from_reader(&mut self.stream).await.context(error::ParseSocks5ReplySnafu)?;
         if reply.reply != ReplyField::Success {
             return Err(Error::HostUnreachable);
         }

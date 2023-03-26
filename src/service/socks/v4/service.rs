@@ -68,12 +68,12 @@ where
     ) -> Result<(), Error> {
         tracing::info!("Receive request from {}", peer_addr);
 
-        let request = Request::from_reader(&mut stream).await.context(error::ParseRequest)?;
+        let request = Request::from_reader(&mut stream).await.context(error::ParseRequestSnafu)?;
 
         if !self.supported_commands.contains(&request.command) {
             let reply = Reply::rejected(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0));
-            let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-            stream.shutdown().await.context(error::Shutdown)?;
+            let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+            stream.shutdown().await.context(error::ShutdownSnafu)?;
             return Err(Error::UnsupportedCommand { command: request.command.into() });
         }
 
@@ -96,9 +96,11 @@ where
                     }
                     Err(source) => {
                         let reply = Reply::unreachable(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0));
-                        let _ =
-                            stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-                        stream.shutdown().await.context(error::Shutdown)?;
+                        let _ = stream
+                            .write(&reply.into_bytes())
+                            .await
+                            .context(error::WriteStreamSnafu)?;
+                        stream.shutdown().await.context(error::ShutdownSnafu)?;
 
                         return Err(Error::ConnectRemoteHost {
                             source,
@@ -108,7 +110,7 @@ where
                 };
 
                 let reply = Reply::granted(remote_addr);
-                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
+                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
                 self.transport
                     .relay(
@@ -119,13 +121,13 @@ where
                         })),
                     )
                     .await
-                    .context(error::RelayStream)?;
+                    .context(error::RelayStreamSnafu)?;
 
                 Ok(())
             }
             Command::TcpBind => {
                 tracing::debug!("Unsupported SOCKS command, close connection: {:?}", peer_addr);
-                stream.shutdown().await.context(error::Shutdown)?;
+                stream.shutdown().await.context(error::ShutdownSnafu)?;
                 Err(Error::UnsupportedCommand { command: Command::TcpBind.into() })
             }
         }

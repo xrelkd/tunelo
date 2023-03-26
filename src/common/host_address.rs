@@ -115,7 +115,7 @@ impl FromStr for HostAddress {
         }
 
         let host = parts[0].to_owned();
-        let port = parts[1].parse().context(ParsePortNumber)?;
+        let port = parts[1].parse().context(ParsePortNumberSnafu)?;
         Ok(HostAddress::DomainName(host, port))
     }
 }

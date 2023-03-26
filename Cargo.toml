@@ -33,7 +33,7 @@ webpki-roots = "0.21"
 
 trust-dns-resolver = "0.19"
 
-snafu = "0.6"
+snafu = "0.7"
 url = "2"
 
 serde = { version = "1", features = ["derive"] }

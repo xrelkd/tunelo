@@ -3,7 +3,7 @@ use snafu::Snafu;
 use crate::protocol::socks::{v5::Method as SocksV5Method, Error as SocksError};
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
     #[snafu(display("Could not read stream, error: {}", source))]
     ReadStream { source: std::io::Error },

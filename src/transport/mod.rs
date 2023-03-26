@@ -57,8 +57,9 @@ impl Transport<File> {
                 Box::new(move |_host: &HostAddress| {
                     let file_path = file_path.clone();
                     async move {
-                        let null_file =
-                            File::open(&file_path).await.context(error::OpenFile { file_path })?;
+                        let null_file = File::open(&file_path)
+                            .await
+                            .context(error::OpenFileSnafu { file_path })?;
                         Ok(null_file)
                     }
                     .boxed()
@@ -69,8 +70,9 @@ impl Transport<File> {
                 Box::new(move |_addr: &SocketAddr| {
                     let file_path = file_path.clone();
                     async move {
-                        let null_file =
-                            File::open(&file_path).await.context(error::OpenFile { file_path })?;
+                        let null_file = File::open(&file_path)
+                            .await
+                            .context(error::OpenFileSnafu { file_path })?;
                         Ok(null_file)
                     }
                     .boxed()
@@ -106,7 +108,7 @@ impl Transport<TcpStream> {
                 async move {
                     TcpStream::connect(&host.to_string())
                         .await
-                        .context(error::ConnectRemoteServer { host })
+                        .context(error::ConnectRemoteServerSnafu { host })
                 }
                 .boxed()
             }),
@@ -115,7 +117,7 @@ impl Transport<TcpStream> {
                 async move {
                     TcpStream::connect(&addr)
                         .await
-                        .context(error::ConnectRemoteServer { host: HostAddress::from(addr) })
+                        .context(error::ConnectRemoteServerSnafu { host: HostAddress::from(addr) })
                 }
                 .boxed()
             }),

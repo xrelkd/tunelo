@@ -62,7 +62,7 @@ impl HttpProber {
         let destination = self.destination_address()?;
         let stream = ProxyStream::connect_with_proxy(proxy_server, &destination)
             .await
-            .context(error::ConnectProxyServer)?;
+            .context(error::ConnectProxyServerSnafu)?;
         report.destination_reachable = true;
 
         let stream = stream.into_inner();
@@ -78,8 +78,10 @@ impl HttpProber {
                 let dnsname = DNSNameRef::try_from_ascii_str(&host).map_err(|source| {
                     Error::ConstructsDNSNameRef { source, name: host.to_owned() }
                 })?;
-                let stream =
-                    config.connect(dnsname, stream).await.context(error::InitializeTlsStream)?;
+                let stream = config
+                    .connect(dnsname, stream)
+                    .await
+                    .context(error::InitializeTlsStreamSnafu)?;
 
                 self.check_http(stream, report).await
             }
@@ -96,15 +98,15 @@ impl HttpProber {
         Stream: Unpin + AsyncRead + AsyncWrite,
     {
         let request = self.build_request()?;
-        stream.write(&request).await.context(error::WriteHttpRequest)?;
+        stream.write(&request).await.context(error::WriteHttpRequestSnafu)?;
 
         let mut buf = vec![0u8; 1024];
-        stream.read(&mut buf[..]).await.context(error::ReadHttpResponse)?;
+        stream.read(&mut buf[..]).await.context(error::ReadHttpResponseSnafu)?;
 
         let mut headers = [httparse::EMPTY_HEADER; 32];
         let mut response = httparse::Response::new(&mut headers);
 
-        let res = response.parse(&buf).context(error::ParseHttpResponse)?;
+        let res = response.parse(&buf).context(error::ParseHttpResponseSnafu)?;
         if res.is_complete() {
             stream.shutdown();
             report.response_code = response.code;
