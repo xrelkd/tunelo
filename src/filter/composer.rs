@@ -12,7 +12,7 @@ pub struct ComposerFilter {
 
 impl ComposerFilter {
     #[inline]
-    pub fn new() -> ComposerFilter { ComposerFilter::default() }
+    pub fn new() -> Self { Self::default() }
 
     #[inline]
     pub fn add_filter(&mut self, filter: Arc<dyn HostFilter>) { self.filters.push(filter); }

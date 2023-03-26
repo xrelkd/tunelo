@@ -24,7 +24,7 @@ impl PartialEq<(String, u16)> for HostAddress {
 impl PartialEq<SocketAddr> for HostAddress {
     fn eq(&self, other: &SocketAddr) -> bool {
         match self {
-            HostAddress::Socket(addr) => addr == other,
+            Self::Socket(addr) => addr == other,
             _ => false,
         }
     }
@@ -34,14 +34,14 @@ impl HostAddress {
     #[inline]
     pub fn new(host: &str, port: u16) -> Self {
         match host.parse() {
-            Ok(ip) => HostAddress::Socket(SocketAddr::new(ip, port)),
-            Err(_) => HostAddress::DomainName(host.to_owned(), port),
+            Ok(ip) => Self::Socket(SocketAddr::new(ip, port)),
+            Err(_) => Self::DomainName(host.to_owned(), port),
         }
     }
 
     #[inline]
     pub fn fit(&mut self) {
-        if let HostAddress::DomainName(host, port) = self {
+        if let Self::DomainName(host, port) = self {
             if let Ok(ip) = host.parse() {
                 *self = HostAddress::Socket(SocketAddr::new(ip, *port));
             }
@@ -51,43 +51,39 @@ impl HostAddress {
     #[inline]
     pub fn host(&self) -> String {
         match self {
-            HostAddress::Socket(socket) => socket.ip().to_string(),
-            HostAddress::DomainName(host, _) => host.clone(),
+            Self::Socket(socket) => socket.ip().to_string(),
+            Self::DomainName(host, _) => host.clone(),
         }
     }
 
     #[inline]
     pub fn port(&self) -> u16 {
         match self {
-            HostAddress::Socket(socket) => socket.port(),
-            HostAddress::DomainName(_, port) => *port,
+            Self::Socket(socket) => socket.port(),
+            Self::DomainName(_, port) => *port,
         }
     }
 
     #[inline]
     pub fn set_port(&mut self, port: u16) {
         match self {
-            HostAddress::Socket(socket) => {
+            Self::Socket(socket) => {
                 socket.set_port(port);
             }
-            HostAddress::DomainName(_, self_port) => {
+            Self::DomainName(_, self_port) => {
                 *self_port = port;
             }
         }
     }
 
     #[inline]
-    pub fn empty_ipv4() -> Self {
-        HostAddress::Socket(SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0))
-    }
+    pub fn empty_ipv4() -> Self { Self::Socket(SocketAddr::new(Ipv4Addr::UNSPECIFIED.into(), 0)) }
 
     #[inline]
-    pub fn empty_ipv6() -> Self {
-        HostAddress::Socket(SocketAddr::new(Ipv6Addr::UNSPECIFIED.into(), 0))
-    }
+    pub fn empty_ipv6() -> Self { Self::Socket(SocketAddr::new(Ipv6Addr::UNSPECIFIED.into(), 0)) }
 
     #[inline]
-    pub fn empty_domain() -> Self { HostAddress::DomainName(String::new(), 0) }
+    pub const fn empty_domain() -> Self { Self::DomainName(String::new(), 0) }
 }
 
 impl From<SocketAddr> for HostAddress {

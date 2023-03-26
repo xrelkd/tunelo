@@ -1,9 +1,9 @@
+mod composer;
+mod simple;
+
 use std::net::{IpAddr, SocketAddr};
 
 use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
-
-mod composer;
-mod simple;
 
 pub use self::{composer::ComposerFilter, simple::SimpleFilter};
 

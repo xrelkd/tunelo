@@ -37,11 +37,11 @@ pub struct ServerOptions {
 impl Default for ServerOptions {
     fn default() -> ServerOptions {
         ServerOptions {
-            supported_versions: vec![SocksVersion::V4, SocksVersion::V5].into_iter().collect(),
-            supported_commands: vec![SocksCommand::TcpConnect].into_iter().collect(),
+            supported_versions: HashSet::from_iter([SocksVersion::V4, SocksVersion::V5]),
+            supported_commands: HashSet::from_iter([SocksCommand::TcpConnect]),
             listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
             listen_port: 3128,
-            udp_ports: vec![3129].into_iter().collect(),
+            udp_ports: HashSet::from_iter([3129]),
             connection_timeout: Duration::from_secs(10),
             tcp_keepalive: Duration::from_secs(10),
             udp_cache_expiry_duration: Duration::from_secs(10),
