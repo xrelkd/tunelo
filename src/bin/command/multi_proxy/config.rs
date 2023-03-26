@@ -6,9 +6,11 @@ use std::{
     time::Duration,
 };
 
+use serde::{Deserialize, Serialize};
+
 pub use crate::error::Error;
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
     pub proxy_servers: HashSet<ProxyServer>,
 
@@ -40,7 +42,7 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ProxyServer {
     Socks,
@@ -68,7 +70,7 @@ impl ToString for ProxyServer {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct SocksServer {
     tcp_ip: IpAddr,
     tcp_port: u16,

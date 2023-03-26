@@ -10,7 +10,7 @@ autobins = false
 [features]
 default = ["tunelo"]
 
-app = ["structopt", "tracing-subscriber", "toml", "serde_json", "comfy-table"]
+app = ["clap", "clap_complete", "tracing-subscriber", "toml", "serde_json", "comfy-table"]
 
 tunelo = ["app"]
 
@@ -24,35 +24,31 @@ path = "src/bin/main.rs"
 required-features = ["app"]
 
 [dependencies]
+tracing = "0.1"
+tracing-subscriber = { version = "0.2", optional = true }
+
 futures = "0.3"
 tokio = { version = "0.2", features = ["full"] }
 tokio-rustls = { version = "0.14" }
-
-webpki = "0.21"
-webpki-roots = "0.21"
-
-trust-dns-resolver = "0.19"
-
-snafu = "0.7"
-url = "2"
 
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
 toml = { version = "0.5", optional = true }
 
+trust-dns-resolver = "0.19"
+webpki = "0.21"
+webpki-roots = "0.21"
+
 byteorder = "1"
 bytes = "0.5"
-
+clap = { version = "4", features = ["derive", "env"], optional = true }
+clap_complete = { version = "4", optional = true }
+comfy-table = { version = "2", optional = true }
 http = "0.2"
 httparse = "1"
-
-tracing = "0.1"
-tracing-subscriber = { version = "0.2", optional = true }
-
 lru_time_cache = "0.11"
-
-structopt = { version = "0.3", optional = true }
-comfy-table = { version = "2", optional = true }
+snafu = "0.7"
+url = "2"
 
 [profile.release]
 opt-level = 3
