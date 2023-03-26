@@ -4,6 +4,7 @@ use clap::{CommandFactory, Parser, Subcommand};
 use clap_complete::Shell;
 use snafu::ResultExt;
 use tokio::runtime;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use tunelo::transport::{Resolver, TrustDnsResolver};
 
@@ -89,18 +90,6 @@ impl Default for Cli {
 
 impl Cli {
     pub fn run(self) -> Result<(), Error> {
-        {
-            use tracing_subscriber::prelude::*;
-
-            let timer = tracing_subscriber::fmt::time::ChronoUtc::rfc3339();
-            let fmt_layer = tracing_subscriber::fmt::layer().with_timer(timer).with_target(true);
-            let filter_layer = tracing_subscriber::EnvFilter::try_from_default_env()
-                .or_else(|_| tracing_subscriber::EnvFilter::try_new("info"))
-                .unwrap();
-
-            tracing_subscriber::registry().with(filter_layer).with(fmt_layer).init();
-        }
-
         match self.commands {
             Some(Commands::Version) => {
                 let mut stdout = std::io::stdout();
@@ -140,6 +129,8 @@ fn execute<F>(f: F) -> Result<(), Error>
 where
     F: FnOnce(Arc<dyn Resolver>) -> Pin<Box<dyn Future<Output = Result<(), Error>>>>,
 {
+    init_tracing();
+
     tracing::info!("Starting {}", Cli::command().get_long_version().unwrap_or_default());
 
     tracing::info!("Initializing Tokio runtime");
@@ -169,4 +160,16 @@ where
     };
 
     runtime.block_on(f(Arc::new(resolver)))
+}
+
+fn init_tracing() {
+    // filter
+    let filter_layer = tracing_subscriber::EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
+
+    // format
+    let fmt_layer =
+        tracing_subscriber::fmt::layer().pretty().with_thread_ids(true).with_thread_names(true);
+    // subscriber
+    tracing_subscriber::registry().with(filter_layer).with(fmt_layer).init();
 }

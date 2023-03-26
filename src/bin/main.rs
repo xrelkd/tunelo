@@ -1,11 +1,3 @@
-// #![type_length_limit = "2000000"]
-//
-// #[macro_use]
-// extern crate tracing;
-//
-// #[macro_use]
-// extern crate serde;
-
 use std::sync::atomic;
 
 pub static SHUTDOWN: atomic::AtomicBool = atomic::AtomicBool::new(false);
