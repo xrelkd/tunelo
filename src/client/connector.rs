@@ -2,12 +2,12 @@ use std::{sync::Arc, time::Duration};
 
 use snafu::ResultExt;
 use tokio::{
-    io::{AsyncRead, AsyncWrite},
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
 };
 
 use crate::{
-    client::{error, Error, ProxyStream},
+    client::{error, handshake::ClientHandshake, Error, ProxyStream},
     common::{HostAddress, ProxyHost, ProxyStrategy},
 };
 
@@ -34,7 +34,7 @@ impl ProxyConnector {
         };
 
         if let Err(err) = res {
-            socket.shutdown(std::net::Shutdown::Both).context(error::ShutdownSnafu)?;
+            socket.shutdown().await.context(error::ShutdownSnafu)?;
             return Err(err);
         }
 
@@ -45,13 +45,13 @@ impl ProxyConnector {
         strategy: &ProxyStrategy,
         timeout: Option<Duration>,
     ) -> Result<bool, Error> {
-        let socket = match timeout {
+        let mut socket = match timeout {
             Some(t) => tokio::time::timeout(t, Self::build_socket(strategy))
                 .await
                 .map_err(|_| Error::Timeout)??,
             None => Self::build_socket(strategy).await?,
         };
-        socket.shutdown(std::net::Shutdown::Both).context(error::ShutdownSnafu)?;
+        socket.shutdown().await.context(error::ShutdownSnafu)?;
         Ok(true)
     }
 
@@ -78,9 +78,7 @@ impl ProxyConnector {
                         if let Err(err) =
                             Self::handshake(&mut socket, proxy_host, &target_host).await
                         {
-                            socket
-                                .shutdown(std::net::Shutdown::Both)
-                                .context(error::ShutdownSnafu)?;
+                            socket.shutdown().await.context(error::ShutdownSnafu)?;
                             return Err(err);
                         };
                     }
@@ -101,8 +99,6 @@ impl ProxyConnector {
     where
         Stream: AsyncRead + AsyncWrite + Unpin + Send + Sync,
     {
-        use crate::client::handshake::*;
-
         let mut handshake = ClientHandshake::new(stream);
         match proxy_host {
             ProxyHost::Socks4a { id, .. } => {

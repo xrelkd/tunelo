@@ -7,13 +7,13 @@ use std::{
 
 use futures::Future;
 use tokio::{
-    io::{AsyncRead, AsyncWrite, ReadHalf, WriteHalf},
-    time::{self, Delay},
+    io::{AsyncRead, AsyncWrite, ReadBuf, ReadHalf, WriteHalf},
+    time::{self, Sleep},
 };
 
 pub struct TimedStream<Stream> {
     stream: Stream,
-    timer: Option<Delay>,
+    timer: Option<Sleep>,
     timeout: Option<Duration>,
 }
 
@@ -50,10 +50,8 @@ where
 }
 
 impl<Stream> TimedStream<Stream> {
-    fn make_timeout_error() -> io::Error {
-        use std::io::ErrorKind;
-        ErrorKind::TimedOut.into()
-    }
+    #[inline]
+    fn make_timeout_error() -> io::Error { io::ErrorKind::TimedOut.into() }
 
     fn poll_timeout(&mut self, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         loop {
@@ -63,7 +61,7 @@ impl<Stream> TimedStream<Stream> {
                 return Poll::Ready(Err(Self::make_timeout_error()));
             } else {
                 match self.timeout {
-                    Some(timeout) => self.timer = Some(time::delay_for(timeout)),
+                    Some(timeout) => self.timer = Some(time::sleep(timeout)),
                     None => break,
                 }
             }
@@ -81,8 +79,8 @@ where
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
         match Pin::new(&mut self.stream).poll_read(cx, buf) {
             Poll::Ready(r) => {
                 self.cancel_timeout();

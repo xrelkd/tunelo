@@ -2,8 +2,8 @@ use std::{fmt, sync::Arc};
 
 use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_rustls::{rustls, TlsConnector};
 use url::Url;
-use webpki::DNSNameRef;
 
 use crate::{
     checker::error::{self, Error, ReportError},
@@ -69,19 +69,39 @@ impl HttpProber {
         match self.url.scheme() {
             "http" => self.check_http(stream, report).await,
             "https" => {
-                use tokio_rustls::{rustls::ClientConfig, TlsConnector};
+                let stream = {
+                    let server_name = {
+                        let dns_name = self.host()?;
+                        rustls::ServerName::try_from(dns_name.as_str())
+                            .with_context(|_| error::InvalidDnsNameSnafu { dns_name })?
+                    };
 
-                let host = self.host()?;
-                let mut config = ClientConfig::new();
-                config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-                let config = TlsConnector::from(Arc::new(config));
-                let dnsname = DNSNameRef::try_from_ascii_str(&host).map_err(|source| {
-                    Error::ConstructsDNSNameRef { source, name: host.to_owned() }
-                })?;
-                let stream = config
-                    .connect(dnsname, stream)
-                    .await
-                    .context(error::InitializeTlsStreamSnafu)?;
+                    let connector = {
+                        // TODO: use `lazy_static` to initialize?
+                        let mut root_store = rustls::RootCertStore::empty();
+                        root_store.add_server_trust_anchors(
+                            webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
+                                rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
+                                    ta.subject,
+                                    ta.spki,
+                                    ta.name_constraints,
+                                )
+                            }),
+                        );
+
+                        let config = rustls::ClientConfig::builder()
+                            .with_safe_defaults()
+                            .with_root_certificates(root_store)
+                            .with_no_client_auth();
+
+                        TlsConnector::from(Arc::new(config))
+                    };
+
+                    connector
+                        .connect(server_name, stream)
+                        .await
+                        .context(error::InitializeTlsStreamSnafu)?
+                };
 
                 self.check_http(stream, report).await
             }
@@ -108,7 +128,7 @@ impl HttpProber {
 
         let res = response.parse(&buf).context(error::ParseHttpResponseSnafu)?;
         if res.is_complete() {
-            stream.shutdown();
+            drop(stream.shutdown().await);
             report.response_code = response.code;
             return Ok(());
         }

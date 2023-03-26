@@ -34,7 +34,7 @@ impl LivenessProber {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Default)]
 pub struct LivenessProberReport {
     pub alive: bool,
     pub error: Option<ReportError>,

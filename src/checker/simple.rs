@@ -1,4 +1,4 @@
-use std::{collections::HashSet, time::Duration};
+use std::time::Duration;
 
 use crate::common::ProxyHost;
 
@@ -11,26 +11,24 @@ pub use crate::checker::{
     report::TaskReport,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct SimpleProxyChecker {
     proxy_server: ProxyHost,
-    probers: HashSet<Prober>,
+    probers: Vec<Prober>,
 }
 
 impl SimpleProxyChecker {
     #[inline]
-    pub fn new(proxy_server: ProxyHost) -> Self {
-        SimpleProxyChecker { proxy_server, probers: HashSet::new() }
-    }
+    pub fn new(proxy_server: ProxyHost) -> Self { Self { proxy_server, probers: Vec::new() } }
 
     #[inline]
     pub fn with_probers(proxy_server: ProxyHost, probers: &[Prober]) -> Self {
-        let probers = probers.iter().cloned().collect();
-        SimpleProxyChecker { proxy_server, probers }
+        let probers = probers.to_vec();
+        Self { proxy_server, probers }
     }
 
     #[inline]
-    pub fn add_prober(&mut self, prober: Prober) { self.probers.insert(prober); }
+    pub fn add_prober(&mut self, prober: Prober) { self.probers.push(prober); }
 
     #[inline]
     pub async fn prepare(self, timeout: Option<Duration>) -> (ProxyHost, Vec<Prober>, TaskReport) {
@@ -41,21 +39,13 @@ impl SimpleProxyChecker {
                 .unwrap_or_else(|_| LivenessProberReport::timeout()),
         };
 
-        let mut probers = self.probers;
-
-        // remove redundant default LivenessProber
-        probers.remove(&LivenessProber::default().into());
-
-        let mut probers: Vec<_> = probers.iter().cloned().collect();
-        probers.sort_unstable();
-
         let task_report = TaskReport {
             proxy_server: self.proxy_server.clone(),
             liveness_report,
-            prober_reports: vec![],
+            prober_reports: Vec::new(),
         };
 
-        (self.proxy_server, probers, task_report)
+        (self.proxy_server, self.probers, task_report)
     }
 
     pub async fn check_liveness(&self) -> LivenessProberReport {
@@ -75,7 +65,6 @@ impl SimpleProxyChecker {
             task_report.prober_reports.push(report);
         }
 
-        task_report.prober_reports.sort_unstable();
         task_report
     }
 
@@ -93,7 +82,6 @@ impl SimpleProxyChecker {
 
         let mut reports: Vec<_> = futures::future::join_all(futs).await.into_iter().collect();
         task_report.prober_reports.append(&mut reports);
-        task_report.prober_reports.sort_unstable();
         task_report
     }
 

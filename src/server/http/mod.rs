@@ -57,7 +57,7 @@ impl Server {
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
-        let mut tcp_listener =
+        let tcp_listener =
             TcpListener::bind(self.tcp_address).await.context(error::BindTcpListenerSnafu)?;
         tracing::info!("Starting HTTP proxy server at {}", self.tcp_address);
 
