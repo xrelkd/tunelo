@@ -1,11 +1,12 @@
-use std::fmt;
+use std::{fmt, str::FromStr};
 
+use serde::{Deserialize, Serialize};
 use snafu::Snafu;
 use url::Url;
 
 use crate::common::HostAddress;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum ProxyHost {
     Socks4a {
@@ -60,7 +61,7 @@ impl ProxyHost {
     }
 }
 
-impl std::str::FromStr for ProxyHost {
+impl FromStr for ProxyHost {
     type Err = ProxyHostError;
 
     fn from_str(url: &str) -> Result<ProxyHost, Self::Err> {
@@ -92,7 +93,7 @@ impl fmt::Display for ProxyHost {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum ProxyStrategy {
     Single(ProxyHost),
     Chained(Vec<ProxyHost>),

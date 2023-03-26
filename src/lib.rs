@@ -1,6 +1,3 @@
-#[macro_use]
-extern crate serde;
-
 pub mod authentication;
 pub mod checker;
 pub mod client;

@@ -4,9 +4,10 @@ use std::{
     str::FromStr,
 };
 
+use serde::{Deserialize, Serialize};
 use snafu::{ResultExt, Snafu};
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 pub enum HostAddress {
     Socket(SocketAddr),
     DomainName(String, u16),
