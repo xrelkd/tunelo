@@ -62,7 +62,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                server.serve_with_shutdown(signal).await.context(error::RunSocksServer)
+                server.serve_with_shutdown(signal).await.context(error::RunSocksServerSnafu)
             })
         };
 
@@ -77,7 +77,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                server.serve_with_shutdown(signal).await.context(error::RunHttpServer)
+                server.serve_with_shutdown(signal).await.context(error::RunHttpServerSnafu)
             })
         };
 

@@ -26,21 +26,21 @@ impl TrustDnsResolver {
         AsyncResolver::new(resolver_config, resolver_opts, runtime_handle)
             .await
             .map(|resolver| TrustDnsResolver { resolver })
-            .context(error::InitializeTrustDnsResolver)
+            .context(error::InitializeTrustDnsResolverSnafu)
     }
 
     pub async fn new_default(runtime_handle: Handle) -> Result<TrustDnsResolver, Error> {
         AsyncResolver::new(ResolverConfig::default(), ResolverOpts::default(), runtime_handle)
             .await
             .map(|resolver| TrustDnsResolver { resolver })
-            .context(error::InitializeTrustDnsResolver)
+            .context(error::InitializeTrustDnsResolverSnafu)
     }
 
     pub async fn from_system_conf(runtime_handle: Handle) -> Result<TrustDnsResolver, Error> {
         AsyncResolver::from_system_conf(runtime_handle)
             .await
             .map(|resolver| TrustDnsResolver { resolver })
-            .context(error::InitializeTrustDnsResolver)
+            .context(error::InitializeTrustDnsResolverSnafu)
     }
 }
 
@@ -50,7 +50,8 @@ impl Resolver for TrustDnsResolver {
         let resolver = self.resolver.clone();
 
         async move {
-            let response = resolver.lookup_ip(host).await.context(error::LookupTrustDnsResolver)?;
+            let response =
+                resolver.lookup_ip(host).await.context(error::LookupTrustDnsResolverSnafu)?;
 
             Ok(response.iter().collect())
         }

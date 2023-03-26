@@ -54,7 +54,8 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
         futures::future::join_all(report_futs).await
     };
 
-    write_reports_to(&mut std::io::stdout(), &reports).context(error::WriteProxyCheckerReport)?;
+    write_reports_to(&mut std::io::stdout(), &reports)
+        .context(error::WriteProxyCheckerReportSnafu)?;
 
     if let Some(ref path) = &output_path {
         let mut file = std::fs::OpenOptions::new()
@@ -62,9 +63,9 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
             .truncate(true)
             .create(true)
             .open(path)
-            .context(error::WriteProxyHosts)?;
+            .context(error::WriteProxyHostsSnafu)?;
 
-        write_available_proxy_servers(&mut file, &reports).context(error::WriteProxyHosts)?;
+        write_available_proxy_servers(&mut file, &reports).context(error::WriteProxyHostsSnafu)?;
     }
 
     Ok(())
@@ -332,11 +333,11 @@ impl ProxyServerFile {
     }
 
     pub fn from_json(json: &[u8]) -> Result<ProxyServerFile, Error> {
-        serde_json::from_slice(json).context(error::ParseProxyServerJson)
+        serde_json::from_slice(json).context(error::ParseProxyServerJsonSnafu)
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyServerFile, Error> {
-        toml::from_slice(toml).context(error::ParseProxyServerToml)
+        toml::from_slice(toml).context(error::ParseProxyServerTomlSnafu)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
@@ -354,17 +355,18 @@ impl ProxyServerFile {
     }
 
     pub fn load_text_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
-        let content = std::fs::read_to_string(&file_path).context(error::LoadProxyServerFile)?;
+        let content =
+            std::fs::read_to_string(&file_path).context(error::LoadProxyServerFileSnafu)?;
         Self::from_text(&content)
     }
 
     pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
-        let content = std::fs::read(&file_path).context(error::LoadProxyServerFile)?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyServerFileSnafu)?;
         Self::from_json(&content)
     }
 
     pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
-        let content = std::fs::read(&file_path).context(error::LoadProxyServerFile)?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyServerFileSnafu)?;
         Self::from_toml(&content)
     }
 }

@@ -29,42 +29,42 @@ impl Datagram {
         let mut input = Cursor::new(input);
 
         // consume rsv field
-        if input.read_u16::<BigEndian>().context(error::ReadStream)? != 0x0000 {
+        if input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)? != 0x0000 {
             return Err(Error::BadRequest);
         }
 
         // current fragment number
-        let frag = input.read_u8().context(error::ReadStream)?;
+        let frag = input.read_u8().context(error::ReadStreamSnafu)?;
 
         let destination_socket =
-            match AddressType::try_from(input.read_u8().context(error::ReadStream)?)? {
+            match AddressType::try_from(input.read_u8().context(error::ReadStreamSnafu)?)? {
                 AddressType::Ipv4 => {
                     let mut host = [0u8; 4];
-                    input.read_exact(&mut host).context(error::ReadStream)?;
+                    input.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
-                    let port = input.read_u16::<BigEndian>().context(error::ReadStream)?;
+                    let port = input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                     Address::from(SocketAddr::new(host.into(), port))
                 }
                 AddressType::Ipv6 => {
                     let mut host = [0u8; 16];
-                    input.read_exact(&mut host).context(error::ReadStream)?;
+                    input.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
-                    let port = input.read_u16::<BigEndian>().context(error::ReadStream)?;
+                    let port = input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                     Address::from(SocketAddr::new(host.into(), port))
                 }
                 AddressType::Domain => {
-                    let len = input.read_u8().context(error::ReadStream)? as usize;
+                    let len = input.read_u8().context(error::ReadStreamSnafu)? as usize;
 
                     let mut host = vec![0u8; len];
-                    input.read_exact(&mut host).context(error::ReadStream)?;
+                    input.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
-                    let port = input.read_u16::<BigEndian>().context(error::ReadStream)?;
+                    let port = input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                     Address::new_domain(&host, port)
                 }
             };
 
         let mut data = BytesMut::new();
-        input.read(&mut data[..]).context(error::ReadStream)?;
+        input.read(&mut data[..]).context(error::ReadStreamSnafu)?;
         Ok(Datagram { frag, destination_socket, data })
     }
 

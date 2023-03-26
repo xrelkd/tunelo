@@ -83,14 +83,14 @@ impl Request {
     where
         R: AsyncRead + Unpin,
     {
-        let command = Command::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
-        let port = rdr.read_u16().await.context(error::ReadStream)?;
+        let command = Command::try_from(rdr.read_u8().await.context(error::ReadStreamSnafu)?)?;
+        let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
         let mut ip_buf = [0u8; 4];
-        let _ = rdr.read(&mut ip_buf).await.context(error::ReadStream)?;
+        let _ = rdr.read(&mut ip_buf).await.context(error::ReadStreamSnafu)?;
 
         let (id, host) = {
             let mut buf = [0u8; 128];
-            let _ = rdr.read(&mut buf).await.context(error::ReadStream)?;
+            let _ = rdr.read(&mut buf).await.context(error::ReadStreamSnafu)?;
 
             let parts: Vec<_> = buf.split(|ch| *ch == 0x00).collect();
 
@@ -180,15 +180,15 @@ impl Reply {
     where
         R: AsyncRead + AsyncRead + Unpin,
     {
-        if rdr.read_u8().await.context(error::ReadStream)? != 0x00 {
+        if rdr.read_u8().await.context(error::ReadStreamSnafu)? != 0x00 {
             return Err(Error::BadReply);
         }
 
-        let reply = ReplyField::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
+        let reply = ReplyField::try_from(rdr.read_u8().await.context(error::ReadStreamSnafu)?)?;
         let destination_socket = {
-            let port = rdr.read_u16().await.context(error::ReadStream)?;
+            let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
             let mut ip = [0u8; 4];
-            rdr.read(&mut ip).await.context(error::ReadStream)?;
+            rdr.read(&mut ip).await.context(error::ReadStreamSnafu)?;
             SocketAddrV4::new(Ipv4Addr::from(ip), port)
         };
 

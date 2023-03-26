@@ -3,7 +3,7 @@ use snafu::Snafu;
 use crate::{common::HostAddress, transport};
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
     #[snafu(display("Could not read buffer, error: {}", source))]
     ReadBuf { source: std::io::Error },

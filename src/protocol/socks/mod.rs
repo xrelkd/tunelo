@@ -179,29 +179,29 @@ impl Address {
         use std::io::Read;
 
         let mut rdr = std::io::Cursor::new(buf);
-        let address_type = AddressType::try_from(rdr.read_u8().context(error::ReadStream)?)?;
+        let address_type = AddressType::try_from(rdr.read_u8().context(error::ReadStreamSnafu)?)?;
         match address_type {
             AddressType::Ipv4 => {
                 let mut buf = [0u8; 4];
-                rdr.read(&mut buf).context(error::ReadStream)?;
+                rdr.read(&mut buf).context(error::ReadStreamSnafu)?;
 
-                let port = rdr.read_u16::<BigEndian>().context(error::ReadStream)?;
+                let port = rdr.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                 Ok((SocketAddr::new(buf.into(), port).into(), rdr.position() as usize))
             }
             AddressType::Ipv6 => {
                 let mut buf = [0u8; 16];
-                rdr.read_exact(&mut buf).context(error::ReadStream)?;
+                rdr.read_exact(&mut buf).context(error::ReadStreamSnafu)?;
 
-                let port = rdr.read_u16::<BigEndian>().context(error::ReadStream)?;
+                let port = rdr.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                 Ok((SocketAddr::new(buf.into(), port).into(), rdr.position() as usize))
             }
             AddressType::Domain => {
-                let len = rdr.read_u8().context(error::ReadStream)? as usize;
+                let len = rdr.read_u8().context(error::ReadStreamSnafu)? as usize;
 
                 let mut host = vec![0u8; len];
-                rdr.read_exact(&mut host).context(error::ReadStream)?;
+                rdr.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
-                let port = rdr.read_u16::<BigEndian>().context(error::ReadStream)?;
+                let port = rdr.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                 Ok((Address::new_domain(&host, port), rdr.position() as usize))
             }
         }
@@ -213,29 +213,30 @@ impl Address {
     {
         use tokio::io::AsyncReadExt;
 
-        let address_type = AddressType::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
+        let address_type =
+            AddressType::try_from(rdr.read_u8().await.context(error::ReadStreamSnafu)?)?;
         match address_type {
             AddressType::Ipv4 => {
                 let mut buf = [0u8; 4];
-                rdr.read_exact(&mut buf).await.context(error::ReadStream)?;
+                rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
-                let port = rdr.read_u16().await.context(error::ReadStream)?;
+                let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
                 Ok(SocketAddr::new(buf.into(), port).into())
             }
             AddressType::Ipv6 => {
                 let mut buf = [0u8; 16];
-                rdr.read_exact(&mut buf).await.context(error::ReadStream)?;
+                rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
-                let port = rdr.read_u16().await.context(error::ReadStream)?;
+                let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
                 Ok(SocketAddr::new(buf.into(), port).into())
             }
             AddressType::Domain => {
-                let len = rdr.read_u8().await.context(error::ReadStream)? as usize;
+                let len = rdr.read_u8().await.context(error::ReadStreamSnafu)? as usize;
 
                 let mut host = vec![0u8; len];
-                rdr.read_exact(&mut host).await.context(error::ReadStream)?;
+                rdr.read_exact(&mut host).await.context(error::ReadStreamSnafu)?;
 
-                let port = rdr.read_u16().await.context(error::ReadStream)?;
+                let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
                 Ok(Address::new_domain(&host, port))
             }
         }

@@ -32,7 +32,7 @@ where
         use snafu::ResultExt;
         use tokio::io::AsyncWriteExt;
 
-        self.stream.shutdown().await.context(error::ShutdownStream)?;
+        self.stream.shutdown().await.context(error::ShutdownStreamSnafu)?;
         Ok(())
     }
 }

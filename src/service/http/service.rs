@@ -44,7 +44,7 @@ where
 
         let mut empty_headers = [httparse::EMPTY_HEADER; 32];
         let mut request = httparse::Request::new(&mut empty_headers);
-        let status = request.parse(buf.as_ref()).context(error::ParseRequest)?;
+        let status = request.parse(buf.as_ref()).context(error::ParseRequestSnafu)?;
 
         match status {
             httparse::Status::Partial => Ok(None),
@@ -56,7 +56,7 @@ where
                 };
 
                 let url = match request.path {
-                    Some(p) => Url::from_str(p).context(error::ParseUrl)?,
+                    Some(p) => Url::from_str(p).context(error::ParseUrlSnafu)?,
                     None => return Err(Error::NoPathProvided),
                 };
 
@@ -85,7 +85,7 @@ where
     ) -> Result<(), Error> {
         let mut buf = BytesMut::with_capacity(INITIAL_BUF_SIZE);
         let msg = loop {
-            let _n = client_stream.read_buf(&mut buf).await.context(error::ReadBuf)?;
+            let _n = client_stream.read_buf(&mut buf).await.context(error::ReadBufSnafu)?;
             match Self::parse_header(&mut buf) {
                 Ok(Some(msg)) => break msg,
                 Ok(None) => {
@@ -124,7 +124,7 @@ where
                         let _n = client_stream
                             .write(ESTABLISHED_RESPONSE)
                             .await
-                            .context(error::WriteStream)?;
+                            .context(error::WriteStreamSnafu)?;
                     }
                     _ => {
                         let _n = remote_socket.write(msg.header_buf.as_ref()).await;
@@ -146,7 +146,7 @@ where
         self.transport
             .relay(client_stream, remote_socket, Some(on_finished))
             .await
-            .context(error::RelayStream)?;
+            .context(error::RelayStreamSnafu)?;
 
         Ok(())
     }
@@ -156,8 +156,11 @@ where
         mut stream: TransportStream,
         status_code: StatusCode,
     ) -> Result<(), Error> {
-        stream.write(status_code.status_line().as_bytes()).await.context(error::WriteStream)?;
-        stream.shutdown().await.context(error::Shutdown)?;
+        stream
+            .write(status_code.status_line().as_bytes())
+            .await
+            .context(error::WriteStreamSnafu)?;
+        stream.shutdown().await.context(error::ShutdownSnafu)?;
         Ok(())
     }
 }

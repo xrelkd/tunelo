@@ -3,7 +3,7 @@ use snafu::Snafu;
 pub use self::report::ReportError;
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
     #[snafu(display("Could not connect proxy server, error: {}", source))]
     ConnectProxyServer { source: crate::client::Error },

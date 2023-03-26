@@ -150,7 +150,7 @@ where
         .threaded_scheduler()
         .enable_all()
         .build()
-        .context(error::InitializeTokioRuntime)?;
+        .context(error::InitializeTokioRuntimeSnafu)?;
 
     let resolver = {
         let handle = runtime.handle().clone();
@@ -170,7 +170,7 @@ where
                     }
                 }
             })
-            .context(error::InitializeDomainNameResolver)?
+            .context(error::InitializeDomainNameResolverSnafu)?
     };
 
     runtime.block_on(f(Arc::new(resolver)))

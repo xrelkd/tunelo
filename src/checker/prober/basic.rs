@@ -45,12 +45,12 @@ impl BasicProber {
         report.destination = Some(self.destination.clone());
         let stream = ProxyStream::connect_with_proxy(proxy_server, &self.destination)
             .await
-            .context(error::ConnectProxyServer)?;
+            .context(error::ConnectProxyServerSnafu)?;
 
         report.destination_reachable = true;
 
         let stream = stream.into_inner();
-        stream.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
+        stream.shutdown(std::net::Shutdown::Both).context(error::ShutdownSnafu)?;
 
         Ok(())
     }

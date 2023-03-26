@@ -34,7 +34,7 @@ impl ProxyConnector {
         };
 
         if let Err(err) = res {
-            socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
+            socket.shutdown(std::net::Shutdown::Both).context(error::ShutdownSnafu)?;
             return Err(err);
         }
 
@@ -51,7 +51,7 @@ impl ProxyConnector {
                 .map_err(|_| Error::Timeout)??,
             None => Self::build_socket(strategy).await?,
         };
-        socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
+        socket.shutdown(std::net::Shutdown::Both).context(error::ShutdownSnafu)?;
         Ok(true)
     }
 
@@ -60,7 +60,9 @@ impl ProxyConnector {
         let socket = match strategy {
             ProxyStrategy::Single(proxy) => {
                 let host = proxy.host_address();
-                TcpStream::connect(host.to_string()).await.context(error::ConnectProxyServer)?
+                TcpStream::connect(host.to_string())
+                    .await
+                    .context(error::ConnectProxyServerSnafu)?
             }
             ProxyStrategy::Chained(proxies) => match proxies.len() {
                 0 => return Err(Error::NoProxyServiceProvided),
@@ -68,7 +70,7 @@ impl ProxyConnector {
                     let proxy_host = proxies[0].host_address();
                     let mut socket = TcpStream::connect(proxy_host.to_string())
                         .await
-                        .context(error::ConnectProxyServer)?;
+                        .context(error::ConnectProxyServerSnafu)?;
 
                     for i in 0..(len - 1) {
                         let proxy_host = &proxies[i];
@@ -76,7 +78,9 @@ impl ProxyConnector {
                         if let Err(err) =
                             Self::handshake(&mut socket, proxy_host, &target_host).await
                         {
-                            socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
+                            socket
+                                .shutdown(std::net::Shutdown::Both)
+                                .context(error::ShutdownSnafu)?;
                             return Err(err);
                         };
                     }

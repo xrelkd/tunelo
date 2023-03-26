@@ -1,7 +1,7 @@
 use snafu::Snafu;
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
     #[snafu(display("Could not bind TcpListener, error: {}", source))]
     BindTcpListener { source: std::io::Error },

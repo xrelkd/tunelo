@@ -100,7 +100,7 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let transport = Arc::new(
-        Transport::proxy(resolver, filter, proxy_strategy).context(error::CreateTransport)?,
+        Transport::proxy(resolver, filter, proxy_strategy).context(error::CreateTransportSnafu)?,
     );
     let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
 
@@ -119,7 +119,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                server.serve_with_shutdown(signal).await.context(error::RunSocksServer)
+                server.serve_with_shutdown(signal).await.context(error::RunSocksServerSnafu)
             })
         };
 
@@ -134,7 +134,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                server.serve_with_shutdown(signal).await.context(error::RunHttpServer)
+                server.serve_with_shutdown(signal).await.context(error::RunHttpServerSnafu)
             })
         };
 
@@ -264,11 +264,11 @@ pub struct ProxyChain {
 
 impl ProxyChain {
     pub fn from_json(json: &[u8]) -> Result<ProxyChain, Error> {
-        serde_json::from_slice(json).context(error::ParseProxyChainJson)
+        serde_json::from_slice(json).context(error::ParseProxyChainJsonSnafu)
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyChain, Error> {
-        toml::from_slice(toml).context(error::ParseProxyChainToml)
+        toml::from_slice(toml).context(error::ParseProxyChainTomlSnafu)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
@@ -285,12 +285,12 @@ impl ProxyChain {
     }
 
     pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
-        let content = std::fs::read(&file_path).context(error::LoadProxyChainFile)?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyChainFileSnafu)?;
         Self::from_json(&content)
     }
 
     pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
-        let content = std::fs::read(&file_path).context(error::LoadProxyChainFile)?;
+        let content = std::fs::read(&file_path).context(error::LoadProxyChainFileSnafu)?;
         Self::from_toml(&content)
     }
 }
