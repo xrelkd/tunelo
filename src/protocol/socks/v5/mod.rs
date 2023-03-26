@@ -230,7 +230,7 @@ impl HandshakeReply {
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
-// UserPassNegotiationRequest is the negotiation username/password reqeust
+// UserPassNegotiationRequest is the negotiation username/password request
 // packet
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UserPasswordHandshakeRequest {
@@ -479,7 +479,7 @@ impl Reply {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum ReplyField {
-    // RepSuccess means that success for repling
+    // RepSuccess means that success for replying
     Success,
 
     // RepServerFailure means the server failure

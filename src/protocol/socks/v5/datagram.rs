@@ -28,7 +28,7 @@ impl Datagram {
 
         let mut input = Cursor::new(input);
 
-        // comsume rsv field
+        // consume rsv field
         if input.read_u16::<BigEndian>().context(error::ReadStream)? != 0x0000 {
             return Err(Error::BadRequest);
         }

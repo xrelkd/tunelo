@@ -20,7 +20,7 @@ pub enum Error {
     #[snafu(display("Could not parse SOCKS5, error: {}", source))]
     ParseSocks5Reply { source: SocksError },
 
-    #[snafu(display("Could not parse HTTP repsonse, error: {}", source))]
+    #[snafu(display("Could not parse HTTP response, error: {}", source))]
     ParseHttpResponse { source: httparse::Error },
 
     #[snafu(display("Host is unreachable"))]
