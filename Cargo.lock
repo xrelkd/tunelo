@@ -1224,7 +1224,7 @@ dependencies = [
  "tracing-subscriber",
  "trust-dns-resolver",
  "url",
- "webpki 0.21.4",
+ "webpki 0.22.0",
  "webpki-roots",
 ]
 
