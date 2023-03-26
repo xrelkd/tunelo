@@ -29,7 +29,7 @@ tracing-subscriber = { version = "0.2", optional = true }
 
 futures = "0.3"
 tokio = { version = "0.2", features = ["full"] }
-tokio-rustls = { version = "0.14" }
+tokio-rustls = { version = "0.22" }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
