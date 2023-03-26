@@ -5,8 +5,9 @@ use std::{
     time::Duration,
 };
 
+use clap::Args;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use structopt::StructOpt;
 use url::Url;
 
 use tunelo::{
@@ -219,25 +220,25 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Args, Debug)]
 pub struct Options {
-    #[structopt(long = "proxy-servers", short = "s", help = "Proxy server list")]
+    #[arg(long = "proxy-servers", short = 's', help = "Proxy server list")]
     proxy_servers: Vec<ProxyHost>,
 
-    #[structopt(long = "file", short = "f", help = "Proxy server list file")]
+    #[arg(long = "file", short = 'f', help = "Proxy server list file")]
     proxy_server_file: Option<PathBuf>,
 
-    #[structopt(long = "output-file", short = "o")]
+    #[arg(long = "output-file", short = 'o')]
     output_path: Option<PathBuf>,
 
-    #[structopt(long = "probers", short = "p", help = "Proxy probers")]
+    #[arg(long = "probers", short = 'p', help = "Proxy probers")]
     probers: Vec<ProberConfig>,
 
-    #[structopt(long = "max-timeout-per-probe", help = "Max timeout per probe in millisecond")]
+    #[arg(long = "max-timeout-per-probe", help = "Max timeout per probe in millisecond")]
     max_timeout_per_probe: Option<u64>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase", tag = "prober")]
 pub enum ProberConfig {
     Liveness,
@@ -319,7 +320,7 @@ impl TryInto<Prober> for ProberConfig {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProxyServerFile {
     proxy_servers: Vec<ProxyHost>,

@@ -4,8 +4,9 @@ use std::{
     sync::Arc,
 };
 
+use clap::Args;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use structopt::StructOpt;
 use tokio::sync::Mutex;
 
 use tunelo::{
@@ -53,22 +54,23 @@ pub async fn run<P: AsRef<Path>>(
     Ok(())
 }
 
-#[derive(Debug, StructOpt, Serialize, Deserialize)]
+#[derive(Args, Debug, Deserialize, Serialize)]
 pub struct Options {
-    #[structopt(long = "ip", help = "IP address to listen")]
+    #[arg(long = "ip", help = "IP address to listen")]
     ip: Option<IpAddr>,
 
-    #[structopt(long = "port", help = "Port number to listen")]
+    #[arg(long = "port", help = "Port number to listen")]
     port: Option<u16>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
     ip: IpAddr,
     port: u16,
 }
 
 impl Default for Config {
+    #[inline]
     fn default() -> Config { Config { ip: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8118 } }
 }
 

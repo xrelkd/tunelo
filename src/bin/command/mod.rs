@@ -1,7 +1,8 @@
-use std::{future::Future, path::PathBuf, pin::Pin, sync::Arc};
+use std::{future::Future, io::Write, path::PathBuf, pin::Pin, sync::Arc};
 
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::Shell;
 use snafu::ResultExt;
-use structopt::{clap::Shell as ClapShell, StructOpt};
 use tokio::runtime;
 
 use tunelo::transport::{Resolver, TrustDnsResolver};
@@ -20,73 +21,73 @@ pub mod proxy_chain;
 pub mod proxy_checker;
 pub mod socks_server;
 
-#[derive(Debug, StructOpt)]
-pub struct Command {
-    #[structopt(long = "config", short = "c")]
+#[derive(Debug, Parser)]
+#[command(author, version, about, long_about = None)]
+pub struct Cli {
+    #[arg(long = "config", short = 'c')]
     config_file: Option<PathBuf>,
 
-    #[structopt(subcommand)]
-    subcommand: Option<SubCommand>,
+    #[command(subcommand)]
+    commands: Option<Commands>,
 }
 
-#[derive(Debug, StructOpt)]
-pub enum SubCommand {
-    #[structopt(about = "Shows current version")]
+#[derive(Debug, Subcommand)]
+pub enum Commands {
+    #[command(about = "Show current version")]
     Version,
 
-    #[structopt(about = "Shows shell completions")]
-    Completions { shell: ClapShell },
+    #[command(about = "Show shell completions")]
+    Completions { shell: Shell },
 
-    #[structopt(about = "Starts multiple proxy server")]
+    #[command(about = "Starts multiple proxy server")]
     MultiProxy {
-        #[structopt(long = "config", short = "c")]
+        #[arg(long = "config", short = 'c')]
         config_file: Option<PathBuf>,
     },
 
-    #[structopt(about = "Runs as proxy chain server")]
+    #[command(about = "Run as proxy chain server")]
     ProxyChain {
-        #[structopt(long = "config", short = "c")]
+        #[arg(long = "config", short = 'c')]
         config_file: Option<PathBuf>,
 
-        #[structopt(flatten)]
+        #[clap(flatten)]
         options: proxy_chain::Options,
     },
 
-    #[structopt(about = "Runs as proxy checker")]
+    #[command(about = "Run as proxy checker")]
     ProxyChecker {
-        #[structopt(long = "config", short = "c")]
+        #[arg(long = "config", short = 'c')]
         config_file: Option<PathBuf>,
 
-        #[structopt(flatten)]
+        #[clap(flatten)]
         options: proxy_checker::Options,
     },
 
-    #[structopt(about = "Runs as SOCKS proxy server")]
+    #[command(about = "Run as SOCKS proxy server")]
     SocksServer {
-        #[structopt(long = "config", short = "c")]
+        #[arg(long = "config", short = 'c')]
         config_file: Option<PathBuf>,
 
-        #[structopt(flatten)]
+        #[clap(flatten)]
         options: socks_server::Options,
     },
 
-    #[structopt(about = "Runs as HTTP proxy server")]
+    #[command(about = "Run as HTTP proxy server")]
     HttpServer {
-        #[structopt(long = "config", short = "c")]
+        #[arg(long = "config", short = 'c')]
         config_file: Option<PathBuf>,
 
-        #[structopt(flatten)]
+        #[clap(flatten)]
         options: http_server::Options,
     },
 }
 
-impl Command {
+impl Default for Cli {
     #[inline]
-    pub fn new() -> Command { Command::from_args() }
+    fn default() -> Cli { Cli::parse() }
+}
 
-    #[inline]
-    pub fn app_name() -> String { Command::clap().get_name().to_owned() }
-
+impl Cli {
     pub fn run(self) -> Result<(), Error> {
         {
             use tracing_subscriber::prelude::*;
@@ -100,31 +101,33 @@ impl Command {
             tracing_subscriber::registry().with(filter_layer).with(fmt_layer).init();
         }
 
-        match self.subcommand {
-            Some(SubCommand::Version) => {
-                Command::clap()
-                    .write_version(&mut std::io::stdout())
+        match self.commands {
+            Some(Commands::Version) => {
+                let mut stdout = std::io::stdout();
+                stdout
+                    .write_all(Self::command().render_long_version().as_bytes())
                     .expect("failed to write to stdout");
                 Ok(())
             }
-            Some(SubCommand::Completions { shell }) => {
-                let app_name = Command::app_name();
-                Command::clap().gen_completions_to(app_name, shell, &mut std::io::stdout());
+            Some(Commands::Completions { shell }) => {
+                let mut app = Self::command();
+                let bin_name = app.get_name().to_string();
+                clap_complete::generate(shell, &mut app, bin_name, &mut std::io::stdout());
                 Ok(())
             }
-            Some(SubCommand::ProxyChain { options, config_file }) => {
+            Some(Commands::ProxyChain { options, config_file }) => {
                 execute(move |resolver| Box::pin(proxy_chain::run(resolver, options, config_file)))
             }
-            Some(SubCommand::SocksServer { options, config_file }) => {
+            Some(Commands::SocksServer { options, config_file }) => {
                 execute(move |resolver| Box::pin(socks_server::run(resolver, options, config_file)))
             }
-            Some(SubCommand::HttpServer { options, config_file }) => {
+            Some(Commands::HttpServer { options, config_file }) => {
                 execute(move |resolver| Box::pin(http_server::run(resolver, options, config_file)))
             }
-            Some(SubCommand::ProxyChecker { options, config_file }) => {
+            Some(Commands::ProxyChecker { options, config_file }) => {
                 execute(move |_resolver| Box::pin(proxy_checker::run(options, config_file)))
             }
-            Some(SubCommand::MultiProxy { config_file }) => {
+            Some(Commands::MultiProxy { config_file }) => {
                 execute(move |resolver| Box::pin(multi_proxy::run(resolver, config_file)))
             }
             None => execute(move |resolver| Box::pin(multi_proxy::run(resolver, self.config_file))),
@@ -137,12 +140,7 @@ fn execute<F>(f: F) -> Result<(), Error>
 where
     F: FnOnce(Arc<dyn Resolver>) -> Pin<Box<dyn Future<Output = Result<(), Error>>>>,
 {
-    let long_version = {
-        let mut buf = vec![];
-        Command::clap().write_long_version(&mut buf).expect("failed to write version to buffer");
-        String::from_utf8_lossy(&buf).to_string()
-    };
-    tracing::info!("Starting {}", long_version);
+    tracing::info!("Starting {}", Cli::command().get_long_version().unwrap_or_default());
 
     tracing::info!("Initializing Tokio runtime");
     let mut runtime = runtime::Builder::new()
@@ -161,10 +159,9 @@ where
                 match TrustDnsResolver::from_system_conf(handle.clone()).await {
                     Ok(resolver) => Ok(resolver),
                     Err(err) => {
-                        warn!(
+                        tracing::warn!(
                             "Failed to initialize domain name resolver from system configuration, \
-                             try to initialize with fallback option, error: {}",
-                            err
+                             try to initialize with fallback option, error: {err}"
                         );
                         TrustDnsResolver::new_default(handle).await
                     }

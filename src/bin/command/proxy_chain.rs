@@ -8,9 +8,10 @@ use std::{
     time::Duration,
 };
 
+use clap::Args;
 use futures::future::join_all;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use structopt::StructOpt;
 use tokio::sync::Mutex;
 
 use tunelo::{
@@ -84,7 +85,7 @@ pub async fn run<P: AsRef<Path>>(
             (None, None) => return Err(Error::NoProxyChain),
         };
 
-        info!("Proxy chain: {}", strategy);
+        tracing::info!("Proxy chain: {}", strategy);
         Arc::new(strategy)
     };
 
@@ -158,7 +159,7 @@ pub async fn run<P: AsRef<Path>>(
     Ok(())
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, Serialize, PartialEq)]
 pub struct Config {
     enable_socks4a: bool,
     enable_socks5: bool,
@@ -226,37 +227,37 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Args, Debug)]
 pub struct Options {
-    #[structopt(long = "disable-socks4a")]
+    #[arg(long = "disable-socks4a")]
     disable_socks4a: bool,
 
-    #[structopt(long = "disable-socks5")]
+    #[arg(long = "disable-socks5")]
     disable_socks5: bool,
 
-    #[structopt(long = "disable-http")]
+    #[arg(long = "disable-http")]
     disable_http: bool,
 
-    #[structopt(long = "socks-ip")]
+    #[arg(long = "socks-ip")]
     socks_ip: Option<IpAddr>,
 
-    #[structopt(long = "socks-port")]
+    #[arg(long = "socks-port")]
     socks_port: Option<u16>,
 
-    #[structopt(long = "http-ip")]
+    #[arg(long = "http-ip")]
     http_ip: Option<IpAddr>,
 
-    #[structopt(long = "http-port")]
+    #[arg(long = "http-port")]
     http_port: Option<u16>,
 
-    #[structopt(long = "proxy-chain-file")]
+    #[arg(long = "proxy-chain-file")]
     proxy_chain_file: Option<PathBuf>,
 
-    #[structopt(long = "proxy-chain")]
+    #[arg(long = "proxy-chain")]
     proxy_chain: Option<Vec<ProxyHost>>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProxyChain {
     proxy_chain: Vec<ProxyHost>,
