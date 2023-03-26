@@ -84,6 +84,6 @@ impl SendHalf {
         let mut wrt = std::io::Cursor::new(&mut data);
         let n =
             Datagram::serialize(&mut wrt, 0, target_addr, buf).context(error::SerializeDatagram)?;
-        Ok(self.socket_send.send(&data[..n]).await.context(error::SendDatagram)?)
+        self.socket_send.send(&data[..n]).await.context(error::SendDatagram)
     }
 }

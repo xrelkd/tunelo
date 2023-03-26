@@ -17,9 +17,9 @@ pub enum Command {
     TcpBind,
 }
 
-impl Into<u8> for Command {
-    fn into(self) -> u8 {
-        match self {
+impl From<Command> for u8 {
+    fn from(val: Command) -> Self {
+        match val {
             Command::TcpConnect => consts::SOCKS4_CMD_TCP_CONNECT,
             Command::TcpBind => consts::SOCKS4_CMD_TCP_BIND,
         }
@@ -46,9 +46,9 @@ pub enum ReplyField {
     InvalidId,
 }
 
-impl Into<u8> for ReplyField {
-    fn into(self) -> u8 {
-        match self {
+impl From<ReplyField> for u8 {
+    fn from(val: ReplyField) -> Self {
+        match val {
             ReplyField::Granted => consts::SOCKS4_REPLY_GRANTED,
             ReplyField::Rejected => consts::SOCKS4_REPLY_REJECTED,
             ReplyField::Unreachable => consts::SOCKS4_REPLY_UNREACHABLE,

@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=/dev-support/lib/logging
+. "${SCRIPT_DIR}"/../lib/logging
+
+if type uname >/dev/null 2>&1; then
+  KERNEL=$(uname -s | tr "[:upper:]" "[:lower:]")
+else
+  error "uname not found, failed to detect operating system."
+  exit 1
+fi
+
+if [[ $KERNEL == "linux" ]]; then
+  # shellcheck disable=SC1091
+  . /etc/os-release
+  case "$ID" in
+  nixos)
+    warn "Dependencies is provided by nix-shell"
+    ;;
+  debian | ubuntu | devuan | elementary)
+
+    info "Using apt-get to install dependencies"
+    apt-get update
+    apt-get install --no-install-recommends -y \
+      build-essential \
+      cmake \
+      binutils \
+      pkg-config \
+      libssl-dev \
+      curl \
+      file
+
+    ;;
+  alpine)
+    info "Using apk to install dependencies"
+    apk add --no-cache -U \
+      musl-dev \
+      make \
+      file
+
+    ;;
+  *)
+    error "Linux $ID is unknown, dependencies will have to be installed manually."
+    exit 1
+    ;;
+  esac
+
+elif [[ "$KERNEL" == "darwin" ]]; then
+  info "Using brew to install dependencies"
+
+  if ! which brew; then
+    /usr/bin/env ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)"
+  fi
+
+  brew install openssl@1.1
+
+else
+  error "$KERNEL is unknown, dependencies will have to be installed manually."
+  exit 1
+fi

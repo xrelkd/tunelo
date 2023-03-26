@@ -48,9 +48,9 @@ impl From<AuthenticationMethod> for Method {
     }
 }
 
-impl Into<u8> for Method {
-    fn into(self) -> u8 {
-        match self {
+impl From<Method> for u8 {
+    fn from(val: Method) -> Self {
+        match val {
             Method::NoAuthentication => consts::SOCKS5_AUTH_METHOD_NONE,
             Method::GSSAPI => consts::SOCKS5_AUTH_METHOD_GSSAPI,
             Method::UsernamePassword => consts::SOCKS5_AUTH_METHOD_PASSWORD,
@@ -105,9 +105,9 @@ impl TryFrom<u8> for Command {
     }
 }
 
-impl Into<u8> for Command {
-    fn into(self) -> u8 {
-        match self {
+impl From<Command> for u8 {
+    fn from(val: Command) -> Self {
+        match val {
             Command::TcpConnect => consts::SOCKS5_CMD_TCP_CONNECT,
             Command::TcpBind => consts::SOCKS5_CMD_TCP_BIND,
             Command::UdpAssociate => consts::SOCKS5_CMD_UDP_ASSOCIATE,
@@ -230,7 +230,7 @@ impl HandshakeReply {
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
-// UserPassNegotiationRequest is the negotiation username/password reqeust
+// UserPassNegotiationRequest is the negotiation username/password request
 // packet
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct UserPasswordHandshakeRequest {
@@ -479,7 +479,7 @@ impl Reply {
 #[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum ReplyField {
-    // RepSuccess means that success for repling
+    // RepSuccess means that success for replying
     Success,
 
     // RepServerFailure means the server failure
@@ -509,9 +509,9 @@ pub enum ReplyField {
     Unknown,
 }
 
-impl Into<u8> for ReplyField {
-    fn into(self) -> u8 {
-        match self {
+impl From<ReplyField> for u8 {
+    fn from(val: ReplyField) -> Self {
+        match val {
             ReplyField::Success => consts::SOCKS5_REPLY_SUCCEEDED,
             ReplyField::ServerFailure => consts::SOCKS5_REPLY_GENERAL_FAILURE,
             ReplyField::NotAllowed => consts::SOCKS5_REPLY_CONNECTION_NOT_ALLOWED,
@@ -569,9 +569,9 @@ impl TryFrom<u8> for UserPasswordVersion {
     }
 }
 
-impl Into<u8> for UserPasswordVersion {
-    fn into(self) -> u8 {
-        match self {
+impl From<UserPasswordVersion> for u8 {
+    fn from(val: UserPasswordVersion) -> Self {
+        match val {
             UserPasswordVersion::V1 => 0x01,
         }
     }
@@ -592,9 +592,9 @@ impl From<u8> for UserPasswordStatus {
     }
 }
 
-impl Into<u8> for UserPasswordStatus {
-    fn into(self) -> u8 {
-        match self {
+impl From<UserPasswordStatus> for u8 {
+    fn from(val: UserPasswordStatus) -> Self {
+        match val {
             UserPasswordStatus::Success => 0x00,
             UserPasswordStatus::Failure => 0x01,
         }

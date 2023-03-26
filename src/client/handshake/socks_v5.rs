@@ -44,9 +44,9 @@ where
         }
 
         if method == Method::UsernamePassword {
-            let user_name = user_name.clone().expect("user name is some; qed").as_bytes().to_vec();
+            let user_name = user_name.expect("user name is some; qed").as_bytes().to_vec();
 
-            let password = password.clone().expect("password is some; qed").as_bytes().to_vec();
+            let password = password.expect("password is some; qed").as_bytes().to_vec();
 
             let req = UserPasswordHandshakeRequest {
                 version: UserPasswordVersion::V1,

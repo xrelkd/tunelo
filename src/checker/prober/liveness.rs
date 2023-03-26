@@ -34,7 +34,7 @@ impl LivenessProber {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct LivenessProberReport {
     pub alive: bool,
     pub error: Option<ReportError>,
@@ -42,14 +42,8 @@ pub struct LivenessProberReport {
 
 impl LivenessProberReport {
     #[inline]
-    pub fn timeout() -> LivenessProberReport {
-        LivenessProberReport { alive: false, error: Some(ReportError::Timeout) }
-    }
+    pub fn timeout() -> Self { Self { alive: false, error: Some(ReportError::Timeout) } }
 
     #[inline]
     pub fn has_error(&self) -> bool { self.error.is_some() }
-}
-
-impl Default for LivenessProberReport {
-    fn default() -> Self { LivenessProberReport { alive: false, error: None } }
 }

@@ -21,11 +21,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     let request = "GET /ip HTTP/1.0\r\nHost: ifconfig.me\r\n\r\n";
-    stream.write(request.as_bytes()).await?;
+    stream.write_all(request.as_bytes()).await?;
     let mut response = String::new();
     stream.read_to_string(&mut response).await?;
     println!("{}", response);
-    let _ = stream.shutdown(std::net::Shutdown::Write)?;
+    stream.shutdown(std::net::Shutdown::Write)?;
 
     Ok(())
 }

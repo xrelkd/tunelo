@@ -5,12 +5,9 @@ use std::{
 
 use crate::filter::{FilterAction, HostFilter};
 
+#[derive(Default)]
 pub struct ComposerFilter {
     filters: Vec<Arc<dyn HostFilter>>,
-}
-
-impl Default for ComposerFilter {
-    fn default() -> ComposerFilter { ComposerFilter { filters: vec![] } }
 }
 
 impl ComposerFilter {
@@ -21,8 +18,8 @@ impl ComposerFilter {
     pub fn add_filter(&mut self, filter: Arc<dyn HostFilter>) { self.filters.push(filter); }
 
     #[inline]
-    fn filter<F: FnMut(&Arc<dyn HostFilter>) -> bool>(&self, mut predictor: F) -> FilterAction {
-        if self.filters.iter().any(|filter| predictor(filter)) {
+    fn filter<F: FnMut(&Arc<dyn HostFilter>) -> bool>(&self, predictor: F) -> FilterAction {
+        if self.filters.iter().any(predictor) {
             return FilterAction::Deny;
         }
         FilterAction::Allow
@@ -97,8 +94,8 @@ mod tests {
         let mut simple = SimpleFilter::default();
 
         simple.add_port(port);
-        simple.add_address(ip.clone());
-        simple.add_socket(socket.clone());
+        simple.add_address(ip);
+        simple.add_socket(socket);
         simple.add_hostname(hostname);
         simple.add_host(hostname, port);
 

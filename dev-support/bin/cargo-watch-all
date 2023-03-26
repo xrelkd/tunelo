@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=/dev-support/lib/logging
+. "${SCRIPT_DIR}"/../lib/logging
+# shellcheck source=/dev-support/lib/toolchain
+. "${SCRIPT_DIR}"/../lib/toolchain
+
+if [ $# -gt 0 ] && [ "$1" = "watch-all" ]; then
+  shift
+fi
+
+debug 'ensure toolchain'
+rustup toolchain install "$TOOLCHAIN"
+rustup +"$TOOLCHAIN" component add clippy rustfmt
+echo
+
+debug 'version:'
+cargo +"$TOOLCHAIN" --version
+rustup run "$TOOLCHAIN" rustc --version
+cargo +"$TOOLCHAIN" clippy --version
+echo
+
+debug "Run \`cargo watch +x '$*'\`"
+cargo +"$TOOLCHAIN" watch -c -- cargo +"$TOOLCHAIN" "$@" "${CARGO_ARGS[@]}"

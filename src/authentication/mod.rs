@@ -1,6 +1,6 @@
 use std::{collections::HashMap, net::SocketAddr};
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AuthenticationMethod {
     NoAuthentication,
     UsernamePassword,
@@ -11,15 +11,9 @@ pub enum Authentication {
     Token { token: Vec<u8> },
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct AuthenticationManager {
     user_list: HashMap<Vec<u8>, Vec<u8>>,
-}
-
-impl Default for AuthenticationManager {
-    fn default() -> AuthenticationManager {
-        AuthenticationManager { user_list: HashMap::default() }
-    }
 }
 
 impl AuthenticationManager {

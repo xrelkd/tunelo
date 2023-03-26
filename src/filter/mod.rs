@@ -7,14 +7,11 @@ mod simple;
 
 pub use self::{composer::ComposerFilter, simple::SimpleFilter};
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Default)]
 pub enum FilterMode {
     AllowList,
+    #[default]
     DenyList,
-}
-
-impl Default for FilterMode {
-    fn default() -> Self { FilterMode::DenyList }
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]

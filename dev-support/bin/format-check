@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=/dev-support/lib/logging
+. "${SCRIPT_DIR}"/../lib/logging
+
+info "Checking Rust format with \`rustfmt\`"
+"${SCRIPT_DIR}"/format-rust --check
+echo
+
+info "Checking shell script format with \`shfmt\`"
+shfmt -d "${SCRIPT_DIR}"/../..
+echo
+
+info "Checking shell script with \`shellcheck\`"
+shfmt -f . | xargs shellcheck -s bash
+
+info "Checking Nix format with \`nixpkgs-fmt\`"
+nixpkgs-fmt --check "${SCRIPT_DIR}"/../..
+echo
+
+info "Checking JavaScript, TypeScript, Markdown, JSON, YAML format with \`prettier\`"
+prettier --check '**/*.{js,ts,md,json,yaml}'
+echo

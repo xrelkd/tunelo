@@ -11,7 +11,7 @@ use crate::{
     common::{HostAddress, ProxyHost},
 };
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum HttpMethod {
     Head,
     Get,
@@ -28,7 +28,7 @@ impl fmt::Display for HttpMethod {
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct HttpProber {
     method: HttpMethod,
     url: Url,
@@ -60,7 +60,7 @@ impl HttpProber {
         report.method = Some(self.method);
 
         let destination = self.destination_address()?;
-        let stream = ProxyStream::connect_with_proxy(&proxy_server, &destination)
+        let stream = ProxyStream::connect_with_proxy(proxy_server, &destination)
             .await
             .context(error::ConnectProxyServer)?;
         report.destination_reachable = true;
@@ -87,11 +87,14 @@ impl HttpProber {
         }
     }
 
-    async fn check_http<Stream: Unpin + AsyncRead + AsyncWrite>(
+    async fn check_http<Stream>(
         self,
         mut stream: Stream,
         report: &mut HttpProberReport,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        Stream: Unpin + AsyncRead + AsyncWrite,
+    {
         let request = self.build_request()?;
         stream.write(&request).await.context(error::WriteHttpRequest)?;
 
@@ -142,7 +145,7 @@ impl HttpProber {
 
     #[inline]
     pub fn port(&self) -> Result<u16, Error> {
-        Ok(self.url.port_or_known_default().ok_or(Error::NoPortProvided)?)
+        self.url.port_or_known_default().ok_or(Error::NoPortProvided)
     }
 
     #[inline]
@@ -155,7 +158,7 @@ impl HttpProber {
     pub fn url(&self) -> &Url { &self.url }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct HttpProberReport {
     pub destination_reachable: bool,
     pub method: Option<HttpMethod>,
@@ -166,8 +169,8 @@ pub struct HttpProberReport {
 
 impl HttpProberReport {
     #[inline]
-    pub fn timeout(method: HttpMethod, url: Url) -> HttpProberReport {
-        HttpProberReport {
+    pub fn timeout(method: HttpMethod, url: Url) -> Self {
+        Self {
             destination_reachable: false,
             method: Some(method),
             url: Some(url),
@@ -178,16 +181,4 @@ impl HttpProberReport {
 
     #[inline]
     pub fn has_error(&self) -> bool { self.error.is_some() }
-}
-
-impl Default for HttpProberReport {
-    fn default() -> HttpProberReport {
-        HttpProberReport {
-            destination_reachable: false,
-            method: None,
-            url: None,
-            response_code: None,
-            error: None,
-        }
-    }
 }

@@ -1,14 +1,25 @@
-let
-  sources = import ./nix/sources.nix;
-  pkgs = import sources.nixpkgs { };
-  inherit (pkgs) stdenv;
-in pkgs.mkShell {
-  nativeBuildInputs = with pkgs; [
+{ pkgs ? import <nixpkgs>, ... }:
 
-    git
+pkgs.mkShell rec {
+  name = "dev-shell";
+
+  buildInputs = with pkgs; [
     rustup
-    cargo-make
+    cargo-nextest
+
+    tokei
+
+    treefmt
+
+    jq
+    nixpkgs-fmt
+    shfmt
+    nodePackages.prettier
+    shellcheck
   ];
 
-  RUST_BACKTRACE = 1;
+  shellHook = ''
+    export NIX_PATH="nixpkgs=${pkgs.path}"
+    export PATH=$PWD/dev-support/bin:$PATH
+  '';
 }

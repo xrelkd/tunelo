@@ -24,7 +24,7 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
     };
 
     if let Some(file) = config.proxy_server_file {
-        let file = ProxyServerFile::load(&file)?;
+        let file = ProxyServerFile::load(file)?;
         config.proxy_servers = file.proxy_servers;
     }
 
@@ -47,7 +47,7 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
     let reports = {
         let max_timeout_per_probe = config.max_timeout_per_probe;
         let report_futs = checkers.into_iter().map(|checker| async {
-            println!("Checking proxy server: {}", checker.proxy_server().to_string());
+            println!("Checking proxy server: {}", checker.proxy_server());
             checker.run_parallel(max_timeout_per_probe).await
         });
 
@@ -61,7 +61,7 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
             .write(true)
             .truncate(true)
             .create(true)
-            .open(&path)
+            .open(path)
             .context(error::WriteProxyHosts)?;
 
         write_available_proxy_servers(&mut file, &reports).context(error::WriteProxyHosts)?;
@@ -326,20 +326,17 @@ pub struct ProxyServerFile {
 
 impl ProxyServerFile {
     pub fn from_text(text: &str) -> Result<ProxyServerFile, Error> {
-        let proxy_servers = text
-            .lines()
-            .map(str::trim)
-            .filter_map(|line| ProxyHost::from_str(&line).ok())
-            .collect();
+        let proxy_servers =
+            text.lines().map(str::trim).filter_map(|line| ProxyHost::from_str(line).ok()).collect();
         Ok(ProxyServerFile { proxy_servers })
     }
 
     pub fn from_json(json: &[u8]) -> Result<ProxyServerFile, Error> {
-        serde_json::from_slice(&json).context(error::ParseProxyServerJson)
+        serde_json::from_slice(json).context(error::ParseProxyServerJson)
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyServerFile, Error> {
-        toml::from_slice(&toml).context(error::ParseProxyServerToml)
+        toml::from_slice(toml).context(error::ParseProxyServerToml)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
@@ -433,7 +430,7 @@ socks5://50.30.24.217:54321
             ],
         };
 
-        assert_eq!(ProxyServerFile::from_text(&text).unwrap(), file);
+        assert_eq!(ProxyServerFile::from_text(text).unwrap(), file);
     }
 
     #[test]
@@ -467,7 +464,7 @@ socks5://50.30.24.217:54321
             ],
         };
 
-        assert_eq!(ProxyServerFile::from_json(&json.as_bytes()).unwrap(), file);
+        assert_eq!(ProxyServerFile::from_json(json.as_bytes()).unwrap(), file);
     }
 
     #[test]
@@ -508,6 +505,6 @@ port = 1080
             ],
         };
 
-        assert_eq!(ProxyServerFile::from_toml(&toml.as_bytes()).unwrap(), file);
+        assert_eq!(ProxyServerFile::from_toml(toml.as_bytes()).unwrap(), file);
     }
 }

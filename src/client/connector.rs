@@ -26,9 +26,9 @@ impl ProxyConnector {
         let mut socket = Self::build_socket(&strategy).await?;
 
         let res = match self.strategy.as_ref() {
-            ProxyStrategy::Single(proxy) => Self::handshake(&mut socket, &proxy, &host).await,
+            ProxyStrategy::Single(proxy) => Self::handshake(&mut socket, proxy, host).await,
             ProxyStrategy::Chained(proxies) => match proxies.last() {
-                Some(proxy_host) => Self::handshake(&mut socket, &proxy_host, &host).await,
+                Some(proxy_host) => Self::handshake(&mut socket, proxy_host, host).await,
                 None => return Err(Error::NoProxyServiceProvided),
             },
         };
@@ -46,10 +46,10 @@ impl ProxyConnector {
         timeout: Option<Duration>,
     ) -> Result<bool, Error> {
         let socket = match timeout {
-            Some(t) => tokio::time::timeout(t, Self::build_socket(&strategy))
+            Some(t) => tokio::time::timeout(t, Self::build_socket(strategy))
                 .await
                 .map_err(|_| Error::Timeout)??,
-            None => Self::build_socket(&strategy).await?,
+            None => Self::build_socket(strategy).await?,
         };
         socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
         Ok(true)

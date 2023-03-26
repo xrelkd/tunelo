@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=/dev-support/lib/logging
+. "${SCRIPT_DIR}"/../lib/logging
+# shellcheck source=/dev-support/lib/toolchain
+. "${SCRIPT_DIR}"/../lib/toolchain
+
+if [ $# -gt 0 ] && [ "$1" = "doc-all" ]; then
+  shift
+fi
+
+debug 'ensure toolchain'
+rustup toolchain install "$TOOLCHAIN"
+rustup +"$TOOLCHAIN" component add rustfmt
+echo
+
+debug 'version:'
+cargo +"$TOOLCHAIN" --version
+rustup run "$TOOLCHAIN" rustdoc --version
+echo
+
+debug "Run \`cargo doc\`"
+cargo +"$TOOLCHAIN" doc --workspace --no-deps --bins --all-features "$@"

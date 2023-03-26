@@ -19,7 +19,8 @@ pub struct TransportMetrics {
     client_counter: Counter,
     remote_counter: Counter,
 
-    destinations: Arc<Mutex<HashSet<HostAddress>>>,
+    // TODO: use `destinations`
+    _destinations: Arc<Mutex<HashSet<HostAddress>>>,
 }
 
 #[derive(Debug, Clone)]
@@ -92,7 +93,7 @@ impl Default for TransportMetrics {
             client_counter,
             remote_counter,
 
-            destinations,
+            _destinations: destinations,
         }
     }
 }

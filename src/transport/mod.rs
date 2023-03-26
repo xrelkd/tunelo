@@ -104,18 +104,18 @@ impl Transport<TcpStream> {
             Box::new(|host: &HostAddress| {
                 let host = host.clone();
                 async move {
-                    Ok(TcpStream::connect(&host.to_string())
+                    TcpStream::connect(&host.to_string())
                         .await
-                        .context(error::ConnectRemoteServer { host })?)
+                        .context(error::ConnectRemoteServer { host })
                 }
                 .boxed()
             }),
             Box::new(|addr: &SocketAddr| {
                 let addr = *addr;
                 async move {
-                    Ok(TcpStream::connect(&addr)
+                    TcpStream::connect(&addr)
                         .await
-                        .context(error::ConnectRemoteServer { host: HostAddress::from(addr) })?)
+                        .context(error::ConnectRemoteServer { host: HostAddress::from(addr) })
                 }
                 .boxed()
             }),
@@ -212,11 +212,11 @@ where
     #[inline]
     pub async fn connect_addr(&self, addr: &SocketAddr) -> Result<(Stream, SocketAddr), Error> {
         if self.filter.filter_socket(addr) == FilterAction::Deny {
-            return Err(Error::ConnectForbiddenHosts { hosts: vec![addr.clone().into()] });
+            return Err(Error::ConnectForbiddenHosts { hosts: vec![(*addr).into()] });
         }
 
         tracing::debug!("Try to connect remote host {}", addr);
-        let stream = match self.connector.connect_addr(&addr).await {
+        let stream = match self.connector.connect_addr(addr).await {
             Ok(stream) => stream,
             Err(err) => {
                 tracing::error!("Failed to connect host: {}, error: {:?}", addr, err);
@@ -251,7 +251,7 @@ where
             }
         };
 
-        let _ = fut.await;
+        fut.await;
 
         if let Some(on_finished) = on_finished {
             on_finished();

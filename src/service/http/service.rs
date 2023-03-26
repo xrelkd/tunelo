@@ -44,7 +44,7 @@ where
 
         let mut empty_headers = [httparse::EMPTY_HEADER; 32];
         let mut request = httparse::Request::new(&mut empty_headers);
-        let status = request.parse(&buf.as_ref()).context(error::ParseRequest)?;
+        let status = request.parse(buf.as_ref()).context(error::ParseRequest)?;
 
         match status {
             httparse::Status::Partial => Ok(None),
@@ -132,7 +132,12 @@ where
                 }
                 (remote_socket, addr)
             }
-            Err(source) => return Err(Error::ConnectRemoteHost { host: remote_host, source }),
+            Err(source) => {
+                return Err(Error::ConnectRemoteHost {
+                    host: remote_host,
+                    source: Box::new(source),
+                })
+            }
         };
 
         let on_finished = Box::new(move || {
