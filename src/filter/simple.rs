@@ -8,7 +8,7 @@ use crate::{
     filter::{FilterAction, FilterMode, HostFilter},
 };
 
-#[derive(Debug, Clone, Default)]
+#[derive(Clone, Debug, Default)]
 pub struct SimpleFilter {
     hostnames: HashSet<String>,
     addresses: HashSet<IpAddr>,
@@ -27,19 +27,15 @@ impl SimpleFilter {
         sockets: HashSet<SocketAddr>,
         ports: HashSet<u16>,
         mode: FilterMode,
-    ) -> SimpleFilter {
-        SimpleFilter { hostnames, addresses, hosts, sockets, ports, mode }
+    ) -> Self {
+        Self { hostnames, addresses, hosts, sockets, ports, mode }
     }
 
     #[inline]
-    pub fn allow_list() -> SimpleFilter {
-        SimpleFilter { mode: FilterMode::AllowList, ..Default::default() }
-    }
+    pub fn allow_list() -> Self { Self { mode: FilterMode::AllowList, ..Default::default() } }
 
     #[inline]
-    pub fn deny_list() -> SimpleFilter {
-        SimpleFilter { mode: FilterMode::DenyList, ..Default::default() }
-    }
+    pub fn deny_list() -> Self { Self { mode: FilterMode::DenyList, ..Default::default() } }
 
     pub fn set_mode(&mut self, mode: FilterMode) { self.mode = mode; }
 

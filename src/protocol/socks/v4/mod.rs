@@ -95,8 +95,8 @@ impl Request {
             let parts: Vec<_> = buf.split(|ch| *ch == 0x00).collect();
 
             match parts.len() {
-                0 => (vec![], vec![]),
-                1 => (parts[0].to_vec(), vec![]),
+                0 => (Vec::new(), Vec::new()),
+                1 => (parts[0].to_vec(), Vec::new()),
                 _ => (parts[0].to_vec(), parts[1].to_vec()),
             }
         };

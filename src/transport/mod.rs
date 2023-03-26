@@ -176,11 +176,11 @@ where
     pub async fn resolve_host(&self, host: &str) -> Result<IpAddr, Error> {
         let addrs = self.resolver.resolve(host).await?;
         if addrs.is_empty() {
-            tracing::warn!("Failed to resolve domain name {}", host);
+            tracing::warn!("Failed to resolve domain name {host}");
             return Err(Error::ResolveDomainName { domain_name: host.to_owned() });
         }
         let addr = addrs[0];
-        tracing::debug!("Resolved {} => {}", host, addr);
+        tracing::debug!("Resolved {host} => {addr}");
         Ok(addr)
     }
 
@@ -197,15 +197,16 @@ where
     #[inline]
     pub async fn connect(&self, host: &HostAddress) -> Result<(Stream, HostAddress), Error> {
         if self.filter.filter_host_address(host) == FilterAction::Deny {
-            return Err(Error::ConnectForbiddenHosts { hosts: vec![host.clone()] });
+            let hosts = Vec::from([host.clone()]);
+            return Err(Error::ConnectForbiddenHosts { hosts });
         }
 
-        tracing::debug!("Try to connect remote host {}", host);
+        tracing::debug!("Try to connect remote host {host}");
         let host_addr = self.resolve(host).await?;
         let stream = match self.connector.connect_addr(&host_addr).await {
             Ok(stream) => stream,
             Err(err) => {
-                tracing::error!("Failed to connect host: {}, error: {}", host, err);
+                tracing::error!("Failed to connect host: {host}, error: {err}");
                 return Err(err);
             }
         };
@@ -245,16 +246,20 @@ where
         let (mut client_reader, mut client_writer) = tokio::io::split(client);
         let (mut remote_reader, mut remote_writer) = tokio::io::split(remote);
 
-        let half1 = tokio::io::copy(&mut client_reader, &mut remote_writer);
-        let half2 = tokio::io::copy(&mut remote_reader, &mut client_writer);
-        let fut = async {
-            futures::select! {
-                _ = half1.fuse() => {},
-                _ = half2.fuse() => {},
-            }
-        };
+        {
+            let half1 = tokio::io::copy(&mut client_reader, &mut remote_writer);
+            let half2 = tokio::io::copy(&mut remote_reader, &mut client_writer);
 
-        fut.await;
+            futures::future::select(
+                Box::pin(async move {
+                    drop(half1.await);
+                }),
+                Box::pin(async move {
+                    drop(half2.await);
+                }),
+            )
+            .await;
+        }
 
         if let Some(on_finished) = on_finished {
             on_finished();

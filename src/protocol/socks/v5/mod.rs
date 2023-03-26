@@ -1,18 +1,18 @@
+mod datagram;
+
 use std::{collections::HashSet, convert::TryFrom};
 
 use snafu::ResultExt;
-use tokio::io::AsyncRead;
+use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{
     authentication::AuthenticationMethod,
     protocol::socks::{consts, error, Address, AddressType, Error, SocksCommand, SocksVersion},
 };
 
-mod datagram;
-
 pub use self::datagram::Datagram;
 
-#[derive(Debug, Copy, Clone, Hash, Eq, PartialEq)]
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
 #[allow(dead_code)]
 pub enum Method {
     /// No Authentication
@@ -131,19 +131,18 @@ pub struct HandshakeRequest {
 }
 
 impl HandshakeRequest {
-    pub fn new(methods: Vec<Method>) -> HandshakeRequest {
+    pub fn new(methods: Vec<Method>) -> Self {
         let methods = methods.into_iter().fold(HashSet::new(), |mut methods, method| {
             methods.insert(method);
             methods
         });
-        HandshakeRequest { methods }
+        Self { methods }
     }
 
-    pub async fn from_reader<R>(client: &mut R) -> Result<HandshakeRequest, Error>
+    pub async fn from_reader<R>(client: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
-        use tokio::io::AsyncReadExt;
         let nmethods = client.read_u8().await.context(error::ReadStreamSnafu)?;
         if nmethods == 0 {
             return Err(Error::BadRequest);
@@ -199,14 +198,12 @@ pub struct HandshakeReply {
 }
 
 impl HandshakeReply {
-    pub fn new(method: Method) -> HandshakeReply { HandshakeReply { method } }
+    pub fn new(method: Method) -> Self { Self { method } }
 
-    pub async fn from_reader<R>(rdr: &mut R) -> Result<HandshakeReply, Error>
+    pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
-        use tokio::io::AsyncReadExt;
-
         let mut buf = [0u8; 2];
         rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
@@ -217,14 +214,14 @@ impl HandshakeReply {
         }
 
         let method = Method::from(buf[1]);
-        Ok(HandshakeReply { method })
+        Ok(Self { method })
     }
 
     #[inline]
     pub fn serialized_len() -> usize { SocksVersion::serialized_len() + Method::serialized_len() }
 
     #[inline]
-    pub fn to_bytes(&self) -> Vec<u8> { vec![SocksVersion::V5.into(), self.method.into()] }
+    pub fn to_bytes(&self) -> Vec<u8> { Vec::from([SocksVersion::V5.into(), self.method.into()]) }
 
     #[inline]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
@@ -232,7 +229,7 @@ impl HandshakeReply {
 
 // UserPassNegotiationRequest is the negotiation username/password request
 // packet
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct UserPasswordHandshakeRequest {
     pub version: UserPasswordVersion,
     pub user_name: Vec<u8>,
@@ -261,8 +258,6 @@ impl UserPasswordHandshakeRequest {
     where
         R: AsyncRead + Unpin,
     {
-        use tokio::io::AsyncReadExt;
-
         let mut buf = [0u8; 2];
         client.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
@@ -295,38 +290,30 @@ impl UserPasswordHandshakeRequest {
 }
 
 // UserPasswordHandshakeReply is the username/password reply packet
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct UserPasswordHandshakeReply {
     pub version: UserPasswordVersion,
     pub status: UserPasswordStatus,
 }
 
 impl UserPasswordHandshakeReply {
-    pub async fn from_reader<R>(reader: &mut R) -> Result<UserPasswordHandshakeReply, Error>
+    pub async fn from_reader<R>(reader: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
-        use tokio::io::AsyncReadExt;
-
         let mut buf = [0u8; 2];
         reader.read(&mut buf).await.context(error::ReadStreamSnafu)?;
         let version = UserPasswordVersion::try_from(buf[0])?;
         let status = UserPasswordStatus::from(buf[1]);
-        Ok(UserPasswordHandshakeReply { version, status })
+        Ok(Self { version, status })
     }
 
-    pub fn success() -> UserPasswordHandshakeReply {
-        UserPasswordHandshakeReply {
-            version: UserPasswordVersion::V1,
-            status: UserPasswordStatus::Success,
-        }
+    pub const fn success() -> Self {
+        Self { version: UserPasswordVersion::V1, status: UserPasswordStatus::Success }
     }
 
-    pub fn failure() -> UserPasswordHandshakeReply {
-        UserPasswordHandshakeReply {
-            version: UserPasswordVersion::V1,
-            status: UserPasswordStatus::Failure,
-        }
+    pub const fn failure() -> Self {
+        Self { version: UserPasswordVersion::V1, status: UserPasswordStatus::Failure }
     }
 
     #[inline]
@@ -353,8 +340,6 @@ impl Request {
     where
         R: AsyncRead + Unpin,
     {
-        use tokio::io::AsyncReadExt;
-
         let mut buf = [0u8; 3];
         let _n = client.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
         let _rsv = buf[2];
@@ -410,12 +395,10 @@ pub struct Reply {
 }
 
 impl Reply {
-    pub async fn from_reader<R>(reader: &mut R) -> Result<Reply, Error>
+    pub async fn from_reader<R>(reader: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
-        use tokio::io::AsyncReadExt;
-
         let mut buf = [0u8; 3];
         let _n = reader.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
         let _rsv = buf[2];
@@ -429,7 +412,7 @@ impl Reply {
         let reply = ReplyField::from(buf[1]);
         let bind_socket = Address::from_reader(reader).await?;
 
-        Ok(Reply { reply, bind_socket })
+        Ok(Self { reply, bind_socket })
     }
 
     #[inline]

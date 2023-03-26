@@ -17,7 +17,7 @@ pub struct ProxyConnector {
 }
 
 impl ProxyConnector {
-    pub fn new(strategy: Arc<ProxyStrategy>) -> Result<ProxyConnector, Error> {
+    pub fn new(strategy: Arc<ProxyStrategy>) -> Result<Self, Error> {
         Ok(ProxyConnector { strategy })
     }
 
@@ -74,11 +74,11 @@ impl ProxyConnector {
 
                     for i in 0..(len - 1) {
                         let proxy_host = &proxies[i];
-                        let target_host = proxies[i + 1].host_address().clone();
+                        let target_host = proxies[i + 1].host_address();
                         if let Err(err) =
                             Self::handshake(&mut socket, proxy_host, &target_host).await
                         {
-                            socket.shutdown().await.context(error::ShutdownSnafu)?;
+                            drop(socket.shutdown().await);
                             return Err(err);
                         };
                     }
@@ -97,12 +97,11 @@ impl ProxyConnector {
         target_host: &HostAddress,
     ) -> Result<(), Error>
     where
-        Stream: AsyncRead + AsyncWrite + Unpin + Send + Sync,
+        Stream: Unpin + Send + Sync + AsyncRead + AsyncWrite,
     {
         let mut handshake = ClientHandshake::new(stream);
         match proxy_host {
-            ProxyHost::Socks4a { id, .. } => {
-                let _ = id;
+            ProxyHost::Socks4a { .. } => {
                 handshake.handshake_socks_v4_tcp_connect(target_host, None).await?;
             }
             ProxyHost::Socks5 { username, password, .. } => {
