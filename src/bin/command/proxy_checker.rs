@@ -338,7 +338,8 @@ impl ProxyServerFile {
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyServerFile, Error> {
-        toml::from_slice(toml).context(error::ParseProxyServerTomlSnafu)
+        let content = String::from_utf8_lossy(toml);
+        toml::from_str(content.to_string().as_str()).context(error::ParseProxyServerTomlSnafu)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {

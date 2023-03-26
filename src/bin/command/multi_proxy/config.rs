@@ -256,7 +256,7 @@ port = 8118
             http_server: Some(HttpServer { host: "127.0.0.1".parse().unwrap(), port: 8118 }),
         };
 
-        assert_eq!(Config::from_toml(toml.as_bytes())?, config);
+        assert_eq!(Config::from_toml(toml)?, config);
         Ok(())
     }
 }

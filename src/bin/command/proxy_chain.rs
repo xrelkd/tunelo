@@ -269,7 +269,8 @@ impl ProxyChain {
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyChain, Error> {
-        toml::from_slice(toml).context(error::ParseProxyChainTomlSnafu)
+        let content = String::from_utf8_lossy(toml);
+        toml::from_str(content.to_string().as_str()).context(error::ParseProxyChainTomlSnafu)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
@@ -434,6 +435,6 @@ host = "127.99.0.3"
 port = 1080
             "#;
 
-        assert_eq!(Config::from_toml(toml.as_bytes()).unwrap(), config);
+        assert_eq!(Config::from_toml(toml).unwrap(), config);
     }
 }
