@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=/dev-support/lib/logging
+. "${SCRIPT_DIR}"/../lib/logging
+# shellcheck source=/dev-support/lib/toolchain
+. "${SCRIPT_DIR}"/../lib/toolchain
+
+if [ $# -gt 0 ] && [ "$1" = "test-all" ]; then
+  shift
+fi
+
+debug 'ensure toolchain'
+rustup component add rustfmt
+echo
+
+debug 'version:'
+cargo --version
+rustc --version
+echo
+
+debug "Run \`cargo test\`"
+cargo test "${UNIT_TEST_ARGS[@]}" --no-fail-fast "$@" -- --nocapture --test -Z unstable-options --report-time=colored

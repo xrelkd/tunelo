@@ -8,14 +8,14 @@ updates:
     open-pull-requests-limit: 10
 
   - package-ecosystem: docker
-    directory: "/containers/debian"
+    directory: "/dev-support/containers/debian"
     schedule:
       interval: "daily"
       time: "21:00"
     open-pull-requests-limit: 10
 
   - package-ecosystem: docker
-    directory: "/containers/alpine"
+    directory: "/dev-support/containers/alpine"
     schedule:
       interval: "daily"
       time: "21:00"

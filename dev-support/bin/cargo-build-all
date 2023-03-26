@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=/dev-support/lib/logging
+. "${SCRIPT_DIR}"/../lib/logging
+# shellcheck source=/dev-support/lib/toolchain
+. "${SCRIPT_DIR}"/../lib/toolchain
+
+if [ $# -gt 0 ] && [ "$1" = "build-all" ]; then
+  shift
+fi
+
+debug 'ensure toolchain'
+rustup component add rustfmt
+echo
+
+debug 'version:'
+cargo --version
+rustc --version
+echo
+
+debug "Run \`cargo build\`"
+cargo build "${CARGO_ARGS[@]}" "$@"

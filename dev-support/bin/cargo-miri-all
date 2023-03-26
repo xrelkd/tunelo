@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+set -xeuo pipefail
+IFS=$'\n\t'
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+# shellcheck source=/dev-support/lib/logging
+. "${SCRIPT_DIR}"/../lib/logging
+# shellcheck source=/dev-support/lib/toolchain
+. "${SCRIPT_DIR}"/../lib/toolchain
+
+if [ $# -gt 0 ] && [ "$1" = "miri-all" ]; then
+  shift
+fi
+
+export CARGO_BUILD_RUSTC_WRAPPER=""
+export MIRIFLAGS="-Zmiri-symbolic-alignment-check"
+
+debug 'ensure toolchain'
+rustup toolchain install "$TOOLCHAIN"
+# FIXME: fix the bugs and remove `--toolchain` in favor of `+`
+# + rustup +nightly-2021-07-23 component add miri rustfmt
+# error: component 'miri' for target 'x86_64-unknown-linux-gnu' is unavailable for download for channel 'stable'
+rustup +"$TOOLCHAIN" component add --toolchain "$TOOLCHAIN" miri rustfmt
+cargo +"$TOOLCHAIN" miri setup
+echo
+
+debug 'version:'
+cargo +"$TOOLCHAIN" --version
+rustup run "$TOOLCHAIN" xargo --version 2>&1 >/dev/null | tr '\n' ' ' >&2
+rustup run "$TOOLCHAIN" rustc --version
+cargo +"$TOOLCHAIN" miri --version
+echo
+
+debug "Run \`cargo miri\`"
+cargo +"$TOOLCHAIN" miri test "${UNIT_TEST_ARGS[@]}" --no-fail-fast "$@" -- --nocapture
