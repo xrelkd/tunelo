@@ -17,8 +17,8 @@ use crate::{
     common::utils::safe_duration,
     protocol::socks::{SocksCommand, SocksVersion},
     server::error::{self, Error},
-    service::socks::{v5::UdpAssociateManager, Service},
-    transport::{MonitoredStream, TimedStream, Transport},
+    service::socks::Service,
+    transport::Transport,
 };
 
 #[derive(Debug, Clone)]
@@ -67,15 +67,16 @@ pub struct Server {
     #[allow(dead_code)]
     tcp_keepalive: Option<Duration>,
 
+    // FIXME: use `udp_*` fields
+    #[allow(dead_code)]
     udp_address: IpAddr,
+    #[allow(dead_code)]
     udp_ports: HashSet<u16>,
-
-    // TODO
     #[allow(dead_code)]
     udp_timeout: Option<Duration>,
     #[allow(dead_code)]
     udp_session_time: Duration,
-
+    #[allow(dead_code)]
     udp_cache_expiry_duration: Duration,
 }
 
@@ -117,25 +118,26 @@ impl Server {
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
-        let mut tcp_listener =
+        let tcp_listener =
             TcpListener::bind(self.tcp_address).await.context(error::BindTcpListenerSnafu)?;
         tracing::info!("Starting SOCKS server at {}", self.tcp_address);
 
-        let (udp_associate_join_handle, udp_associate_stream_tx) =
-            if self.supported_commands.contains(&SocksCommand::UdpAssociate) {
-                let resolver = self.transport.resolver().clone();
-                let udp_associate_manager = UdpAssociateManager::new(
-                    self.udp_address,
-                    self.udp_ports,
-                    resolver,
-                    self.udp_cache_expiry_duration,
-                );
-
-                let (tx, join_handle) = udp_associate_manager.serve();
-                (Some(join_handle), Some(Mutex::new(tx)))
-            } else {
-                (None, None)
-            };
+        // FIXME: re-implement `UdpAssociateManager`
+        // let (udp_associate_join_handle, udp_associate_stream_tx) =
+        //     if self.supported_commands.contains(&SocksCommand::UdpAssociate) {
+        //         let resolver = self.transport.resolver().clone();
+        //         let udp_associate_manager = UdpAssociateManager::new(
+        //             self.udp_address,
+        //             self.udp_ports,
+        //             resolver,
+        //             self.udp_cache_expiry_duration,
+        //         );
+        //
+        //         let (tx, join_handle) = udp_associate_manager.serve();
+        //         (Some(join_handle), Some(Mutex::new(tx)))
+        //     } else {
+        //         (None, None)
+        //     };
 
         let enable_tcp_connect = self.supported_commands.contains(&SocksCommand::TcpConnect);
         let enable_tcp_bind = self.supported_commands.contains(&SocksCommand::TcpBind);
@@ -145,7 +147,7 @@ impl Server {
             self.authentication_manager,
             enable_tcp_connect,
             enable_tcp_bind,
-            udp_associate_stream_tx,
+            None, // udp_associate_stream_tx
         ));
 
         let shutdown = shutdown_signal.fuse();
@@ -163,12 +165,13 @@ impl Server {
             match stream {
                 Ok((socket, socket_addr)) => {
                     let service = service.clone();
-                    let connection_timeout = self.connection_timeout;
-                    let stat_monitor = self.transport.stat_monitor();
+                    let _connection_timeout = self.connection_timeout;
+                    let _stat_monitor = self.transport.stat_monitor();
                     tokio::spawn(async move {
                         // let _ = socket.set_keepalive(Some(tcp_keepalive));
-                        let socket = TimedStream::new(socket, connection_timeout);
-                        let socket = MonitoredStream::new(socket, stat_monitor);
+                        // FIXME: enable `TimedStream`, `MonitoredStream`
+                        // let socket = TimedStream::new(socket, connection_timeout);
+                        // let socket = MonitoredStream::new(socket, stat_monitor);
                         let _ = service.dispatch(socket, socket_addr).await;
                     });
                 }
@@ -179,9 +182,10 @@ impl Server {
             }
         }
 
-        if let Some(join_handle) = udp_associate_join_handle {
-            join_handle.shutdown_and_wait().await;
-        }
+        // FIXME: re-implement `UdpAssociateManager`
+        // if let Some(join_handle) = udp_associate_join_handle {
+        //     join_handle.shutdown_and_wait().await;
+        // }
 
         tracing::info!("SOCKS Server stopped");
         Ok(())

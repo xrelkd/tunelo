@@ -1,6 +1,5 @@
 use futures::FutureExt;
 use snafu::ResultExt;
-use tokio::runtime::Handle;
 use trust_dns_resolver::{
     config::{ResolverConfig, ResolverOpts},
     AsyncResolver, TokioAsyncResolver,
@@ -19,26 +18,20 @@ pub struct TrustDnsResolver {
 
 impl TrustDnsResolver {
     pub async fn new(
-        runtime_handle: Handle,
         resolver_config: ResolverConfig,
         resolver_opts: ResolverOpts,
     ) -> Result<TrustDnsResolver, Error> {
-        AsyncResolver::new(resolver_config, resolver_opts, runtime_handle)
-            .await
+        AsyncResolver::tokio(resolver_config, resolver_opts)
             .map(|resolver| TrustDnsResolver { resolver })
             .context(error::InitializeTrustDnsResolverSnafu)
     }
 
-    pub async fn new_default(runtime_handle: Handle) -> Result<TrustDnsResolver, Error> {
-        AsyncResolver::new(ResolverConfig::default(), ResolverOpts::default(), runtime_handle)
-            .await
-            .map(|resolver| TrustDnsResolver { resolver })
-            .context(error::InitializeTrustDnsResolverSnafu)
+    pub async fn new_default() -> Result<TrustDnsResolver, Error> {
+        Self::new(ResolverConfig::default(), ResolverOpts::default()).await
     }
 
-    pub async fn from_system_conf(runtime_handle: Handle) -> Result<TrustDnsResolver, Error> {
-        AsyncResolver::from_system_conf(runtime_handle)
-            .await
+    pub async fn from_system_conf() -> Result<TrustDnsResolver, Error> {
+        AsyncResolver::tokio_from_system_conf()
             .map(|resolver| TrustDnsResolver { resolver })
             .context(error::InitializeTrustDnsResolverSnafu)
     }

@@ -1,3 +1,11 @@
+mod acceptor;
+mod connector;
+pub mod error;
+mod metrics;
+mod resolver;
+// FIXME: uncomment this
+// mod stream_ext;
+
 use std::{
     net::{IpAddr, SocketAddr},
     path::Path,
@@ -17,25 +25,17 @@ use crate::{
     filter::{FilterAction, HostFilter},
 };
 
-mod acceptor;
-mod connector;
-pub mod error;
-mod metrics;
-mod resolver;
-mod stream_ext;
+pub use self::{
+    error::Error,
+    resolver::{Resolver, TokioResolver, TrustDnsResolver},
+    // FIXME: uncomment this
+    // stream_ext::StatMonitor,
+};
 
-pub use self::error::Error;
-
-pub use self::stream_ext::StatMonitor;
 use self::{
     connector::{Connector, ProxyConnector},
     metrics::TransportMetrics,
     resolver::DummyResolver,
-};
-
-pub use self::{
-    resolver::{Resolver, TokioResolver, TrustDnsResolver},
-    stream_ext::{MonitoredStream, StreamExt, TimedStream},
 };
 
 pub struct Transport<Stream> {
@@ -143,14 +143,15 @@ impl Transport<TcpStream> {
     }
 }
 
-impl<Stream> StatMonitor for Transport<Stream>
-where
-    Stream: Unpin + AsyncRead + AsyncWrite,
-{
-    fn increase_tx(&mut self, n: usize) { self.metrics.increase_tx(n); }
-
-    fn increase_rx(&mut self, n: usize) { self.metrics.increase_rx(n); }
-}
+// FIXME: re-implement this
+// impl<Stream> StatMonitor for Transport<Stream>
+// where
+//     Stream: Unpin + AsyncRead + AsyncWrite,
+// {
+//     fn increase_tx(&mut self, n: usize) { self.metrics.increase_tx(n); }
+//
+//     fn increase_rx(&mut self, n: usize) { self.metrics.increase_rx(n); }
+// }
 
 impl<Stream> Transport<Stream>
 where
@@ -262,10 +263,10 @@ where
         let mut client = client_reader.unsplit(client_writer);
         let mut remote = remote_reader.unsplit(remote_writer);
 
-        remote.shutdown();
+        drop(remote.shutdown().await);
         drop(remote_counter);
 
-        client.shutdown();
+        drop(client.shutdown().await);
         drop(client_counter);
 
         drop(relay_counter);

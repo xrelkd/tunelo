@@ -143,27 +143,25 @@ where
     tracing::info!("Starting {}", Cli::command().get_long_version().unwrap_or_default());
 
     tracing::info!("Initializing Tokio runtime");
-    let mut runtime = runtime::Builder::new()
+    let runtime = runtime::Builder::new_multi_thread()
         .thread_name(consts::THREAD_NAME)
-        .threaded_scheduler()
         .enable_all()
         .build()
         .context(error::InitializeTokioRuntimeSnafu)?;
 
     let resolver = {
-        let handle = runtime.handle().clone();
         runtime
             .block_on(async move {
                 tracing::info!("Initializing domain name resolver");
 
-                match TrustDnsResolver::from_system_conf(handle.clone()).await {
+                match TrustDnsResolver::from_system_conf().await {
                     Ok(resolver) => Ok(resolver),
                     Err(err) => {
                         tracing::warn!(
                             "Failed to initialize domain name resolver from system configuration, \
                              try to initialize with fallback option, error: {err}"
                         );
-                        TrustDnsResolver::new_default(handle).await
+                        TrustDnsResolver::new_default().await
                     }
                 }
             })

@@ -7,8 +7,6 @@ use tokio::{
     sync::Mutex,
 };
 
-use crate::transport::stream_ext::{StatMonitor, StreamExt};
-
 pub trait Acceptor {
     type Stream: Unpin + AsyncRead + AsyncWrite;
     type Address;
@@ -20,28 +18,24 @@ pub trait Acceptor {
 pub type Accept<Stream, Address, Error> =
     Pin<Box<dyn Future<Output = Result<(Stream, Address), Error>> + Send>>;
 
-pub struct TcpAcceptor<Monitor> {
+pub struct TcpAcceptor {
     listener: Arc<Mutex<TcpListener>>,
-    monitor: Monitor,
     timeout: Option<Duration>,
 }
 
-impl<Monitor> Acceptor for TcpAcceptor<Monitor>
-where
-    Monitor: 'static + Clone + Unpin + Send + Sync + StatMonitor,
-{
+impl Acceptor for TcpAcceptor {
     type Address = SocketAddr;
     type Error = std::io::Error;
-    type Stream = StreamExt<TcpStream, Monitor>;
+    type Stream = TcpStream;
 
     fn accept(&mut self) -> Accept<Self::Stream, Self::Address, Self::Error> {
         let listener = self.listener.clone();
-        let timeout = self.timeout;
-        let monitor = self.monitor.clone();
+        let _timeout = self.timeout;
+
         Box::pin(async move {
-            let mut listener = listener.lock().await;
+            let listener = listener.lock().await;
             let (stream, addr) = listener.accept().await?;
-            Ok((StreamExt::new(stream, timeout, monitor), addr))
+            Ok((stream, addr))
         })
     }
 }

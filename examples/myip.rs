@@ -24,8 +24,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     stream.write_all(request.as_bytes()).await?;
     let mut response = String::new();
     stream.read_to_string(&mut response).await?;
-    println!("{}", response);
-    stream.shutdown(std::net::Shutdown::Write)?;
+    println!("{response}");
+    stream.shutdown().await?;
 
     Ok(())
 }

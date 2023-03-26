@@ -25,8 +25,8 @@ mod split;
 use self::split::{RecvHalf, SendHalf};
 
 pub struct Socks5Datagram {
-    rx: RecvHalf,
-    tx: SendHalf,
+    socket: UdpSocket,
+    closed: Arc<AtomicBool>,
 }
 
 impl Socks5Datagram {
@@ -67,32 +67,28 @@ impl Socks5Datagram {
                     let buf = [0u8; 1];
                     match stream.write(&buf).await {
                         Ok(0) => closed.store(true, Ordering::Release),
-                        Ok(_n) => time::delay_for(Duration::from_millis(500)).await,
+                        Ok(_n) => time::sleep(Duration::from_millis(500)).await,
                         Err(_err) => closed.store(true, Ordering::Release),
                     }
                 }
             }
         });
 
-        let (rx, tx) = split::split(socket, closed);
-        Ok(Socks5Datagram { rx, tx })
+        Ok(Socks5Datagram { socket, closed })
     }
 
     #[inline]
-    pub fn split(self) -> (RecvHalf, SendHalf) { (self.rx, self.tx) }
-
-    #[inline]
     pub async fn recv_from(&mut self, buf: &mut [u8]) -> Result<(usize, HostAddress), Error> {
-        self.rx.recv_from(buf).await
+        self.socket.recv_from(buf).await
     }
 
     #[inline]
     pub async fn recv_datagram(&mut self) -> Result<Datagram, Error> {
-        self.rx.recv_datagram().await
+        self.socket.recv_datagram().await
     }
 
     #[inline]
     pub async fn send_to(&mut self, buf: &[u8], target_addr: &HostAddress) -> Result<usize, Error> {
-        self.tx.send_to(buf, target_addr).await
+        self.socket.send_to(buf, target_addr).await
     }
 }

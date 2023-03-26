@@ -1,4 +1,5 @@
 use snafu::ResultExt;
+use tokio::io::AsyncWriteExt;
 
 use crate::{
     checker::{error, Error, ReportError},
@@ -49,8 +50,7 @@ impl BasicProber {
 
         report.destination_reachable = true;
 
-        let stream = stream.into_inner();
-        stream.shutdown(std::net::Shutdown::Both).context(error::ShutdownSnafu)?;
+        stream.into_inner().shutdown().await.context(error::ShutdownSnafu)?;
 
         Ok(())
     }

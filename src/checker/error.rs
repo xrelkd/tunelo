@@ -41,8 +41,8 @@ pub enum Error {
     #[snafu(display("Incomplete HTTP response"))]
     IncompleteHttpResponse,
 
-    #[snafu(display("Could not construct a DNSNameRef from `{}`, error: {}", name, source))]
-    ConstructsDNSNameRef { name: String, source: webpki::InvalidDNSNameError },
+    #[snafu(display("Could not construct a DNSNameRef from `{dns_name}`, error: {source}"))]
+    InvalidDnsName { dns_name: String, source: tokio_rustls::rustls::client::InvalidDnsNameError },
 
     #[snafu(display("Operation timed out"))]
     Timeout,
@@ -53,15 +53,15 @@ mod report {
 
     use crate::checker::error::Error;
 
-    #[derive(Debug, Clone, Eq, PartialEq, Snafu)]
+    #[derive(Clone, Debug, Eq, PartialEq, Snafu)]
     pub enum ReportError {
-        #[snafu(display("Could not connect proxy server, error: {}", message))]
+        #[snafu(display("Could not connect proxy server, error: {message}"))]
         ConnectProxyServer { message: String },
 
-        #[snafu(display("Could not initialize TLS stream, error: {}", message))]
+        #[snafu(display("Could not initialize TLS stream, error: {message}"))]
         InitializeTlsStream { message: String },
 
-        #[snafu(display("Error occurred when shutdown, error: {}", message))]
+        #[snafu(display("Error occurred when shutdown, error: {message}"))]
         Shutdown { message: String },
 
         #[snafu(display("No host is provided"))]
@@ -73,26 +73,26 @@ mod report {
         #[snafu(display("No path is provided"))]
         NoPathProvided,
 
-        #[snafu(display("Unknown scheme: {}", scheme))]
+        #[snafu(display("Unknown scheme: {scheme}"))]
         UnknownScheme { scheme: String },
 
-        #[snafu(display("Could not read HTTP response, error: {}", message))]
+        #[snafu(display("Could not read HTTP response, error: {message}"))]
         ReadHttpResponse { message: String },
 
-        #[snafu(display("Could not write HTTP request, error: {}", message))]
+        #[snafu(display("Could not write HTTP request, error: {message}"))]
         WriteHttpRequest { message: String },
 
-        #[snafu(display("Could not parse HTTP request, error: {}", source))]
+        #[snafu(display("Could not parse HTTP request, error: {source}"))]
         ParseHttpRequest { source: httparse::Error },
 
-        #[snafu(display("Could not parse HTTP response, error: {}", source))]
+        #[snafu(display("Could not parse HTTP response, error: {source}",))]
         ParseHttpResponse { source: httparse::Error },
 
         #[snafu(display("Incomplete HTTP response"))]
         IncompleteHttpResponse,
 
-        #[snafu(display("Could not construct a DNSNameRef from `{}`, error: {}", name, source))]
-        ConstructsDNSNameRef { name: String, source: webpki::InvalidDNSNameError },
+        #[snafu(display("Invalid DNS name `{dns_name}`"))]
+        InvalidDnsName { dns_name: String },
 
         #[snafu(display("Operation timed out"))]
         Timeout,
@@ -121,9 +121,7 @@ mod report {
                 Error::ParseHttpRequest { source } => ReportError::ParseHttpRequest { source },
                 Error::ParseHttpResponse { source } => ReportError::ParseHttpResponse { source },
                 Error::IncompleteHttpResponse => ReportError::IncompleteHttpResponse,
-                Error::ConstructsDNSNameRef { name, source } => {
-                    ReportError::ConstructsDNSNameRef { name, source }
-                }
+                Error::InvalidDnsName { dns_name, .. } => ReportError::InvalidDnsName { dns_name },
                 Error::Timeout => ReportError::Timeout,
             }
         }

@@ -1,4 +1,5 @@
 mod service;
-mod udp;
+// FIXME: uncomment this
+// mod udp;
 
-pub use self::{service::Service, udp::UdpAssociateManager};
+pub use self::service::Service;

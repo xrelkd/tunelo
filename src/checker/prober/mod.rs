@@ -12,7 +12,7 @@ pub use self::{
     liveness::{LivenessProber, LivenessProberReport},
 };
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Debug, Clone, Hash)]
 pub enum Prober {
     Liveness(LivenessProber),
     Basic(BasicProber),
@@ -88,19 +88,19 @@ impl_from_prober!(LivenessProber, Liveness);
 impl_from_prober!(BasicProber, Basic);
 impl_from_prober!(HttpProber, Http);
 
-impl Ord for Prober {
-    fn cmp(&self, other: &Prober) -> std::cmp::Ordering {
-        self.precedence().cmp(&other.precedence())
-    }
-}
+// impl Ord for Prober {
+//     fn cmp(&self, other: &Prober) -> std::cmp::Ordering {
+//         self.precedence().cmp(&other.precedence())
+//     }
+// }
+//
+// impl PartialOrd for Prober {
+//     fn partial_cmp(&self, other: &Prober) -> Option<std::cmp::Ordering> {
+//         self.precedence().partial_cmp(&other.precedence())
+//     }
+// }
 
-impl PartialOrd for Prober {
-    fn partial_cmp(&self, other: &Prober) -> Option<std::cmp::Ordering> {
-        self.precedence().partial_cmp(&other.precedence())
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ProberReport {
     Liveness(LivenessProberReport),
     Basic(BasicProberReport),
@@ -137,14 +137,14 @@ impl_from_prober_report!(LivenessProberReport, Liveness);
 impl_from_prober_report!(BasicProberReport, Basic);
 impl_from_prober_report!(HttpProberReport, Http);
 
-impl Ord for ProberReport {
-    fn cmp(&self, other: &ProberReport) -> std::cmp::Ordering {
-        self.precedence().cmp(&other.precedence())
-    }
-}
-
-impl PartialOrd for ProberReport {
-    fn partial_cmp(&self, other: &ProberReport) -> Option<std::cmp::Ordering> {
-        self.precedence().partial_cmp(&other.precedence())
-    }
-}
+// impl Ord for ProberReport {
+//     fn cmp(&self, other: &ProberReport) -> std::cmp::Ordering {
+//         self.precedence().cmp(&other.precedence())
+//     }
+// }
+//
+// impl PartialOrd for ProberReport {
+//     fn partial_cmp(&self, other: &ProberReport) -> Option<std::cmp::Ordering>
+// {         self.precedence().partial_cmp(&other.precedence())
+//     }
+// }

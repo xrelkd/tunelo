@@ -9,9 +9,9 @@ use std::{
 
 use tokio::sync::Mutex;
 
-use crate::{common::HostAddress, transport::stream_ext::StatMonitor};
+use crate::common::HostAddress;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct TransportMetrics {
     received_bytes: Arc<AtomicUsize>,
     transmitted_bytes: Arc<AtomicUsize>,
@@ -23,7 +23,7 @@ pub struct TransportMetrics {
     _destinations: Arc<Mutex<HashSet<HostAddress>>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Counter {
     current: Arc<AtomicUsize>,
     accumulated: Arc<AtomicUsize>,
@@ -70,11 +70,13 @@ impl Drop for CounterHelper {
     fn drop(&mut self) { self.0.decrease(); }
 }
 
-impl StatMonitor for TransportMetrics {
-    fn increase_tx(&mut self, n: usize) { self.transmitted_bytes.fetch_add(n, Ordering::SeqCst); }
-
-    fn increase_rx(&mut self, n: usize) { self.received_bytes.fetch_add(n, Ordering::SeqCst); }
-}
+// FIXME: re-implement this
+// impl StatMonitor for TransportMetrics {
+//     fn increase_tx(&mut self, n: usize) { self.transmitted_bytes.fetch_add(n,
+// Ordering::SeqCst); }
+//
+//     fn increase_rx(&mut self, n: usize) { self.received_bytes.fetch_add(n,
+// Ordering::SeqCst); } }
 
 impl Default for TransportMetrics {
     fn default() -> TransportMetrics {
