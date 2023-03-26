@@ -89,6 +89,12 @@ checksum = "0e4cec68f03f32e44924783795810fa50a7035d8c8ebe78580ad7e6c703fba38"
 
 [[package]]
 name = "bytes"
+version = "0.6.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0dcbc35f504eb6fc275a6d20e4ebcda18cf50d40ba6fabff8c711fa16cb3b16"
+
+[[package]]
+name = "bytes"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "89b2fd2a0dcf38d7971e2194b6b6eebab45ae01067456a7fd93d5547a61b70be"
@@ -675,9 +681,9 @@ dependencies = [
 
 [[package]]
 name = "mio"
-version = "0.6.22"
+version = "0.6.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fce347092656428bc8eaf6201042cb551b8d67855af7374542a92a0fbfcac430"
+checksum = "4afd66f5b91bf2a3bc13fad0e21caedac168ca4c707504e75585648ae80e4cc4"
 dependencies = [
  "cfg-if 0.1.10",
  "fuchsia-zircon",
@@ -686,7 +692,7 @@ dependencies = [
  "kernel32-sys",
  "libc",
  "log",
- "miow 0.2.1",
+ "miow 0.2.2",
  "net2",
  "slab",
  "winapi 0.2.8",
@@ -706,33 +712,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "mio-named-pipes"
-version = "0.1.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0840c1c50fd55e521b247f949c241c9997709f23bd7f023b9762cd561e935656"
-dependencies = [
- "log",
- "mio 0.6.22",
- "miow 0.3.5",
- "winapi 0.3.9",
-]
-
-[[package]]
-name = "mio-uds"
-version = "0.6.8"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "afcb699eb26d4332647cc848492bbc15eafb26f08d0304550d5aa1f612e066f0"
-dependencies = [
- "iovec",
- "libc",
- "mio 0.6.22",
-]
-
-[[package]]
 name = "miow"
-version = "0.2.1"
+version = "0.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c1f2f3b1cf331de6896aabf6e9d55dca90356cc9960cca7eaaf408a355ae919"
+checksum = "ebd808424166322d4a38da87083bfddd3ac4c131334ed55856112eb06d46944d"
 dependencies = [
  "kernel32-sys",
  "net2",
@@ -752,9 +735,9 @@ dependencies = [
 
 [[package]]
 name = "net2"
-version = "0.2.35"
+version = "0.2.38"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3ebc3ec692ed7c9a255596c67808dee269f64655d8baf7b4f0638e51ba1d6853"
+checksum = "74d0df99cfcd2530b2e694f6e17e7f37b8e26bb23983ac530c0c97408837c631"
 dependencies = [
  "cfg-if 0.1.10",
  "libc",
@@ -1330,21 +1313,33 @@ checksum = "1f3ccbac311fea05f86f61904b462b55fb3df8837a366dfc601a0161d0532f20"
 
 [[package]]
 name = "tokio"
-version = "0.2.22"
+version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5d34ca54d84bf2b5b4d7d31e901a8464f7b60ac145a284fba25ceb801f2ddccd"
+checksum = "6703a273949a90131b290be1fe7b039d0fc884aa1935860dfcbe056f28cd8092"
 dependencies = [
  "bytes 0.5.6",
- "fnv",
- "futures-core",
  "iovec",
+ "lazy_static",
+ "mio 0.6.23",
+ "pin-project-lite",
+ "slab",
+]
+
+[[package]]
+name = "tokio"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e5ca08accbcb46f11fd8d2d1c6158c348b7888009a1f39260bcad66f6a454250"
+dependencies = [
+ "autocfg",
+ "bytes 0.6.0",
+ "futures-core",
  "lazy_static",
  "libc",
  "memchr",
- "mio 0.6.22",
- "mio-named-pipes",
- "mio-uds",
+ "mio 0.7.5",
  "num_cpus",
+ "parking_lot",
  "pin-project-lite",
  "signal-hook-registry",
  "slab",
@@ -1354,9 +1349,9 @@ dependencies = [
 
 [[package]]
 name = "tokio-macros"
-version = "0.2.5"
+version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f0c3acc6aa564495a0f2e1d59fab677cd7f81a19994cfc7f3ad0e64301560389"
+checksum = "46dfffa59fc3c8aad216ed61bdc2c263d2b9d87a9c8ac9de0c11a813e51b6db7"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -1371,7 +1366,7 @@ checksum = "e12831b255bcfa39dc0436b01e19fea231a37db570686c06ee72c423479f889a"
 dependencies = [
  "futures-core",
  "rustls",
- "tokio",
+ "tokio 0.2.25",
  "webpki",
 ]
 
@@ -1475,7 +1470,7 @@ dependencies = [
  "rand",
  "smallvec",
  "thiserror",
- "tokio",
+ "tokio 0.2.25",
  "url",
 ]
 
@@ -1495,7 +1490,7 @@ dependencies = [
  "resolv-conf",
  "smallvec",
  "thiserror",
- "tokio",
+ "tokio 0.2.25",
  "trust-dns-proto",
 ]
 
@@ -1515,7 +1510,7 @@ dependencies = [
  "serde",
  "serde_json",
  "snafu",
- "tokio",
+ "tokio 0.3.3",
  "tokio-rustls",
  "toml",
  "tracing",
