@@ -82,8 +82,7 @@ where
                 let remote_host = request.destination_socket.as_ref();
                 use crate::common::HostAddress;
 
-                let (remote_socket, remote_addr) = match self.transport.connect(&remote_host).await
-                {
+                let (remote_socket, remote_addr) = match self.transport.connect(remote_host).await {
                     Ok((socket, addr)) => {
                         tracing::info!("Remote host {} is connected", remote_host.to_string());
                         let remote_addr = match addr {
@@ -126,7 +125,7 @@ where
             }
             Command::TcpBind => {
                 tracing::debug!("Unsupported SOCKS command, close connection: {:?}", peer_addr);
-                let _ = stream.shutdown().await.context(error::Shutdown)?;
+                stream.shutdown().await.context(error::Shutdown)?;
                 Err(Error::UnsupportedCommand { command: Command::TcpBind.into() })
             }
         }

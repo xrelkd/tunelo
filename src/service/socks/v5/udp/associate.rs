@@ -63,23 +63,21 @@ impl UdpAssociate {
                     use crate::common::HostAddress;
                     let remote_host = match datagram.destination_address() {
                         HostAddress::Socket(addr) => *addr,
-                        HostAddress::DomainName(host, port) => {
-                            match resolver.resolve(&host).await {
-                                Ok(addrs) => {
-                                    if addrs.is_empty() {
-                                        return;
-                                    }
-                                    SocketAddr::new(addrs[0], *port)
-                                }
-                                Err(_err) => {
-                                    tracing::warn!(
-                                        "Failed to resolve host address: {}",
-                                        datagram.destination_address()
-                                    );
+                        HostAddress::DomainName(host, port) => match resolver.resolve(host).await {
+                            Ok(addrs) => {
+                                if addrs.is_empty() {
                                     return;
                                 }
+                                SocketAddr::new(addrs[0], *port)
                             }
-                        }
+                            Err(_err) => {
+                                tracing::warn!(
+                                    "Failed to resolve host address: {}",
+                                    datagram.destination_address()
+                                );
+                                return;
+                            }
+                        },
                     };
 
                     match socket_send.send_to(datagram.data(), &remote_host).await {

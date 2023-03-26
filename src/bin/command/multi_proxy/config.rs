@@ -111,20 +111,20 @@ impl Default for SocksServer {
     }
 }
 
-impl Into<tunelo::server::socks::ServerOptions> for SocksServer {
-    fn into(self) -> tunelo::server::socks::ServerOptions {
+impl From<SocksServer> for tunelo::server::socks::ServerOptions {
+    fn from(val: SocksServer) -> Self {
         use tunelo::protocol::socks::{SocksCommand, SocksVersion};
 
-        let listen_address = self.tcp_ip;
-        let listen_port = self.tcp_port;
-        let udp_ports: HashSet<_> = self.udp_ports.into_iter().collect();
+        let listen_address = val.tcp_ip;
+        let listen_port = val.tcp_port;
+        let udp_ports: HashSet<_> = val.udp_ports.into_iter().collect();
 
         let supported_versions = {
             let mut versions = HashSet::new();
-            if self.enable_socks4a {
+            if val.enable_socks4a {
                 versions.insert(SocksVersion::V4);
             }
-            if self.enable_socks5 {
+            if val.enable_socks5 {
                 versions.insert(SocksVersion::V5);
             }
             versions
@@ -132,11 +132,11 @@ impl Into<tunelo::server::socks::ServerOptions> for SocksServer {
 
         let supported_commands = {
             let mut commands = HashSet::new();
-            if self.enable_tcp_connect {
+            if val.enable_tcp_connect {
                 commands.insert(SocksCommand::TcpConnect);
             }
 
-            match (self.enable_udp_associate, udp_ports.is_empty()) {
+            match (val.enable_udp_associate, udp_ports.is_empty()) {
                 (false, _) => {}
                 (true, true) => {}
                 (true, false) => {
@@ -144,7 +144,7 @@ impl Into<tunelo::server::socks::ServerOptions> for SocksServer {
                 }
             }
 
-            if self.enable_tcp_bind {
+            if val.enable_tcp_bind {
                 commands.insert(SocksCommand::TcpBind);
             }
 
@@ -159,9 +159,9 @@ impl Into<tunelo::server::socks::ServerOptions> for SocksServer {
             supported_versions,
             supported_commands,
 
-            udp_cache_expiry_duration: Duration::from_secs(self.udp_cache_expiry_duration),
-            connection_timeout: Duration::from_secs(self.connection_timeout),
-            tcp_keepalive: Duration::from_secs(self.tcp_keepalive),
+            udp_cache_expiry_duration: Duration::from_secs(val.udp_cache_expiry_duration),
+            connection_timeout: Duration::from_secs(val.connection_timeout),
+            tcp_keepalive: Duration::from_secs(val.tcp_keepalive),
         }
     }
 }
@@ -180,10 +180,10 @@ impl Default for HttpServer {
     fn default() -> HttpServer { HttpServer { host: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8080 } }
 }
 
-impl Into<tunelo::server::http::ServerOptions> for HttpServer {
-    fn into(self) -> tunelo::server::http::ServerOptions {
-        let listen_address = self.host;
-        let listen_port = self.port;
+impl From<HttpServer> for tunelo::server::http::ServerOptions {
+    fn from(val: HttpServer) -> Self {
+        let listen_address = val.host;
+        let listen_port = val.port;
         tunelo::server::http::ServerOptions { listen_address, listen_port }
     }
 }

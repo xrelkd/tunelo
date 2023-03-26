@@ -71,9 +71,9 @@ impl TryFrom<u8> for SocksVersion {
     }
 }
 
-impl Into<u8> for SocksVersion {
-    fn into(self) -> u8 {
-        match self {
+impl From<SocksVersion> for u8 {
+    fn from(val: SocksVersion) -> Self {
+        match val {
             SocksVersion::V4 => consts::SOCKS4_VERSION,
             SocksVersion::V5 => consts::SOCKS5_VERSION,
         }
@@ -160,9 +160,9 @@ impl TryFrom<u8> for AddressType {
     }
 }
 
-impl Into<u8> for AddressType {
-    fn into(self) -> u8 {
-        match self {
+impl From<AddressType> for u8 {
+    fn from(val: AddressType) -> Self {
+        match val {
             AddressType::Ipv4 => consts::SOCKS5_ADDR_TYPE_IPV4,
             AddressType::Ipv6 => consts::SOCKS5_ADDR_TYPE_IPV6,
             AddressType::Domain => consts::SOCKS5_ADDR_TYPE_DOMAIN_NAME,
@@ -258,7 +258,7 @@ impl Address {
     pub fn into_bytes(self, socks_version: SocksVersion) -> Vec<u8> { self.to_bytes(socks_version) }
 
     pub fn new_domain(host: &[u8], port: u16) -> Address {
-        Address(HostAddress::DomainName(String::from_utf8_lossy(&host).into_owned(), port))
+        Address(HostAddress::DomainName(String::from_utf8_lossy(host).into_owned(), port))
     }
 
     #[allow(dead_code)]
@@ -289,18 +289,16 @@ impl<'a> From<&'a HostAddress> for AddressRef<'a> {
     fn from(addr: &'a HostAddress) -> AddressRef<'a> { AddressRef(addr) }
 }
 
-impl<'a> Into<&'a HostAddress> for AddressRef<'a> {
-    fn into(self) -> &'a HostAddress { self.0 }
+impl<'a> From<AddressRef<'a>> for &'a HostAddress {
+    fn from(val: AddressRef<'a>) -> Self { val.0 }
 }
 
 impl<'a> AddressRef<'a> {
     #[inline]
     pub fn address_type(&self) -> AddressType {
         match &self.0 {
-            HostAddress::Socket(socket) => match socket {
-                SocketAddr::V4(_) => AddressType::Ipv4,
-                SocketAddr::V6(_) => AddressType::Ipv6,
-            },
+            HostAddress::Socket(SocketAddr::V4(_)) => AddressType::Ipv4,
+            HostAddress::Socket(SocketAddr::V6(_)) => AddressType::Ipv6,
             HostAddress::DomainName(..) => AddressType::Domain,
         }
     }
@@ -309,21 +307,16 @@ impl<'a> AddressRef<'a> {
     pub fn serialized_len(&self, socks_version: SocksVersion) -> usize {
         match socks_version {
             SocksVersion::V4 => match self.0 {
-                HostAddress::Socket(socket) => match socket {
-                    SocketAddr::V4(_) => std::mem::size_of::<u16>() + 4,
-                    _ => 0,
-                },
+                HostAddress::Socket(SocketAddr::V4(_)) => std::mem::size_of::<u16>() + 4,
                 _ => 0,
             },
             SocksVersion::V5 => match &self.0 {
-                HostAddress::Socket(socket) => match socket {
-                    SocketAddr::V4(_) => {
-                        AddressType::serialized_len() + std::mem::size_of::<u16>() + 4
-                    }
-                    SocketAddr::V6(_) => {
-                        AddressType::serialized_len() + std::mem::size_of::<u16>() + 16
-                    }
-                },
+                HostAddress::Socket(SocketAddr::V4(_)) => {
+                    AddressType::serialized_len() + std::mem::size_of::<u16>() + 4
+                }
+                HostAddress::Socket(SocketAddr::V6(_)) => {
+                    AddressType::serialized_len() + std::mem::size_of::<u16>() + 16
+                }
                 HostAddress::DomainName(host, _) => {
                     AddressType::serialized_len()
                         + std::mem::size_of::<u8>()
@@ -340,32 +333,27 @@ impl<'a> AddressRef<'a> {
         let mut buf = Vec::with_capacity(self.serialized_len(socks_version));
         match socks_version {
             SocksVersion::V4 => match self.0 {
-                HostAddress::Socket(socket) => match socket {
-                    SocketAddr::V4(socket) => {
-                        buf.write_u16::<BigEndian>(socket.port()).unwrap();
-                        buf.extend(&socket.ip().octets());
-                        buf
-                    }
-
-                    _ => vec![],
-                },
-                _ => vec![],
+                HostAddress::Socket(SocketAddr::V4(socket)) => {
+                    buf.write_u16::<BigEndian>(socket.port()).unwrap();
+                    buf.extend(&socket.ip().octets());
+                    buf
+                }
+                _ => Vec::new(),
             },
             SocksVersion::V5 => match &self.0 {
-                HostAddress::Socket(socket) => match socket {
-                    SocketAddr::V4(socket) => {
-                        buf.push(AddressType::Ipv4.into());
-                        buf.extend(&socket.ip().octets());
-                        buf.write_u16::<BigEndian>(socket.port()).unwrap();
-                        buf
-                    }
-                    SocketAddr::V6(socket) => {
-                        buf.push(AddressType::Ipv6.into());
-                        buf.extend(&socket.ip().octets());
-                        buf.write_u16::<BigEndian>(socket.port()).unwrap();
-                        buf
-                    }
-                },
+                HostAddress::Socket(SocketAddr::V4(socket)) => {
+                    buf.push(AddressType::Ipv4.into());
+                    buf.extend(&socket.ip().octets());
+                    buf.write_u16::<BigEndian>(socket.port()).unwrap();
+                    buf
+                }
+                HostAddress::Socket(SocketAddr::V6(socket)) => {
+                    buf.push(AddressType::Ipv6.into());
+                    buf.extend(&socket.ip().octets());
+                    buf.write_u16::<BigEndian>(socket.port()).unwrap();
+                    buf
+                }
+
                 HostAddress::DomainName(host, port) => {
                     let host_len = host.len() as u8;
                     buf.push(AddressType::Domain.into());
@@ -391,8 +379,8 @@ impl From<HostAddress> for Address {
     fn from(addr: HostAddress) -> Address { Address(addr) }
 }
 
-impl Into<HostAddress> for Address {
-    fn into(self) -> HostAddress { self.0 }
+impl From<Address> for HostAddress {
+    fn from(val: Address) -> Self { val.0 }
 }
 
 impl From<SocketAddr> for Address {

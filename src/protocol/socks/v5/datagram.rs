@@ -79,7 +79,7 @@ impl Datagram {
     pub fn header(&self) -> Vec<u8> { self.header_internal(false) }
 
     #[inline]
-    pub fn data(&self) -> &[u8] { &self.data.as_ref() }
+    pub fn data(&self) -> &[u8] { self.data.as_ref() }
 
     #[inline]
     pub fn frag(&self) -> u8 { self.frag }

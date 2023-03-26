@@ -85,10 +85,10 @@ impl Config {
     }
 }
 
-impl Into<http::ServerOptions> for Config {
-    fn into(self) -> http::ServerOptions {
-        let listen_address = self.ip;
-        let listen_port = self.port;
+impl From<Config> for http::ServerOptions {
+    fn from(val: Config) -> Self {
+        let listen_address = val.ip;
+        let listen_port = val.port;
 
         http::ServerOptions { listen_address, listen_port }
     }

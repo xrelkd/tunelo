@@ -105,8 +105,7 @@ where
             Command::TcpConnect => {
                 let remote_host: &HostAddress = request.destination_socket.as_ref();
 
-                let (remote_socket, remote_addr) = match self.transport.connect(&remote_host).await
-                {
+                let (remote_socket, remote_addr) = match self.transport.connect(remote_host).await {
                     Ok((socket, addr)) => {
                         tracing::info!("Remote host {} is connected", remote_host.to_string());
                         (socket, addr)
@@ -190,7 +189,7 @@ where
                 // check authentication
                 tracing::info!(
                     "Received authentication from user: {}",
-                    String::from_utf8_lossy(&request.user_name).to_owned()
+                    String::from_utf8_lossy(&request.user_name)
                 );
                 let auth_passed = {
                     let handler = self.authentication_manager.lock().await;
@@ -208,7 +207,7 @@ where
 
                     tracing::warn!(
                         "Invalid authentication from user: {}",
-                        String::from_utf8_lossy(&request.user_name).to_owned()
+                        String::from_utf8_lossy(&request.user_name)
                     );
 
                     client.shutdown().await.context(error::Shutdown)?;

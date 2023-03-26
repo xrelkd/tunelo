@@ -106,7 +106,7 @@ impl HostFilter for SimpleFilter {
 
     #[inline]
     fn filter_address(&self, addr: &IpAddr) -> FilterAction {
-        self.filter(self.addresses.contains(&addr))
+        self.filter(self.addresses.contains(addr))
     }
 
     #[inline]
@@ -160,8 +160,8 @@ mod tests {
         let mut filter = SimpleFilter::default();
 
         filter.add_port(port);
-        filter.add_address(ip.clone());
-        filter.add_socket(socket.clone());
+        filter.add_address(ip);
+        filter.add_socket(socket);
         filter.add_hostname(hostname);
         filter.add_host(hostname, port);
 

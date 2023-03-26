@@ -38,7 +38,7 @@ pub enum Error {
     RunHttpServer { source: tunelo::server::Error },
 
     #[snafu(display("Errors occurred: {}", Errors::from(errors)))]
-    ErrorCollection { errors: Vec<Error> },
+    Collection { errors: Vec<Error> },
 
     #[snafu(display("Could not create Transport, error: {}", source))]
     CreateTransport { source: tunelo::transport::Error },

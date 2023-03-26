@@ -25,7 +25,7 @@ impl ProxyStream {
         host: &HostAddress,
     ) -> Result<ProxyStream, Error> {
         let strategy = Arc::new(ProxyStrategy::Single(proxy_host.clone()));
-        Ok(ProxyConnector::new(strategy)?.connect(host).await?)
+        ProxyConnector::new(strategy)?.connect(host).await
     }
 
     #[inline]
@@ -34,7 +34,7 @@ impl ProxyStream {
         host: &HostAddress,
     ) -> Result<ProxyStream, Error> {
         let strategy = Arc::new(ProxyStrategy::Chained(proxies));
-        Ok(ProxyConnector::new(strategy)?.connect(host).await?)
+        ProxyConnector::new(strategy)?.connect(host).await
     }
 
     #[inline]

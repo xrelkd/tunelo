@@ -119,7 +119,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server.serve_with_shutdown(signal).await.context(error::RunSocksServer)?)
+                server.serve_with_shutdown(signal).await.context(error::RunSocksServer)
             })
         };
 
@@ -134,7 +134,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server.serve_with_shutdown(signal).await.context(error::RunHttpServer)?)
+                server.serve_with_shutdown(signal).await.context(error::RunHttpServer)
             })
         };
 
@@ -146,13 +146,13 @@ pub async fn run<P: AsRef<Path>>(
     }
 
     signal_handler::start(Box::new(move || {
-        let _ = shutdown_sender.shutdown();
+        shutdown_sender.shutdown();
     }));
 
     let handle = join_all(futs).await;
     let errors: Vec<_> = handle.into_iter().filter_map(Result::err).collect();
     if !errors.is_empty() {
-        return Err(Error::ErrorCollection { errors });
+        return Err(Error::Collection { errors });
     }
 
     Ok(())
@@ -264,11 +264,11 @@ pub struct ProxyChain {
 
 impl ProxyChain {
     pub fn from_json(json: &[u8]) -> Result<ProxyChain, Error> {
-        serde_json::from_slice(&json).context(error::ParseProxyChainJson)
+        serde_json::from_slice(json).context(error::ParseProxyChainJson)
     }
 
     pub fn from_toml(toml: &[u8]) -> Result<ProxyChain, Error> {
-        toml::from_slice(&toml).context(error::ParseProxyChainToml)
+        toml::from_slice(toml).context(error::ParseProxyChainToml)
     }
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
@@ -295,8 +295,8 @@ impl ProxyChain {
     }
 }
 
-impl Into<ProxyStrategy> for ProxyChain {
-    fn into(self) -> ProxyStrategy { ProxyStrategy::Chained(self.proxy_chain) }
+impl From<ProxyChain> for ProxyStrategy {
+    fn from(val: ProxyChain) -> Self { ProxyStrategy::Chained(val.proxy_chain) }
 }
 
 #[cfg(test)]
@@ -334,7 +334,7 @@ mod tests {
             ],
         };
 
-        assert_eq!(ProxyChain::from_json(&json.as_bytes()).unwrap(), chain);
+        assert_eq!(ProxyChain::from_json(json.as_bytes()).unwrap(), chain);
     }
 
     #[test]
@@ -375,7 +375,7 @@ port = 1080
             ],
         };
 
-        assert_eq!(ProxyChain::from_toml(&toml.as_bytes()).unwrap(), chain);
+        assert_eq!(ProxyChain::from_toml(toml.as_bytes()).unwrap(), chain);
     }
 
     #[test]
