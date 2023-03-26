@@ -29,7 +29,7 @@ tokio = { version = "0.2", features = ["full"] }
 tokio-rustls = { version = "0.14" }
 
 webpki = "0.21"
-webpki-roots = "0.20"
+webpki-roots = "0.21"
 
 trust-dns-resolver = "0.19"
 
