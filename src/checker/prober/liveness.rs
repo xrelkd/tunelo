@@ -8,7 +8,7 @@ use crate::{
 pub struct LivenessProber;
 
 impl Default for LivenessProber {
-    fn default() -> LivenessProber { LivenessProber }
+    fn default() -> Self { Self }
 }
 
 impl LivenessProber {
@@ -42,8 +42,10 @@ pub struct LivenessProberReport {
 
 impl LivenessProberReport {
     #[inline]
+    #[must_use]
     pub fn timeout() -> Self { Self { alive: false, error: Some(ReportError::Timeout) } }
 
     #[inline]
+    #[must_use]
     pub fn has_error(&self) -> bool { self.error.is_some() }
 }

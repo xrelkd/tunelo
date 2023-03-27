@@ -46,7 +46,7 @@ pub struct Transport<Stream> {
 }
 
 impl Transport<File> {
-    pub fn open_device<P>(path: P, filter: Arc<dyn HostFilter>) -> Transport<File>
+    pub fn open_device<P>(path: P, filter: Arc<dyn HostFilter>) -> Self
     where
         P: AsRef<Path>,
     {
@@ -81,25 +81,22 @@ impl Transport<File> {
         );
 
         let resolver = Arc::new(DummyResolver::new());
-        Transport { metrics, connector, resolver, filter }
+        Self { metrics, resolver, connector, filter }
     }
 
     #[inline]
-    pub fn dev_random(filter: Arc<dyn HostFilter>) -> Transport<File> {
+    pub fn dev_random(filter: Arc<dyn HostFilter>) -> Self {
         Self::open_device(Path::new("/dev/random"), filter)
     }
 
     #[inline]
-    pub fn dev_null(filter: Arc<dyn HostFilter>) -> Transport<File> {
+    pub fn dev_null(filter: Arc<dyn HostFilter>) -> Self {
         Self::open_device(Path::new("/dev/null"), filter)
     }
 }
 
 impl Transport<TcpStream> {
-    pub fn direct(
-        resolver: Arc<dyn Resolver>,
-        filter: Arc<dyn HostFilter>,
-    ) -> Transport<TcpStream> {
+    pub fn direct(resolver: Arc<dyn Resolver>, filter: Arc<dyn HostFilter>) -> Self {
         let metrics = TransportMetrics::new();
 
         let connector = connector::connect_fn(
@@ -123,14 +120,14 @@ impl Transport<TcpStream> {
             }),
         );
 
-        Transport { metrics, connector, resolver, filter }
+        Self { metrics, resolver, connector, filter }
     }
 
     pub fn proxy(
         resolver: Arc<dyn Resolver>,
         filter: Arc<dyn HostFilter>,
         strategy: Arc<ProxyStrategy>,
-    ) -> Result<Transport<TcpStream>, Error> {
+    ) -> Result<Self, Error> {
         let metrics = TransportMetrics::new();
 
         let (pass, denied_hosts) = filter.check_proxy_strategy(strategy.as_ref());
@@ -139,7 +136,7 @@ impl Transport<TcpStream> {
         }
 
         let connector = Arc::new(ProxyConnector::new(strategy)?);
-        Ok(Transport { metrics, connector, resolver, filter })
+        Ok(Self { metrics, resolver, connector, filter })
     }
 }
 
@@ -158,19 +155,24 @@ where
     Stream: Unpin + AsyncRead + AsyncWrite,
 {
     #[inline]
+    #[must_use]
     pub fn resolver(&self) -> Arc<dyn Resolver> { self.resolver.clone() }
 
     #[inline]
+    #[must_use]
     pub fn connector(&self) -> Arc<dyn Connector<Stream = Stream, Error = Error>> {
         self.connector.clone()
     }
 
     #[inline]
+    #[must_use]
     pub fn filter(&self) -> Arc<dyn HostFilter> { self.filter.clone() }
 
     #[inline]
-    pub fn metrics(&self) -> &TransportMetrics { &self.metrics }
+    #[must_use]
+    pub const fn metrics(&self) -> &TransportMetrics { &self.metrics }
 
+    #[must_use]
     pub fn stat_monitor(&self) -> TransportMetrics { self.metrics.clone() }
 
     pub async fn resolve_host(&self, host: &str) -> Result<IpAddr, Error> {

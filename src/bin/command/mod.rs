@@ -85,7 +85,7 @@ pub enum Commands {
 
 impl Default for Cli {
     #[inline]
-    fn default() -> Cli { Cli::parse() }
+    fn default() -> Self { Self::parse() }
 }
 
 impl Cli {

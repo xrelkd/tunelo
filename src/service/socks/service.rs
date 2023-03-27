@@ -30,7 +30,7 @@ where
         enable_tcp_connect: bool,
         enable_tcp_bind: bool,
         udp_associate_stream_tx: Option<Mutex<mpsc::Sender<(ClientStream, HostAddress)>>>,
-    ) -> Service<ClientStream, TransportStream> {
+    ) -> Self {
         let service_v4 = if supported_versions.contains(&SocksVersion::V4) {
             tracing::info!("SOCKS4a is supported");
             Some(v4::Service::new(
@@ -56,7 +56,7 @@ where
             None
         };
 
-        Service { service_v4, service_v5 }
+        Self { service_v4, service_v5 }
     }
 
     pub async fn dispatch(
@@ -74,7 +74,7 @@ where
                 None => Err(Error::UnsupportedSocksVersion { version: SocksVersion::V5 }),
             },
             Ok(version) => {
-                let _ = stream.shutdown().await;
+                let _unused = stream.shutdown().await;
                 Err(Error::InvalidSocksVersion { version })
             }
             Err(source) => {

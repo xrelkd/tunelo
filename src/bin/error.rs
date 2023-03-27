@@ -114,7 +114,7 @@ pub enum Error {
 }
 
 impl From<HostAddressError> for Error {
-    fn from(source: HostAddressError) -> Error { Error::ParseHostAddress { source } }
+    fn from(source: HostAddressError) -> Self { Self::ParseHostAddress { source } }
 }
 
 pub struct Errors<'a>(&'a Vec<Error>);
@@ -123,7 +123,7 @@ impl<'a> From<&'a Vec<Error>> for Errors<'a> {
     fn from(errors: &'a Vec<Error>) -> Errors<'a> { Errors(errors) }
 }
 
-impl<'a> fmt::Display for Errors<'a> {
+impl fmt::Display for Errors<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let errors = self.0.iter().map(ToString::to_string).collect::<Vec<_>>().join("\n");
         write!(f, "{errors}")

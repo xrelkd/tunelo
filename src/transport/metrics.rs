@@ -31,14 +31,14 @@ pub struct Counter {
 
 impl Counter {
     #[inline]
-    pub fn new(n: usize) -> Counter {
+    pub fn new(n: usize) -> Self {
         let current = Arc::new(AtomicUsize::new(n));
         let accumulated = Arc::new(AtomicUsize::new(n));
-        Counter { current, accumulated }
+        Self { current, accumulated }
     }
 
     #[inline]
-    pub fn zero() -> Counter { Counter::new(0) }
+    pub fn zero() -> Self { Self::new(0) }
 
     #[inline]
     pub fn increase(&self) -> usize {
@@ -60,9 +60,9 @@ pub struct CounterHelper(Counter);
 
 impl CounterHelper {
     #[inline]
-    pub fn count(counter: Counter) -> (CounterHelper, usize) {
+    pub fn count(counter: Counter) -> (Self, usize) {
         let prev = counter.increase();
-        (CounterHelper(counter), prev)
+        (Self(counter), prev)
     }
 }
 
@@ -79,7 +79,7 @@ impl Drop for CounterHelper {
 // Ordering::SeqCst); } }
 
 impl Default for TransportMetrics {
-    fn default() -> TransportMetrics {
+    fn default() -> Self {
         let received_bytes = Arc::new(AtomicUsize::new(0));
         let transmitted_bytes = Arc::new(AtomicUsize::new(0));
         let relay_counter = Counter::zero();
@@ -88,7 +88,7 @@ impl Default for TransportMetrics {
 
         let destinations = Arc::new(Mutex::new(HashSet::new()));
 
-        TransportMetrics {
+        Self {
             received_bytes,
             transmitted_bytes,
             relay_counter,
@@ -102,7 +102,7 @@ impl Default for TransportMetrics {
 
 impl TransportMetrics {
     #[inline]
-    pub fn new() -> TransportMetrics { Self::default() }
+    pub fn new() -> Self { Self::default() }
 
     #[inline]
     pub fn reset(&mut self) { *self = Self::new(); }

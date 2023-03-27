@@ -19,7 +19,7 @@ pub trait Resolver: Send + Sync {
 pub struct DummyResolver;
 
 impl DummyResolver {
-    pub fn new() -> DummyResolver { DummyResolver }
+    pub const fn new() -> Self { Self }
 }
 
 impl Resolver for DummyResolver {

@@ -175,7 +175,7 @@ pub struct Config {
 impl Config {
     impl_config_load!(Config);
 
-    fn merge(mut self, opts: Options) -> Config {
+    fn merge(mut self, opts: Options) -> Self {
         let Options {
             disable_socks4a,
             disable_socks5,
@@ -212,8 +212,8 @@ impl Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
-        Config {
+    fn default() -> Self {
+        Self {
             enable_socks4a: true,
             enable_socks5: true,
             enable_http: true,
@@ -264,41 +264,41 @@ pub struct ProxyChain {
 }
 
 impl ProxyChain {
-    pub fn from_json(json: &[u8]) -> Result<ProxyChain, Error> {
+    pub fn from_json(json: &[u8]) -> Result<Self, Error> {
         serde_json::from_slice(json).context(error::ParseProxyChainJsonSnafu)
     }
 
-    pub fn from_toml(toml: &[u8]) -> Result<ProxyChain, Error> {
+    pub fn from_toml(toml: &[u8]) -> Result<Self, Error> {
         let content = String::from_utf8_lossy(toml);
         toml::from_str(content.to_string().as_str()).context(error::ParseProxyChainTomlSnafu)
     }
 
-    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
+    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let file_path = file_path.as_ref();
         match file_path.extension() {
             None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             Some(ext) => match ext.to_str() {
-                Some("json") => ProxyChain::load_json_file(file_path),
-                Some("toml") => ProxyChain::load_toml_file(file_path),
+                Some("json") => Self::load_json_file(file_path),
+                Some("toml") => Self::load_toml_file(file_path),
                 Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
                 None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             },
         }
     }
 
-    pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
+    pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let content = std::fs::read(&file_path).context(error::LoadProxyChainFileSnafu)?;
         Self::from_json(&content)
     }
 
-    pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
+    pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let content = std::fs::read(&file_path).context(error::LoadProxyChainFileSnafu)?;
         Self::from_toml(&content)
     }
 }
 
 impl From<ProxyChain> for ProxyStrategy {
-    fn from(val: ProxyChain) -> Self { ProxyStrategy::Chained(val.proxy_chain) }
+    fn from(val: ProxyChain) -> Self { Self::Chained(val.proxy_chain) }
 }
 
 #[cfg(test)]

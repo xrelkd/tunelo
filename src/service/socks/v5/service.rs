@@ -38,7 +38,7 @@ where
         enable_tcp_connect: bool,
         enable_tcp_bind: bool,
         udp_associate_stream_tx: Option<Mutex<mpsc::Sender<(ClientStream, HostAddress)>>>,
-    ) -> Service<ClientStream, TransportStream> {
+    ) -> Self {
         let supported_commands = {
             let mut commands = HashSet::new();
             if enable_tcp_connect {
@@ -64,7 +64,7 @@ where
             commands
         };
 
-        Service { authentication_manager, transport, udp_associate_stream_tx, supported_commands }
+        Self { authentication_manager, transport, udp_associate_stream_tx, supported_commands }
     }
 
     #[inline]
@@ -118,10 +118,7 @@ where
                             .context(error::WriteStreamSnafu)?;
                         stream.flush().await.context(error::FlushStreamSnafu)?;
                         stream.shutdown().await.context(error::ShutdownSnafu)?;
-                        return Err(Error::ConnectRemoteHost {
-                            source,
-                            host: remote_host.to_owned(),
-                        });
+                        return Err(Error::ConnectRemoteHost { source, host: remote_host.clone() });
                     }
                 };
 
@@ -147,7 +144,7 @@ where
             Command::UdpAssociate => match self.udp_associate_stream_tx {
                 Some(ref tx) => {
                     let target_addr: HostAddress = request.destination_socket.into();
-                    let _ = tx.lock().await.send((stream, target_addr)).await;
+                    let _unused = tx.lock().await.send((stream, target_addr)).await;
                     Ok(())
                 }
                 None => unreachable!(),

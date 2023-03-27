@@ -27,8 +27,8 @@ impl TryFrom<u8> for SocksVersion {
 
     fn try_from(version: u8) -> Result<Self, Self::Error> {
         match version {
-            consts::SOCKS4_VERSION => Ok(SocksVersion::V4),
-            consts::SOCKS5_VERSION => Ok(SocksVersion::V5),
+            consts::SOCKS4_VERSION => Ok(Self::V4),
+            consts::SOCKS5_VERSION => Ok(Self::V5),
             version => Err(Error::InvalidSocksVersion { version }),
         }
     }
@@ -46,14 +46,15 @@ impl From<SocksVersion> for u8 {
 impl fmt::Display for SocksVersion {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            SocksVersion::V4 => write!(f, "SOCKS4"),
-            SocksVersion::V5 => write!(f, "SOCKS5"),
+            Self::V4 => write!(f, "SOCKS4"),
+            Self::V5 => write!(f, "SOCKS5"),
         }
     }
 }
 
 impl SocksVersion {
     #[inline]
+    #[must_use]
     pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
@@ -66,24 +67,25 @@ pub enum SocksCommand {
 
 impl SocksCommand {
     #[inline]
-    pub fn serialized_len(&self) -> usize { std::mem::size_of::<u8>() }
+    #[must_use]
+    pub const fn serialized_len(&self) -> usize { std::mem::size_of::<u8>() }
 }
 
 impl From<v4::Command> for SocksCommand {
-    fn from(cmd: v4::Command) -> SocksCommand {
+    fn from(cmd: v4::Command) -> Self {
         match cmd {
-            v4::Command::TcpConnect => SocksCommand::TcpConnect,
-            v4::Command::TcpBind => SocksCommand::TcpBind,
+            v4::Command::TcpConnect => Self::TcpConnect,
+            v4::Command::TcpBind => Self::TcpBind,
         }
     }
 }
 
 impl From<v5::Command> for SocksCommand {
-    fn from(cmd: v5::Command) -> SocksCommand {
+    fn from(cmd: v5::Command) -> Self {
         match cmd {
-            v5::Command::TcpConnect => SocksCommand::TcpConnect,
-            v5::Command::TcpBind => SocksCommand::TcpBind,
-            v5::Command::UdpAssociate => SocksCommand::UdpAssociate,
+            v5::Command::TcpConnect => Self::TcpConnect,
+            v5::Command::TcpBind => Self::TcpBind,
+            v5::Command::UdpAssociate => Self::UdpAssociate,
         }
     }
 }
@@ -91,9 +93,9 @@ impl From<v5::Command> for SocksCommand {
 impl std::fmt::Display for SocksCommand {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SocksCommand::TcpConnect => write!(f, "TCP Connect"),
-            SocksCommand::TcpBind => write!(f, "TCP Bind"),
-            SocksCommand::UdpAssociate => write!(f, "UDP Associate"),
+            Self::TcpConnect => write!(f, "TCP Connect"),
+            Self::TcpBind => write!(f, "TCP Bind"),
+            Self::UdpAssociate => write!(f, "UDP Associate"),
         }
     }
 }
@@ -107,6 +109,7 @@ pub enum AddressType {
 
 impl AddressType {
     #[inline]
+    #[must_use]
     pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
@@ -115,9 +118,9 @@ impl TryFrom<u8> for AddressType {
 
     fn try_from(version: u8) -> Result<Self, Self::Error> {
         match version {
-            consts::SOCKS5_ADDR_TYPE_IPV4 => Ok(AddressType::Ipv4),
-            consts::SOCKS5_ADDR_TYPE_IPV6 => Ok(AddressType::Ipv6),
-            consts::SOCKS5_ADDR_TYPE_DOMAIN_NAME => Ok(AddressType::Domain),
+            consts::SOCKS5_ADDR_TYPE_IPV4 => Ok(Self::Ipv4),
+            consts::SOCKS5_ADDR_TYPE_IPV6 => Ok(Self::Ipv6),
+            consts::SOCKS5_ADDR_TYPE_DOMAIN_NAME => Ok(Self::Domain),
             ty => Err(Error::InvalidAddressType { ty }),
         }
     }
@@ -137,7 +140,7 @@ impl From<AddressType> for u8 {
 pub struct Address(HostAddress);
 
 impl Address {
-    pub fn from_bytes(buf: &mut [u8]) -> Result<(Address, usize), Error> {
+    pub fn from_bytes(buf: &mut [u8]) -> Result<(Self, usize), Error> {
         use byteorder::{BigEndian, ReadBytesExt};
         use std::io::Read;
 
@@ -165,12 +168,12 @@ impl Address {
                 rdr.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
-                Ok((Address::new_domain(&host, port), rdr.position() as usize))
+                Ok((Self::new_domain(&host, port), rdr.position() as usize))
             }
         }
     }
 
-    pub async fn from_reader<R>(rdr: &mut R) -> Result<Address, Error>
+    pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
@@ -200,49 +203,60 @@ impl Address {
                 rdr.read_exact(&mut host).await.context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
-                Ok(Address::new_domain(&host, port))
+                Ok(Self::new_domain(&host, port))
             }
         }
     }
 
     #[inline]
-    pub fn max_len() -> usize {
+    #[must_use]
+    pub const fn max_len() -> usize {
         AddressType::serialized_len() + std::mem::size_of::<u8>() + 256 + std::mem::size_of::<u16>()
     }
 
     #[inline]
+    #[must_use]
     pub fn serialized_len(&self, socks_version: SocksVersion) -> usize {
         AddressRef(&self.0).serialized_len(socks_version)
     }
 
+    #[must_use]
     pub fn to_bytes(&self, socks_version: SocksVersion) -> Vec<u8> {
         AddressRef(&self.0).to_bytes(socks_version)
     }
 
+    #[must_use]
     pub fn into_bytes(self, socks_version: SocksVersion) -> Vec<u8> { self.to_bytes(socks_version) }
 
-    pub fn new_domain(host: &[u8], port: u16) -> Address {
-        Address(HostAddress::DomainName(String::from_utf8_lossy(host).into_owned(), port))
+    #[must_use]
+    pub fn new_domain(host: &[u8], port: u16) -> Self {
+        Self(HostAddress::DomainName(String::from_utf8_lossy(host).into_owned(), port))
     }
 
     #[inline]
+    #[must_use]
     pub fn empty_domain() -> Self { Self::from(HostAddress::empty_domain()) }
 
     #[inline]
+    #[must_use]
     pub fn empty_ipv4() -> Self { Self::from(HostAddress::empty_ipv4()) }
 
     #[inline]
+    #[must_use]
     pub fn empty_ipv6() -> Self { Self::from(HostAddress::empty_ipv6()) }
 
     #[inline]
+    #[must_use]
     pub fn port(&self) -> u16 { self.0.port() }
 
     #[inline]
     pub fn set_port(&mut self, port: u16) { self.0.set_port(port); }
 
+    #[must_use]
     pub fn address_type(&self) -> AddressType { AddressRef(&self.0).address_type() }
 
     #[inline]
+    #[must_use]
     pub fn into_inner(self) -> HostAddress { self.0 }
 }
 
@@ -257,8 +271,9 @@ impl<'a> From<AddressRef<'a>> for &'a HostAddress {
     fn from(val: AddressRef<'a>) -> Self { val.0 }
 }
 
-impl<'a> AddressRef<'a> {
+impl AddressRef<'_> {
     #[inline]
+    #[must_use]
     pub const fn address_type(&self) -> AddressType {
         match &self.0 {
             HostAddress::Socket(SocketAddr::V4(_)) => AddressType::Ipv4,
@@ -268,6 +283,7 @@ impl<'a> AddressRef<'a> {
     }
 
     #[inline]
+    #[must_use]
     pub fn serialized_len(&self, socks_version: SocksVersion) -> usize {
         match (socks_version, self.0) {
             (SocksVersion::V4, HostAddress::Socket(SocketAddr::V4(_))) => {

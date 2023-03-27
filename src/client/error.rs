@@ -52,5 +52,5 @@ pub enum Error {
 }
 
 impl From<handshake::Error> for Error {
-    fn from(source: handshake::Error) -> Error { Error::Handshake { source } }
+    fn from(source: handshake::Error) -> Self { Self::Handshake { source } }
 }

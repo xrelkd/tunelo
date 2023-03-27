@@ -18,12 +18,12 @@ pub struct AuthenticationManager {
 
 impl AuthenticationManager {
     #[inline]
-    pub fn new() -> AuthenticationManager {
-        AuthenticationManager { user_list: HashMap::default() }
-    }
+    #[must_use]
+    pub fn new() -> Self { Self { user_list: HashMap::default() } }
 
     #[inline]
-    pub fn supported_method(&self, _addr: &SocketAddr) -> AuthenticationMethod {
+    #[must_use]
+    pub const fn supported_method(&self, _addr: &SocketAddr) -> AuthenticationMethod {
         AuthenticationMethod::NoAuthentication
     }
 
@@ -36,7 +36,7 @@ impl AuthenticationManager {
                 }
             }
             Authentication::Token { token } => {
-                let _ = token;
+                let _unused = token;
                 // TODO
                 false
             }

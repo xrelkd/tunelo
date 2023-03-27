@@ -20,10 +20,10 @@ pub struct ProxyConnector {
 
 impl ProxyConnector {
     #[inline]
-    pub fn new(proxy_strategy: Arc<ProxyStrategy>) -> Result<ProxyConnector, Error> {
+    pub fn new(proxy_strategy: Arc<ProxyStrategy>) -> Result<Self, Error> {
         let connector = client::ProxyConnector::new(proxy_strategy)
             .context(error::CreateProxyConnectorSnafu)?;
-        Ok(ProxyConnector { connector })
+        Ok(Self { connector })
     }
 }
 

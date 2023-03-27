@@ -1,12 +1,12 @@
-use std::sync::atomic;
-
-pub static SHUTDOWN: atomic::AtomicBool = atomic::AtomicBool::new(false);
-
 mod command;
 mod consts;
 mod error;
 mod shutdown;
 mod signal_handler;
+
+use std::sync::atomic;
+
+pub static SHUTDOWN: atomic::AtomicBool = atomic::AtomicBool::new(false);
 
 use self::command::Cli;
 

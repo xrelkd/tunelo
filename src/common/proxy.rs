@@ -30,6 +30,7 @@ pub enum ProxyHost {
 }
 
 impl ProxyHost {
+    #[must_use]
     pub fn host(&self) -> &str {
         match self {
             Self::HttpTunnel { host, .. } => host,
@@ -38,7 +39,8 @@ impl ProxyHost {
         }
     }
 
-    pub fn port(&self) -> u16 {
+    #[must_use]
+    pub const fn port(&self) -> u16 {
         match *self {
             Self::HttpTunnel { port, .. } => port,
             Self::Socks4a { port, .. } => port,
@@ -46,13 +48,15 @@ impl ProxyHost {
         }
     }
 
+    #[must_use]
     pub fn host_address(&self) -> HostAddress {
         let port = self.port();
         let host = self.host();
         HostAddress::new(host, port)
     }
 
-    pub fn proxy_type_str(&self) -> &str {
+    #[must_use]
+    pub const fn proxy_type_str(&self) -> &str {
         match self {
             Self::Socks4a { .. } => "socks4a",
             Self::Socks5 { .. } => "socks5",
@@ -85,9 +89,9 @@ impl FromStr for ProxyHost {
 impl fmt::Display for ProxyHost {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ProxyHost::Socks4a { host, port, .. } => write!(f, "socks4a://{host}:{port}"),
-            ProxyHost::Socks5 { host, port, .. } => write!(f, "socks5://{host}:{port}"),
-            ProxyHost::HttpTunnel { host, port, .. } => write!(f, "http://{host}:{port}"),
+            Self::Socks4a { host, port, .. } => write!(f, "socks4a://{host}:{port}"),
+            Self::Socks5 { host, port, .. } => write!(f, "socks5://{host}:{port}"),
+            Self::HttpTunnel { host, port, .. } => write!(f, "http://{host}:{port}"),
         }
     }
 }
@@ -116,8 +120,8 @@ pub enum ProxyHostError {
 impl fmt::Display for ProxyStrategy {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ProxyStrategy::Single(proxy) => write!(f, "{proxy}"),
-            ProxyStrategy::Chained(chain) => {
+            Self::Single(proxy) => write!(f, "{proxy}"),
+            Self::Chained(chain) => {
                 let text = chain.iter().map(ToString::to_string).collect::<Vec<_>>().join(" ➔ ");
                 write!(f, "[{text}]")
             }

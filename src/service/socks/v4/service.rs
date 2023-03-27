@@ -34,7 +34,7 @@ where
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
         enable_tcp_connect: bool,
         enable_tcp_bind: bool,
-    ) -> Service<ClientStream, TransportStream> {
+    ) -> Self {
         let supported_commands = {
             let mut commands = HashSet::new();
             if enable_tcp_connect {
@@ -53,7 +53,7 @@ where
             commands
         };
 
-        Service {
+        Self {
             supported_commands,
             transport,
             _authentication_manager: authentication_manager,
@@ -102,10 +102,7 @@ where
                             .context(error::WriteStreamSnafu)?;
                         stream.shutdown().await.context(error::ShutdownSnafu)?;
 
-                        return Err(Error::ConnectRemoteHost {
-                            source,
-                            host: remote_host.to_owned(),
-                        });
+                        return Err(Error::ConnectRemoteHost { source, host: remote_host.clone() });
                     }
                 };
 

@@ -18,11 +18,12 @@ pub struct Datagram {
 
 impl Datagram {
     #[inline]
-    pub fn new(frag: u8, destination_socket: Address, data: BytesMut) -> Datagram {
-        Datagram { frag, destination_socket, data }
+    #[must_use]
+    pub fn new(frag: u8, destination_socket: Address, data: BytesMut) -> Self {
+        Self { frag, destination_socket, data }
     }
 
-    pub fn from_bytes(input: &[u8]) -> Result<Datagram, Error> {
+    pub fn from_bytes(input: &[u8]) -> Result<Self, Error> {
         use byteorder::{BigEndian, ReadBytesExt};
         use std::io::{Cursor, Read};
 
@@ -65,10 +66,11 @@ impl Datagram {
 
         let mut data = BytesMut::new();
         input.read(&mut data[..]).context(error::ReadStreamSnafu)?;
-        Ok(Datagram { frag, destination_socket, data })
+        Ok(Self { frag, destination_socket, data })
     }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> {
         let mut buf = self.header_internal(true);
         buf.extend(&self.data);
@@ -76,15 +78,19 @@ impl Datagram {
     }
 
     #[inline]
+    #[must_use]
     pub fn header(&self) -> Vec<u8> { self.header_internal(false) }
 
     #[inline]
+    #[must_use]
     pub fn data(&self) -> &[u8] { self.data.as_ref() }
 
     #[inline]
-    pub fn frag(&self) -> u8 { self.frag }
+    #[must_use]
+    pub const fn frag(&self) -> u8 { self.frag }
 
     #[inline]
+    #[must_use]
     pub fn destination_address(&self) -> &HostAddress { self.destination_socket.as_ref() }
 
     fn header_internal(&self, extensible: bool) -> Vec<u8> {
@@ -103,6 +109,7 @@ impl Datagram {
     }
 
     #[inline]
+    #[must_use]
     pub fn destruct(self) -> (u8, HostAddress, BytesMut) {
         (self.frag, self.destination_socket.into(), self.data)
     }

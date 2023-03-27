@@ -99,30 +99,30 @@ mod report {
     }
 
     impl From<Error> for ReportError {
-        fn from(err: Error) -> ReportError {
+        fn from(err: Error) -> Self {
             match err {
                 Error::ConnectProxyServer { source } => {
-                    ReportError::ConnectProxyServer { message: source.to_string() }
+                    Self::ConnectProxyServer { message: source.to_string() }
                 }
                 Error::InitializeTlsStream { source } => {
-                    ReportError::InitializeTlsStream { message: source.to_string() }
+                    Self::InitializeTlsStream { message: source.to_string() }
                 }
-                Error::Shutdown { source } => ReportError::Shutdown { message: source.to_string() },
-                Error::NoHostProvided => ReportError::NoHostProvided,
-                Error::NoPortProvided => ReportError::NoPortProvided,
-                Error::NoPathProvided => ReportError::NoPathProvided,
-                Error::UnknownScheme { scheme } => ReportError::UnknownScheme { scheme },
+                Error::Shutdown { source } => Self::Shutdown { message: source.to_string() },
+                Error::NoHostProvided => Self::NoHostProvided,
+                Error::NoPortProvided => Self::NoPortProvided,
+                Error::NoPathProvided => Self::NoPathProvided,
+                Error::UnknownScheme { scheme } => Self::UnknownScheme { scheme },
                 Error::ReadHttpResponse { source } => {
-                    ReportError::ReadHttpResponse { message: source.to_string() }
+                    Self::ReadHttpResponse { message: source.to_string() }
                 }
                 Error::WriteHttpRequest { source } => {
-                    ReportError::WriteHttpRequest { message: source.to_string() }
+                    Self::WriteHttpRequest { message: source.to_string() }
                 }
-                Error::ParseHttpRequest { source } => ReportError::ParseHttpRequest { source },
-                Error::ParseHttpResponse { source } => ReportError::ParseHttpResponse { source },
-                Error::IncompleteHttpResponse => ReportError::IncompleteHttpResponse,
-                Error::InvalidDnsName { dns_name, .. } => ReportError::InvalidDnsName { dns_name },
-                Error::Timeout => ReportError::Timeout,
+                Error::ParseHttpRequest { source } => Self::ParseHttpRequest { source },
+                Error::ParseHttpResponse { source } => Self::ParseHttpResponse { source },
+                Error::IncompleteHttpResponse => Self::IncompleteHttpResponse,
+                Error::InvalidDnsName { dns_name, .. } => Self::InvalidDnsName { dns_name },
+                Error::Timeout => Self::Timeout,
             }
         }
     }

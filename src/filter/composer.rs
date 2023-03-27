@@ -12,6 +12,7 @@ pub struct ComposerFilter {
 
 impl ComposerFilter {
     #[inline]
+    #[must_use]
     pub fn new() -> Self { Self::default() }
 
     #[inline]
@@ -26,6 +27,7 @@ impl ComposerFilter {
     }
 
     #[inline]
+    #[must_use]
     pub fn destruct(self) -> Vec<Arc<dyn HostFilter>> { self.filters }
 }
 

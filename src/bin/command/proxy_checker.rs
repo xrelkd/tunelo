@@ -106,7 +106,7 @@ where
             let r = report.liveness_report();
 
             let alive = r.alive.to_string();
-            let err = r.error.as_ref().map(|e| e.to_string()).unwrap_or_default();
+            let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
             let proxy_server = &report.proxy_server;
             let proxy_server_url = proxy_server.to_string();
             table.add_row(vec![
@@ -118,7 +118,7 @@ where
                 err,
             ]);
 
-            writeln!(writer, "{}", table)?;
+            writeln!(writer, "{table}")?;
         }
 
         if report.basic_report_count() != 0 {
@@ -132,12 +132,13 @@ where
 
             for r in report.basic_reports() {
                 let destination_reachable = r.destination_reachable.to_string();
-                let destination = r.destination.as_ref().map(|d| d.to_string()).unwrap_or_default();
-                let err = r.error.as_ref().map(|e| e.to_string()).unwrap_or_default();
+                let destination =
+                    r.destination.as_ref().map(ToString::to_string).unwrap_or_default();
+                let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
                 table.add_row(vec![String::new(), destination, destination_reachable, err]);
             }
 
-            writeln!(writer, "{}", table)?;
+            writeln!(writer, "{table}")?;
         }
 
         if report.http_report_count() != 0 {
@@ -151,19 +152,16 @@ where
             ]);
 
             for r in report.http_reports() {
-                let method = r.method.as_ref().map(|m| m.to_string()).unwrap_or_default();
-                let response_code = r
-                    .response_code
-                    .as_ref()
-                    .map(|n| n.to_string())
-                    .unwrap_or_else(|| "N/A".to_owned());
-                let url = r.url.as_ref().map(|u| u.to_string()).unwrap_or_default();
-                let err = r.error.as_ref().map(|e| e.to_string()).unwrap_or_default();
+                let method = r.method.as_ref().map(ToString::to_string).unwrap_or_default();
+                let response_code =
+                    r.response_code.as_ref().map_or_else(|| "N/A".to_owned(), ToString::to_string);
+                let url = r.url.as_ref().map(ToString::to_string).unwrap_or_default();
+                let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
 
                 table.add_row(vec![String::new(), method, url, response_code, err]);
             }
 
-            writeln!(writer, "{}", table)?;
+            writeln!(writer, "{table}")?;
         }
     }
 
@@ -181,7 +179,7 @@ pub struct Config {
 impl Config {
     impl_config_load!(Config);
 
-    fn merge(mut self, opts: Options) -> Config {
+    fn merge(mut self, opts: Options) -> Self {
         if !opts.proxy_servers.is_empty() {
             self.proxy_servers = opts.proxy_servers;
         }
@@ -203,7 +201,7 @@ impl Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
+    fn default() -> Self {
         let probers = vec![
             ProberConfig::Liveness,
             ProberConfig::HttpGet {
@@ -211,7 +209,7 @@ impl Default for Config {
                 expected_response_code: 200,
             },
         ];
-        Config {
+        Self {
             proxy_servers: vec![],
             proxy_server_file: None,
             probers,
@@ -252,7 +250,7 @@ impl FromStr for ProberConfig {
     type Err = Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let parts: Vec<_> = s.split(',').map(|s| s.trim()).collect();
+        let parts: Vec<_> = s.split(',').map(str::trim).collect();
 
         let probe_type = parts[0].to_lowercase();
         if probe_type.starts_with("http") {
@@ -265,9 +263,9 @@ impl FromStr for ProberConfig {
                 parts[2].parse().map_err(|_| Error::InvalidProxyProber { prober: s.to_owned() })?;
 
             let prober = match probe_type.as_str() {
-                "http-get" => ProberConfig::HttpGet { url, expected_response_code },
-                "http-head" => ProberConfig::HttpHead { url, expected_response_code },
-                "http-delete" => ProberConfig::HttpDelete { url, expected_response_code },
+                "http-get" => Self::HttpGet { url, expected_response_code },
+                "http-head" => Self::HttpHead { url, expected_response_code },
+                "http-delete" => Self::HttpDelete { url, expected_response_code },
                 _ => {
                     return Err(Error::InvalidProxyProber { prober: s.to_owned() });
                 }
@@ -276,13 +274,13 @@ impl FromStr for ProberConfig {
         }
 
         match probe_type.as_str() {
-            "liveness" => Ok(ProberConfig::Liveness),
+            "liveness" => Ok(Self::Liveness),
             "basic" => {
                 if parts.len() < 2 {
                     return Err(Error::InvalidProxyProber { prober: s.to_owned() });
                 }
                 let destination_address = HostAddress::from_str(parts[1])?;
-                Ok(ProberConfig::Basic { destination_address })
+                Ok(Self::Basic { destination_address })
             }
             _ => Err(Error::InvalidProxyProber { prober: s.to_owned() }),
         }
@@ -303,17 +301,15 @@ impl TryInto<Prober> for ProberConfig {
         }
 
         match self {
-            ProberConfig::Liveness => Ok(LivenessProber::default().into()),
-            ProberConfig::Basic { destination_address } => {
-                Ok(BasicProber::new(destination_address).into())
-            }
-            ProberConfig::HttpGet { url, expected_response_code } => {
+            Self::Liveness => Ok(LivenessProber::default().into()),
+            Self::Basic { destination_address } => Ok(BasicProber::new(destination_address).into()),
+            Self::HttpGet { url, expected_response_code } => {
                 Ok(HttpProber::get(try_parse_url!(url), expected_response_code).into())
             }
-            ProberConfig::HttpHead { url, expected_response_code } => {
+            Self::HttpHead { url, expected_response_code } => {
                 Ok(HttpProber::head(try_parse_url!(url), expected_response_code).into())
             }
-            ProberConfig::HttpDelete { url, expected_response_code } => {
+            Self::HttpDelete { url, expected_response_code } => {
                 Ok(HttpProber::delete(try_parse_url!(url), expected_response_code).into())
             }
         }
@@ -327,47 +323,47 @@ pub struct ProxyServerFile {
 }
 
 impl ProxyServerFile {
-    pub fn from_text(text: &str) -> Result<ProxyServerFile, Error> {
+    pub fn from_text(text: &str) -> Result<Self, Error> {
         let proxy_servers =
             text.lines().map(str::trim).filter_map(|line| ProxyHost::from_str(line).ok()).collect();
-        Ok(ProxyServerFile { proxy_servers })
+        Ok(Self { proxy_servers })
     }
 
-    pub fn from_json(json: &[u8]) -> Result<ProxyServerFile, Error> {
+    pub fn from_json(json: &[u8]) -> Result<Self, Error> {
         serde_json::from_slice(json).context(error::ParseProxyServerJsonSnafu)
     }
 
-    pub fn from_toml(toml: &[u8]) -> Result<ProxyServerFile, Error> {
+    pub fn from_toml(toml: &[u8]) -> Result<Self, Error> {
         let content = String::from_utf8_lossy(toml);
         toml::from_str(content.to_string().as_str()).context(error::ParseProxyServerTomlSnafu)
     }
 
-    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
+    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let file_path = file_path.as_ref();
         match file_path.extension() {
             None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             Some(ext) => match ext.to_str() {
-                Some("txt") => ProxyServerFile::load_text_file(file_path),
-                Some("json") => ProxyServerFile::load_json_file(file_path),
-                Some("toml") => ProxyServerFile::load_toml_file(file_path),
+                Some("txt") => Self::load_text_file(file_path),
+                Some("json") => Self::load_json_file(file_path),
+                Some("toml") => Self::load_toml_file(file_path),
                 Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
                 None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             },
         }
     }
 
-    pub fn load_text_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
+    pub fn load_text_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let content =
             std::fs::read_to_string(&file_path).context(error::LoadProxyServerFileSnafu)?;
         Self::from_text(&content)
     }
 
-    pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
+    pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let content = std::fs::read(&file_path).context(error::LoadProxyServerFileSnafu)?;
         Self::from_json(&content)
     }
 
-    pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyServerFile, Error> {
+    pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let content = std::fs::read(&file_path).context(error::LoadProxyServerFileSnafu)?;
         Self::from_toml(&content)
     }
@@ -392,7 +388,7 @@ socks4a://45.5.94.34:56731
 socks5://50.30.24.217:54321
 "#;
 
-        use ProxyHost::*;
+        use ProxyHost::{HttpTunnel, Socks4a, Socks5};
         let file = ProxyServerFile {
             proxy_servers: vec![
                 Socks4a { host: "50.235.92.65".to_owned(), port: 32100, id: None },

@@ -15,15 +15,15 @@ pub struct ProxyStream {
 
 impl ProxyStream {
     #[inline]
-    pub fn from_raw(socket: TcpStream, strategy: Arc<ProxyStrategy>) -> ProxyStream {
-        ProxyStream { socket, strategy }
+    pub fn from_raw(socket: TcpStream, strategy: Arc<ProxyStrategy>) -> Self {
+        Self { socket, strategy }
     }
 
     #[inline]
     pub async fn connect_with_proxy(
         proxy_host: &ProxyHost,
         host: &HostAddress,
-    ) -> Result<ProxyStream, Error> {
+    ) -> Result<Self, Error> {
         let strategy = Arc::new(ProxyStrategy::Single(proxy_host.clone()));
         ProxyConnector::new(strategy)?.connect(host).await
     }
@@ -32,7 +32,7 @@ impl ProxyStream {
     pub async fn connect_with_proxy_chain(
         proxies: Vec<ProxyHost>,
         host: &HostAddress,
-    ) -> Result<ProxyStream, Error> {
+    ) -> Result<Self, Error> {
         let strategy = Arc::new(ProxyStrategy::Chained(proxies));
         ProxyConnector::new(strategy)?.connect(host).await
     }

@@ -21,7 +21,7 @@ use crate::{
     transport::Transport,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct ServerOptions {
     pub supported_versions: HashSet<SocksVersion>,
     pub supported_commands: HashSet<SocksCommand>,
@@ -35,8 +35,8 @@ pub struct ServerOptions {
 }
 
 impl Default for ServerOptions {
-    fn default() -> ServerOptions {
-        ServerOptions {
+    fn default() -> Self {
+        Self {
             supported_versions: HashSet::from_iter([SocksVersion::V4, SocksVersion::V5]),
             supported_commands: HashSet::from_iter([SocksCommand::TcpConnect]),
             listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST),
@@ -50,6 +50,7 @@ impl Default for ServerOptions {
 }
 
 impl ServerOptions {
+    #[must_use]
     pub fn listen_socket(&self) -> SocketAddr {
         SocketAddr::new(self.listen_address, self.listen_port)
     }
@@ -85,7 +86,7 @@ impl Server {
         config: ServerOptions,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
-    ) -> Server {
+    ) -> Self {
         let tcp_address = config.listen_socket();
         let connection_timeout = safe_duration(config.connection_timeout);
         let tcp_keepalive = safe_duration(config.tcp_keepalive);
@@ -94,7 +95,7 @@ impl Server {
         let udp_timeout = Some(Duration::from_secs(10));
         let udp_session_time = Duration::from_secs(10);
 
-        Server {
+        Self {
             authentication_manager,
             transport,
 
@@ -172,7 +173,7 @@ impl Server {
                         // FIXME: enable `TimedStream`, `MonitoredStream`
                         // let socket = TimedStream::new(socket, connection_timeout);
                         // let socket = MonitoredStream::new(socket, stat_monitor);
-                        let _ = service.dispatch(socket, socket_addr).await;
+                        let _unused = service.dispatch(socket, socket_addr).await;
                     });
                 }
                 Err(source) => {
