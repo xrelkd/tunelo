@@ -3,11 +3,13 @@ name: Rust
 on:
   push:
     branches:
-      - ci/*
-      - develop
-      - hostfix/*
       - main
+      - develop
       - release/*
+      - hotfix/*
+      - feature/*
+      - ci/*
+
   pull_request:
     paths:
       - "src/**"
