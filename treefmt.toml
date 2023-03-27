@@ -1,7 +1,6 @@
 [formatter.rust]
 command = "cargo"
 options = [
-  "+nightly-2023-03-25",
   "fmt",
   "--all",
   "--verbose",
