@@ -5,7 +5,7 @@ IFS=$'\n\t'
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# shellcheck source=/dev-support/lib/logging
+# shellcheck source=/dev/null
 . "${SCRIPT_DIR}"/../lib/logging
 
 if type uname >/dev/null 2>&1; then

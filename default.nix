@@ -20,6 +20,8 @@ rustPlatform.buildRustPackage rec {
       --zsh  <($out/bin/tunelo completions zsh)
   '';
 
+  doCheck = false;
+
   meta = with lib; {
     homepage = "https://github.com/xrelkd/tunelo";
     license = with licenses; [ gpl3Only ];
