@@ -1,24 +1,13 @@
-{ lib
+{ cargoArgs
+, unitTestArgs
+, lib
 , writeShellScriptBin
 ,
 }:
 
 let
-  CARGO_ARGS = [
-    "--workspace"
-    "--bins"
-    "--examples"
-    "--tests"
-    "--benches"
-    "--all-targets"
-  ];
-
-  UNIT_TEST_ARGS = [
-    "--workspace"
-  ];
-
-  CARGO_ARGUMENTS = lib.strings.concatMapStrings (x: x + " ") CARGO_ARGS;
-  UNIT_TEST_ARGUMENTS = lib.strings.concatMapStrings (x: x + " ") UNIT_TEST_ARGS;
+  CARGO_ARGUMENTS = lib.strings.concatMapStrings (x: x + " ") cargoArgs;
+  UNIT_TEST_ARGUMENTS = lib.strings.concatMapStrings (x: x + " ") unitTestArgs;
 in
 {
   cargo-build-all = writeShellScriptBin "cargo-build-all" ''

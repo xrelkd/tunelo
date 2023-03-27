@@ -1,15 +1,17 @@
-{ lib
+{ name
+, version
+, lib
 , rustPlatform
 , installShellFiles
 }:
 
 rustPlatform.buildRustPackage rec {
-  pname = "tunelo";
-  version = "0.1.8";
+  pname = name;
+  inherit version;
 
-  src = lib.cleanSource ./.;
+  src = lib.cleanSource ./..;
 
-  cargoLock.lockFile = ./Cargo.lock;
+  cargoLock.lockFile = ../Cargo.lock;
 
   nativeBuildInputs = [ installShellFiles ];
 

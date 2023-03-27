@@ -1,10 +1,12 @@
-{ pkgs
+{ cargoArgs
+, unitTestArgs
+, pkgs
 , writeShellScriptBin
 , ...
 }:
 
 let
-  cargo-ext = pkgs.callPackage ./cargo-ext.nix { };
+  cargo-ext = pkgs.callPackage ./cargo-ext.nix { inherit cargoArgs unitTestArgs; };
 in
 pkgs.mkShell rec {
   name = "dev-shell";
