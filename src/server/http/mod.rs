@@ -24,12 +24,13 @@ pub struct ServerOptions {
 }
 
 impl Default for ServerOptions {
-    fn default() -> ServerOptions {
-        ServerOptions { listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST), listen_port: 8118 }
+    fn default() -> Self {
+        Self { listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST), listen_port: 8118 }
     }
 }
 
 impl ServerOptions {
+    #[must_use]
     pub fn listen_socket(&self) -> SocketAddr {
         SocketAddr::new(self.listen_address, self.listen_port)
     }
@@ -47,10 +48,10 @@ impl Server {
         config: ServerOptions,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
-    ) -> Server {
+    ) -> Self {
         let tcp_address = SocketAddr::new(config.listen_address, config.listen_port);
 
-        Server { tcp_address, transport, authentication_manager }
+        Self { tcp_address, transport, authentication_manager }
     }
 
     pub async fn serve_with_shutdown<F: std::future::Future<Output = ()>>(

@@ -33,8 +33,8 @@ where
     pub fn new(
         transport: Arc<Transport<TransportStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
-    ) -> Service<TransportStream> {
-        Service { transport, _authentication_manager: authentication_manager }
+    ) -> Self {
+        Self { transport, _authentication_manager: authentication_manager }
     }
 
     fn parse_header(buf: &mut BytesMut) -> Result<Option<ParsedMessage>, Error> {

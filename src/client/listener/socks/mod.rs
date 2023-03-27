@@ -4,5 +4,5 @@ use crate::client::Error;
 pub struct Socks5Listener {}
 
 impl Socks5Listener {
-    pub fn new() -> Result<Socks5Listener, Error> { Ok(Socks5Listener {}) }
+    pub fn new() -> Result<Self, Error> { Ok(Self {}) }
 }

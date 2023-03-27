@@ -17,9 +17,7 @@ pub struct ProxyConnector {
 }
 
 impl ProxyConnector {
-    pub fn new(strategy: Arc<ProxyStrategy>) -> Result<Self, Error> {
-        Ok(ProxyConnector { strategy })
-    }
+    pub fn new(strategy: Arc<ProxyStrategy>) -> Result<Self, Error> { Ok(Self { strategy }) }
 
     pub async fn connect(&self, host: &HostAddress) -> Result<ProxyStream, Error> {
         let strategy = self.strategy.clone();

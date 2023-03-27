@@ -20,19 +20,20 @@ pub enum Prober {
 }
 
 impl Prober {
-    pub fn precedence(&self) -> usize {
+    #[must_use]
+    pub const fn precedence(&self) -> usize {
         match self {
-            Prober::Liveness(_) => 0,
-            Prober::Basic(_) => 1,
-            Prober::Http(_) => 2,
+            Self::Liveness(_) => 0,
+            Self::Basic(_) => 1,
+            Self::Http(_) => 2,
         }
     }
 
     fn timeout_report(&self) -> ProberReport {
         match self {
-            Prober::Liveness(_) => LivenessProberReport::timeout().into(),
-            Prober::Basic(p) => BasicProberReport::timeout(p.destination().clone()).into(),
-            Prober::Http(p) => HttpProberReport::timeout(p.method(), p.url().clone()).into(),
+            Self::Liveness(_) => LivenessProberReport::timeout().into(),
+            Self::Basic(p) => BasicProberReport::timeout(p.destination().clone()).into(),
+            Self::Http(p) => HttpProberReport::timeout(p.method(), p.url().clone()).into(),
         }
     }
 
@@ -51,8 +52,8 @@ impl Prober {
 
     async fn probe_internal(self, proxy_server: &ProxyHost) -> ProberReport {
         match self {
-            Prober::Liveness(prober) => ProberReport::Liveness(prober.probe(proxy_server).await),
-            Prober::Basic(prober) => {
+            Self::Liveness(prober) => ProberReport::Liveness(prober.probe(proxy_server).await),
+            Self::Basic(prober) => {
                 let mut report = BasicProberReport::default();
                 match prober.probe(proxy_server, &mut report).await {
                     Ok(_) => ProberReport::Basic(report),
@@ -62,7 +63,7 @@ impl Prober {
                     }
                 }
             }
-            Prober::Http(prober) => {
+            Self::Http(prober) => {
                 let mut report = HttpProberReport::default();
                 match prober.probe(proxy_server, &mut report).await {
                     Ok(_) => ProberReport::Http(report),
@@ -108,19 +109,21 @@ pub enum ProberReport {
 }
 
 impl ProberReport {
-    pub fn precedence(&self) -> usize {
+    #[must_use]
+    pub const fn precedence(&self) -> usize {
         match self {
-            ProberReport::Liveness(_) => 0,
-            ProberReport::Basic(_) => 1,
-            ProberReport::Http(_) => 2,
+            Self::Liveness(_) => 0,
+            Self::Basic(_) => 1,
+            Self::Http(_) => 2,
         }
     }
 
+    #[must_use]
     pub fn has_error(&self) -> bool {
         match self {
-            ProberReport::Liveness(r) => r.has_error(),
-            ProberReport::Basic(r) => r.has_error(),
-            ProberReport::Http(r) => r.has_error(),
+            Self::Liveness(r) => r.has_error(),
+            Self::Basic(r) => r.has_error(),
+            Self::Http(r) => r.has_error(),
         }
     }
 }

@@ -21,9 +21,9 @@ pub enum HttpMethod {
 impl fmt::Display for HttpMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            HttpMethod::Get => write!(f, "GET"),
-            HttpMethod::Head => write!(f, "HEAD"),
-            HttpMethod::Delete => write!(f, "DELETE"),
+            Self::Get => write!(f, "GET"),
+            Self::Head => write!(f, "HEAD"),
+            Self::Delete => write!(f, "DELETE"),
         }
     }
 }
@@ -37,18 +37,21 @@ pub struct HttpProber {
 
 impl HttpProber {
     #[inline]
-    pub fn get(url: Url, expected_response_code: u16) -> HttpProber {
-        HttpProber { url, expected_response_code, method: HttpMethod::Get }
+    #[must_use]
+    pub const fn get(url: Url, expected_response_code: u16) -> Self {
+        Self { url, expected_response_code, method: HttpMethod::Get }
     }
 
     #[inline]
-    pub fn head(url: Url, expected_response_code: u16) -> HttpProber {
-        HttpProber { url, expected_response_code, method: HttpMethod::Head }
+    #[must_use]
+    pub const fn head(url: Url, expected_response_code: u16) -> Self {
+        Self { url, expected_response_code, method: HttpMethod::Head }
     }
 
     #[inline]
-    pub fn delete(url: Url, expected_response_code: u16) -> HttpProber {
-        HttpProber { url, expected_response_code, method: HttpMethod::Delete }
+    #[must_use]
+    pub const fn delete(url: Url, expected_response_code: u16) -> Self {
+        Self { url, expected_response_code, method: HttpMethod::Delete }
     }
 
     pub async fn probe(
@@ -141,14 +144,12 @@ impl HttpProber {
         let path = self.path()?;
 
         let req = match self.method {
-            HttpMethod::Get => {
-                format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host).into_bytes()
-            }
+            HttpMethod::Get => format!("GET {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").into_bytes(),
             HttpMethod::Head => {
-                format!("HEAD {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host).into_bytes()
+                format!("HEAD {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").into_bytes()
             }
             HttpMethod::Delete => {
-                format!("DELETE {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host).into_bytes()
+                format!("DELETE {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").into_bytes()
             }
         };
 
@@ -174,9 +175,11 @@ impl HttpProber {
     pub fn path(&self) -> Result<String, Error> { Ok(self.url.path().to_owned()) }
 
     #[inline]
+    #[must_use]
     pub fn method(&self) -> HttpMethod { self.method }
 
     #[inline]
+    #[must_use]
     pub fn url(&self) -> &Url { &self.url }
 }
 
@@ -191,7 +194,8 @@ pub struct HttpProberReport {
 
 impl HttpProberReport {
     #[inline]
-    pub fn timeout(method: HttpMethod, url: Url) -> Self {
+    #[must_use]
+    pub const fn timeout(method: HttpMethod, url: Url) -> Self {
         Self {
             destination_reachable: false,
             method: Some(method),
@@ -202,5 +206,6 @@ impl HttpProberReport {
     }
 
     #[inline]
+    #[must_use]
     pub fn has_error(&self) -> bool { self.error.is_some() }
 }

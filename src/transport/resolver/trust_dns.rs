@@ -20,19 +20,19 @@ impl TrustDnsResolver {
     pub async fn new(
         resolver_config: ResolverConfig,
         resolver_opts: ResolverOpts,
-    ) -> Result<TrustDnsResolver, Error> {
+    ) -> Result<Self, Error> {
         AsyncResolver::tokio(resolver_config, resolver_opts)
-            .map(|resolver| TrustDnsResolver { resolver })
+            .map(|resolver| Self { resolver })
             .context(error::InitializeTrustDnsResolverSnafu)
     }
 
-    pub async fn new_default() -> Result<TrustDnsResolver, Error> {
+    pub async fn new_default() -> Result<Self, Error> {
         Self::new(ResolverConfig::default(), ResolverOpts::default()).await
     }
 
-    pub async fn from_system_conf() -> Result<TrustDnsResolver, Error> {
+    pub async fn from_system_conf() -> Result<Self, Error> {
         AsyncResolver::tokio_from_system_conf()
-            .map(|resolver| TrustDnsResolver { resolver })
+            .map(|resolver| Self { resolver })
             .context(error::InitializeTrustDnsResolverSnafu)
     }
 }

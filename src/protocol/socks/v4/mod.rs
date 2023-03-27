@@ -31,8 +31,8 @@ impl TryFrom<u8> for Command {
 
     fn try_from(cmd: u8) -> Result<Self, Self::Error> {
         match cmd {
-            consts::SOCKS4_CMD_TCP_CONNECT => Ok(Command::TcpConnect),
-            consts::SOCKS4_CMD_TCP_BIND => Ok(Command::TcpBind),
+            consts::SOCKS4_CMD_TCP_CONNECT => Ok(Self::TcpConnect),
+            consts::SOCKS4_CMD_TCP_BIND => Ok(Self::TcpBind),
             command => Err(Error::InvalidCommand { command }),
         }
     }
@@ -62,10 +62,10 @@ impl TryFrom<u8> for ReplyField {
 
     fn try_from(reply: u8) -> Result<Self, Self::Error> {
         match reply {
-            consts::SOCKS4_REPLY_GRANTED => Ok(ReplyField::Granted),
-            consts::SOCKS4_REPLY_REJECTED => Ok(ReplyField::Rejected),
-            consts::SOCKS4_REPLY_UNREACHABLE => Ok(ReplyField::Unreachable),
-            consts::SOCKS4_REPLY_INVALID_ID => Ok(ReplyField::InvalidId),
+            consts::SOCKS4_REPLY_GRANTED => Ok(Self::Granted),
+            consts::SOCKS4_REPLY_REJECTED => Ok(Self::Rejected),
+            consts::SOCKS4_REPLY_UNREACHABLE => Ok(Self::Unreachable),
+            consts::SOCKS4_REPLY_INVALID_ID => Ok(Self::InvalidId),
             _ => Err(Error::BadReply),
         }
     }
@@ -79,7 +79,7 @@ pub struct Request {
 }
 
 impl Request {
-    pub async fn from_reader<R>(rdr: &mut R) -> Result<Request, Error>
+    pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
@@ -110,12 +110,14 @@ impl Request {
             Address::from(SocketAddrV4::new(host, port))
         };
 
-        Ok(Request { command, destination_socket, id })
+        Ok(Self { command, destination_socket, id })
     }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         // +----+----+----+----+----+----+----+----+----+----+....+----+
         // | VN | CD | DSTPORT |      DSTIP        | USERID       |NULL|
@@ -133,7 +135,7 @@ impl Request {
         buf.push(self.command.into());
 
         // port
-        let _ = buf.write_u16::<BigEndian>(self.destination_socket.port());
+        let _unused = buf.write_u16::<BigEndian>(self.destination_socket.port());
 
         // IP and user ID
         match self.destination_socket.as_ref() {
@@ -176,9 +178,9 @@ pub struct Reply {
 }
 
 impl Reply {
-    pub async fn from_reader<R>(rdr: &mut R) -> Result<Reply, Error>
+    pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
-        R: AsyncRead + AsyncRead + Unpin,
+        R: AsyncRead + Unpin,
     {
         if rdr.read_u8().await.context(error::ReadStreamSnafu)? != 0x00 {
             return Err(Error::BadReply);
@@ -192,28 +194,34 @@ impl Reply {
             SocketAddrV4::new(Ipv4Addr::from(ip), port)
         };
 
-        Ok(Reply { reply, destination_socket })
+        Ok(Self { reply, destination_socket })
     }
 
-    pub fn granted(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::Granted, destination_socket }
+    #[must_use]
+    pub const fn granted(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::Granted, destination_socket }
     }
 
-    pub fn rejected(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::Rejected, destination_socket }
+    #[must_use]
+    pub const fn rejected(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::Rejected, destination_socket }
     }
 
-    pub fn unreachable(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::Unreachable, destination_socket }
+    #[must_use]
+    pub const fn unreachable(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::Unreachable, destination_socket }
     }
 
     #[allow(dead_code)]
-    pub fn invalid_id(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::InvalidId, destination_socket }
+    #[must_use]
+    pub const fn invalid_id(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::InvalidId, destination_socket }
     }
 
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         // +----+----+----+----+----+----+----+----+
         // | VN | CD | DSTPORT |      DSTIP        |

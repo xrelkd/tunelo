@@ -141,8 +141,8 @@ pub struct Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
-        Config {
+    fn default() -> Self {
+        Self {
             disable_socks4a: false,
             disable_socks5: false,
             enable_tcp_connect: true,
@@ -159,7 +159,7 @@ impl Default for Config {
 impl Config {
     impl_config_load!(Config);
 
-    pub fn merge(mut self, opts: Options) -> Config {
+    pub fn merge(mut self, opts: Options) -> Self {
         let Options {
             mut disable_socks4a,
             mut disable_socks5,

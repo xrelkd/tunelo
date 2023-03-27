@@ -31,19 +31,19 @@ pub enum Method {
 impl std::fmt::Display for Method {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Method::NoAuthentication => write!(f, "No Authentication"),
-            Method::GSSAPI => write!(f, "GSSAPI"),
-            Method::UsernamePassword => write!(f, "Username/password authentication method"),
-            Method::NotAcceptable => write!(f, "Not acceptable authentication method"),
+            Self::NoAuthentication => write!(f, "No Authentication"),
+            Self::GSSAPI => write!(f, "GSSAPI"),
+            Self::UsernamePassword => write!(f, "Username/password authentication method"),
+            Self::NotAcceptable => write!(f, "Not acceptable authentication method"),
         }
     }
 }
 
 impl From<AuthenticationMethod> for Method {
-    fn from(method: AuthenticationMethod) -> Method {
+    fn from(method: AuthenticationMethod) -> Self {
         match method {
-            AuthenticationMethod::NoAuthentication => Method::NoAuthentication,
-            AuthenticationMethod::UsernamePassword => Method::UsernamePassword,
+            AuthenticationMethod::NoAuthentication => Self::NoAuthentication,
+            AuthenticationMethod::UsernamePassword => Self::UsernamePassword,
         }
     }
 }
@@ -60,19 +60,20 @@ impl From<Method> for u8 {
 }
 
 impl From<u8> for Method {
-    fn from(method: u8) -> Method {
+    fn from(method: u8) -> Self {
         match method {
-            consts::SOCKS5_AUTH_METHOD_NONE => Method::NoAuthentication,
-            consts::SOCKS5_AUTH_METHOD_GSSAPI => Method::GSSAPI,
-            consts::SOCKS5_AUTH_METHOD_PASSWORD => Method::UsernamePassword,
-            _ => Method::NotAcceptable,
+            consts::SOCKS5_AUTH_METHOD_NONE => Self::NoAuthentication,
+            consts::SOCKS5_AUTH_METHOD_GSSAPI => Self::GSSAPI,
+            consts::SOCKS5_AUTH_METHOD_PASSWORD => Self::UsernamePassword,
+            _ => Self::NotAcceptable,
         }
     }
 }
 
 impl Method {
     #[inline]
-    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    #[must_use]
+    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 #[derive(Hash, Clone, Copy, Eq, PartialEq, Debug)]
@@ -83,11 +84,11 @@ pub enum Command {
 }
 
 impl From<SocksCommand> for Command {
-    fn from(cmd: SocksCommand) -> Command {
+    fn from(cmd: SocksCommand) -> Self {
         match cmd {
-            SocksCommand::TcpConnect => Command::TcpConnect,
-            SocksCommand::TcpBind => Command::TcpBind,
-            SocksCommand::UdpAssociate => Command::UdpAssociate,
+            SocksCommand::TcpConnect => Self::TcpConnect,
+            SocksCommand::TcpBind => Self::TcpBind,
+            SocksCommand::UdpAssociate => Self::UdpAssociate,
         }
     }
 }
@@ -95,11 +96,11 @@ impl From<SocksCommand> for Command {
 impl TryFrom<u8> for Command {
     type Error = Error;
 
-    fn try_from(cmd: u8) -> Result<Command, Error> {
+    fn try_from(cmd: u8) -> Result<Self, Error> {
         match cmd {
-            consts::SOCKS5_CMD_TCP_CONNECT => Ok(Command::TcpConnect),
-            consts::SOCKS5_CMD_TCP_BIND => Ok(Command::TcpBind),
-            consts::SOCKS5_CMD_UDP_ASSOCIATE => Ok(Command::UdpAssociate),
+            consts::SOCKS5_CMD_TCP_CONNECT => Ok(Self::TcpConnect),
+            consts::SOCKS5_CMD_TCP_BIND => Ok(Self::TcpBind),
+            consts::SOCKS5_CMD_UDP_ASSOCIATE => Ok(Self::UdpAssociate),
             command => Err(Error::InvalidCommand { command }),
         }
     }
@@ -117,7 +118,8 @@ impl From<Command> for u8 {
 
 impl Command {
     #[inline]
-    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    #[must_use]
+    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 //  +----+----------+----------+
@@ -131,6 +133,7 @@ pub struct HandshakeRequest {
 }
 
 impl HandshakeRequest {
+    #[must_use]
     pub fn new(methods: Vec<Method>) -> Self {
         let methods = methods.into_iter().fold(HashSet::new(), |mut methods, method| {
             methods.insert(method);
@@ -159,16 +162,18 @@ impl HandshakeRequest {
             methods
         );
 
-        Ok(HandshakeRequest { methods })
+        Ok(Self { methods })
     }
 
+    #[must_use]
     pub fn contains_method(&self, method: Method) -> bool { self.methods.contains(&method) }
 
     #[allow(dead_code)]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
     pub fn to_bytes(&self) -> Vec<u8> {
-        let mut methods_vec = self.methods.iter().cloned().map(Into::into).collect::<Vec<u8>>();
+        let mut methods_vec = self.methods.iter().copied().map(Into::into).collect::<Vec<u8>>();
         methods_vec.sort_unstable();
         let nmethods = methods_vec.len() as u8;
 
@@ -181,6 +186,7 @@ impl HandshakeRequest {
     }
 
     #[inline]
+    #[must_use]
     pub fn serialized_len(&self) -> usize {
         SocksVersion::serialized_len() + std::mem::size_of::<u8>() + self.methods.len()
     }
@@ -198,7 +204,8 @@ pub struct HandshakeReply {
 }
 
 impl HandshakeReply {
-    pub fn new(method: Method) -> Self { Self { method } }
+    #[must_use]
+    pub const fn new(method: Method) -> Self { Self { method } }
 
     pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
@@ -218,12 +225,17 @@ impl HandshakeReply {
     }
 
     #[inline]
-    pub fn serialized_len() -> usize { SocksVersion::serialized_len() + Method::serialized_len() }
+    #[must_use]
+    pub const fn serialized_len() -> usize {
+        SocksVersion::serialized_len() + Method::serialized_len()
+    }
 
     #[inline]
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> { Vec::from([SocksVersion::V5.into(), self.method.into()]) }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
@@ -238,11 +250,13 @@ pub struct UserPasswordHandshakeRequest {
 
 impl UserPasswordHandshakeRequest {
     #[inline]
+    #[must_use]
     pub fn serialized_len(&self) -> usize {
         SocksVersion::serialized_len() + self.user_name.len() + self.password.len()
     }
 
     #[inline]
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut buf = Vec::with_capacity(self.serialized_len());
         buf.push(self.version.into());
@@ -252,9 +266,10 @@ impl UserPasswordHandshakeRequest {
     }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
-    pub async fn from_reader<R>(client: &mut R) -> Result<UserPasswordHandshakeRequest, Error>
+    pub async fn from_reader<R>(client: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
@@ -285,7 +300,7 @@ impl UserPasswordHandshakeRequest {
             password
         };
 
-        Ok(UserPasswordHandshakeRequest { version: UserPasswordVersion::V1, user_name, password })
+        Ok(Self { version: UserPasswordVersion::V1, user_name, password })
     }
 }
 
@@ -308,23 +323,28 @@ impl UserPasswordHandshakeReply {
         Ok(Self { version, status })
     }
 
+    #[must_use]
     pub const fn success() -> Self {
         Self { version: UserPasswordVersion::V1, status: UserPasswordStatus::Success }
     }
 
+    #[must_use]
     pub const fn failure() -> Self {
         Self { version: UserPasswordVersion::V1, status: UserPasswordStatus::Failure }
     }
 
     #[inline]
-    pub fn serialized_len() -> usize {
+    #[must_use]
+    pub const fn serialized_len() -> usize {
         SocksVersion::serialized_len() + UserPasswordStatus::serialized_len()
     }
 
     #[inline]
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> { vec![self.version.into(), self.status.into()] }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
@@ -336,7 +356,7 @@ pub struct Request {
 }
 
 impl Request {
-    pub async fn from_reader<R>(client: &mut R) -> Result<Request, Error>
+    pub async fn from_reader<R>(client: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
@@ -355,16 +375,18 @@ impl Request {
         let command = Command::try_from(buf[1])?;
         let destination_socket = Address::from_reader(client).await?;
 
-        let req = Request { command, destination_socket };
+        let req = Self { command, destination_socket };
         tracing::debug!("Got Request: {:?}", req);
 
         Ok(req)
     }
 
     #[inline]
+    #[must_use]
     pub fn address_type(&self) -> AddressType { self.destination_socket.address_type() }
 
     #[inline]
+    #[must_use]
     pub fn serialized_len(&self) -> usize {
         SocksVersion::serialized_len()
             + Command::serialized_len()
@@ -373,6 +395,7 @@ impl Request {
     }
 
     #[inline]
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let socket_vec = self.destination_socket.to_bytes(SocksVersion::V5);
         let mut buf = Vec::with_capacity(self.serialized_len());
@@ -384,6 +407,7 @@ impl Request {
     }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 }
 
@@ -416,6 +440,7 @@ impl Reply {
     }
 
     #[inline]
+    #[must_use]
     pub fn serialized_len(&self) -> usize {
         SocksVersion::serialized_len()
             + ReplyField::serialized_len()
@@ -423,6 +448,7 @@ impl Reply {
             + self.bind_socket.serialized_len(SocksVersion::V5)
     }
 
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         let socket_vec = self.bind_socket.to_bytes(SocksVersion::V5);
         let mut buf = Vec::with_capacity(self.serialized_len());
@@ -433,18 +459,22 @@ impl Reply {
         buf
     }
 
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
-    pub fn success(bind_socket: Address) -> Reply {
-        Reply { reply: ReplyField::Success, bind_socket }
+    #[must_use]
+    pub const fn success(bind_socket: Address) -> Self {
+        Self { reply: ReplyField::Success, bind_socket }
     }
 
-    pub fn unreachable(address_type: AddressType) -> Reply {
-        Reply { reply: ReplyField::HostUnreachable, bind_socket: Self::empty_socket(address_type) }
+    #[must_use]
+    pub fn unreachable(address_type: AddressType) -> Self {
+        Self { reply: ReplyField::HostUnreachable, bind_socket: Self::empty_socket(address_type) }
     }
 
-    pub fn not_supported(address_type: AddressType) -> Reply {
-        Reply {
+    #[must_use]
+    pub fn not_supported(address_type: AddressType) -> Self {
+        Self {
             reply: ReplyField::CommandNotSupported,
             bind_socket: Self::empty_socket(address_type),
         }
@@ -510,25 +540,26 @@ impl From<ReplyField> for u8 {
 }
 
 impl From<u8> for ReplyField {
-    fn from(v: u8) -> ReplyField {
+    fn from(v: u8) -> Self {
         match v {
-            consts::SOCKS5_REPLY_SUCCEEDED => ReplyField::Success,
-            consts::SOCKS5_REPLY_GENERAL_FAILURE => ReplyField::ServerFailure,
-            consts::SOCKS5_REPLY_CONNECTION_NOT_ALLOWED => ReplyField::NotAllowed,
-            consts::SOCKS5_REPLY_NETWORK_UNREACHABLE => ReplyField::NetworkUnreachable,
-            consts::SOCKS5_REPLY_HOST_UNREACHABLE => ReplyField::HostUnreachable,
-            consts::SOCKS5_REPLY_CONNECTION_REFUSED => ReplyField::ConnectionRefused,
-            consts::SOCKS5_REPLY_TTL_EXPIRED => ReplyField::TTLExpired,
-            consts::SOCKS5_REPLY_COMMAND_NOT_SUPPORTED => ReplyField::CommandNotSupported,
-            consts::SOCKS5_REPLY_ADDRESS_TYPE_NOT_SUPPORTED => ReplyField::AddressNotSupported,
-            _ => ReplyField::Unknown,
+            consts::SOCKS5_REPLY_SUCCEEDED => Self::Success,
+            consts::SOCKS5_REPLY_GENERAL_FAILURE => Self::ServerFailure,
+            consts::SOCKS5_REPLY_CONNECTION_NOT_ALLOWED => Self::NotAllowed,
+            consts::SOCKS5_REPLY_NETWORK_UNREACHABLE => Self::NetworkUnreachable,
+            consts::SOCKS5_REPLY_HOST_UNREACHABLE => Self::HostUnreachable,
+            consts::SOCKS5_REPLY_CONNECTION_REFUSED => Self::ConnectionRefused,
+            consts::SOCKS5_REPLY_TTL_EXPIRED => Self::TTLExpired,
+            consts::SOCKS5_REPLY_COMMAND_NOT_SUPPORTED => Self::CommandNotSupported,
+            consts::SOCKS5_REPLY_ADDRESS_TYPE_NOT_SUPPORTED => Self::AddressNotSupported,
+            _ => Self::Unknown,
         }
     }
 }
 
 impl ReplyField {
     #[inline]
-    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    #[must_use]
+    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 #[derive(Hash, Clone, Copy, Eq, PartialEq, Debug)]
@@ -538,15 +569,16 @@ pub enum UserPasswordVersion {
 
 impl UserPasswordVersion {
     #[inline]
-    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    #[must_use]
+    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 impl TryFrom<u8> for UserPasswordVersion {
     type Error = Error;
 
-    fn try_from(cmd: u8) -> Result<UserPasswordVersion, Error> {
+    fn try_from(cmd: u8) -> Result<Self, Error> {
         match cmd {
-            0x01 => Ok(UserPasswordVersion::V1),
+            0x01 => Ok(Self::V1),
             version => Err(Error::InvalidUserPasswordVersion { version }),
         }
     }
@@ -567,10 +599,10 @@ pub enum UserPasswordStatus {
 }
 
 impl From<u8> for UserPasswordStatus {
-    fn from(cmd: u8) -> UserPasswordStatus {
+    fn from(cmd: u8) -> Self {
         match cmd {
-            0x00 => UserPasswordStatus::Success,
-            _n => UserPasswordStatus::Failure,
+            0x00 => Self::Success,
+            _n => Self::Failure,
         }
     }
 }
@@ -586,7 +618,8 @@ impl From<UserPasswordStatus> for u8 {
 
 impl UserPasswordStatus {
     #[inline]
-    pub fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    #[must_use]
+    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
 #[cfg(test)]

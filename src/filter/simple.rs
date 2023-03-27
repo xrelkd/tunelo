@@ -20,7 +20,8 @@ pub struct SimpleFilter {
 
 impl SimpleFilter {
     #[inline]
-    pub fn new(
+    #[must_use]
+    pub const fn new(
         hostnames: HashSet<String>,
         addresses: HashSet<IpAddr>,
         hosts: HashSet<(String, u16)>,
@@ -32,9 +33,11 @@ impl SimpleFilter {
     }
 
     #[inline]
+    #[must_use]
     pub fn allow_list() -> Self { Self { mode: FilterMode::AllowList, ..Default::default() } }
 
     #[inline]
+    #[must_use]
     pub fn deny_list() -> Self { Self { mode: FilterMode::DenyList, ..Default::default() } }
 
     pub fn set_mode(&mut self, mode: FilterMode) { self.mode = mode; }
@@ -65,7 +68,7 @@ impl SimpleFilter {
     }
 
     #[inline]
-    fn filter(&self, b: bool) -> FilterAction {
+    const fn filter(&self, b: bool) -> FilterAction {
         match self.mode {
             FilterMode::DenyList => Self::deny(b),
             FilterMode::AllowList => Self::allow(b),
@@ -73,7 +76,7 @@ impl SimpleFilter {
     }
 
     #[inline]
-    fn allow(b: bool) -> FilterAction {
+    const fn allow(b: bool) -> FilterAction {
         if b {
             FilterAction::Allow
         } else {
@@ -82,7 +85,7 @@ impl SimpleFilter {
     }
 
     #[inline]
-    fn deny(b: bool) -> FilterAction {
+    const fn deny(b: bool) -> FilterAction {
         if b {
             FilterAction::Deny
         } else {

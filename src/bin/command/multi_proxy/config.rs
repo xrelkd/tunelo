@@ -31,10 +31,10 @@ impl Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
+    fn default() -> Self {
         let proxy_servers = vec![ProxyServer::Http, ProxyServer::Socks].into_iter().collect();
 
-        Config {
+        Self {
             proxy_servers,
             socks_server: Some(SocksServer::default()),
             http_server: Some(HttpServer::default()),
@@ -52,10 +52,10 @@ pub enum ProxyServer {
 impl FromStr for ProxyServer {
     type Err = Error;
 
-    fn from_str(server: &str) -> Result<ProxyServer, Self::Err> {
+    fn from_str(server: &str) -> Result<Self, Self::Err> {
         match server.to_lowercase().as_ref() {
-            "socks" => Ok(ProxyServer::Socks),
-            "http" => Ok(ProxyServer::Http),
+            "socks" => Ok(Self::Socks),
+            "http" => Ok(Self::Http),
             _ => Err(Error::InvalidProxyServer { server: server.to_owned() }),
         }
     }
@@ -64,8 +64,8 @@ impl FromStr for ProxyServer {
 impl ToString for ProxyServer {
     fn to_string(&self) -> String {
         match self {
-            ProxyServer::Socks => "socks".to_owned(),
-            ProxyServer::Http => "http".to_owned(),
+            Self::Socks => "socks".to_owned(),
+            Self::Http => "http".to_owned(),
         }
     }
 }
@@ -91,8 +91,8 @@ pub struct SocksServer {
 }
 
 impl Default for SocksServer {
-    fn default() -> SocksServer {
-        SocksServer {
+    fn default() -> Self {
+        Self {
             tcp_ip: IpAddr::V4(Ipv4Addr::LOCALHOST),
             tcp_port: 3128,
 
@@ -153,7 +153,7 @@ impl From<SocksServer> for tunelo::server::socks::ServerOptions {
             commands
         };
 
-        tunelo::server::socks::ServerOptions {
+        Self {
             listen_address,
             listen_port,
             udp_ports,
@@ -179,14 +179,14 @@ pub struct HttpServer {
 }
 
 impl Default for HttpServer {
-    fn default() -> HttpServer { HttpServer { host: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8080 } }
+    fn default() -> Self { Self { host: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8080 } }
 }
 
 impl From<HttpServer> for tunelo::server::http::ServerOptions {
     fn from(val: HttpServer) -> Self {
         let listen_address = val.host;
         let listen_port = val.port;
-        tunelo::server::http::ServerOptions { listen_address, listen_port }
+        Self { listen_address, listen_port }
     }
 }
 

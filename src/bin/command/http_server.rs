@@ -71,13 +71,13 @@ pub struct Config {
 
 impl Default for Config {
     #[inline]
-    fn default() -> Config { Config { ip: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8118 } }
+    fn default() -> Self { Self { ip: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8118 } }
 }
 
 impl Config {
     impl_config_load!(Config);
 
-    pub fn merge(mut self, opts: Options) -> Config {
+    pub fn merge(mut self, opts: Options) -> Self {
         let Options { mut ip, mut port } = opts;
 
         merge_option_field!(self, ip);
@@ -92,6 +92,6 @@ impl From<Config> for http::ServerOptions {
         let listen_address = val.ip;
         let listen_port = val.port;
 
-        http::ServerOptions { listen_address, listen_port }
+        Self { listen_address, listen_port }
     }
 }

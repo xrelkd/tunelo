@@ -17,7 +17,7 @@ where
     Stream: Unpin + Send + Sync + AsyncRead + AsyncWrite,
 {
     #[inline]
-    pub fn new(stream: Stream) -> ClientHandshake<Stream> { ClientHandshake { stream } }
+    pub fn new(stream: Stream) -> Self { Self { stream } }
 
     #[allow(dead_code)]
     #[inline]

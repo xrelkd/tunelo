@@ -16,6 +16,7 @@ pub struct BasicProberReport {
 
 impl BasicProberReport {
     #[inline]
+    #[must_use]
     pub fn timeout(destination: HostAddress) -> Self {
         Self {
             destination_reachable: false,
@@ -25,6 +26,7 @@ impl BasicProberReport {
     }
 
     #[inline]
+    #[must_use]
     pub fn has_error(&self) -> bool { self.error.is_some() }
 }
 
@@ -35,6 +37,7 @@ pub struct BasicProber {
 
 impl BasicProber {
     #[inline]
+    #[must_use]
     pub fn new(destination: HostAddress) -> Self { Self { destination } }
 
     #[inline]
@@ -56,5 +59,6 @@ impl BasicProber {
     }
 
     #[inline]
+    #[must_use]
     pub fn destination(&self) -> &HostAddress { &self.destination }
 }
