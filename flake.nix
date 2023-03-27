@@ -5,6 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     fenix = {
+      # nightly-2023-03-24
       url = "github:nix-community/fenix?ref=d143afc6110296af610d7f77f54808e946d2e62d";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -19,6 +20,9 @@
 
       (system:
         let
+          name = "tunelo";
+          version = "0.1.8";
+
           pkgs = import nixpkgs {
             inherit system;
             overlays = [
@@ -35,6 +39,19 @@
               "rustfmt"
             ]);
 
+          cargoArgs = [
+            "--workspace"
+            "--bins"
+            "--examples"
+            "--tests"
+            "--benches"
+            "--all-targets"
+          ];
+
+          unitTestArgs = [
+            "--workspace"
+          ];
+
           src = craneLib.cleanCargoSource (craneLib.path ./.);
           commonArgs = {
             inherit src;
@@ -43,11 +60,14 @@
         in
         rec {
           formatter = pkgs.treefmt;
-          devShells.default = pkgs.callPackage ./devshell { };
+          devShells.default = pkgs.callPackage ./devshell { inherit cargoArgs unitTestArgs; };
 
           packages = rec {
             default = tunelo;
-            tunelo = pkgs.callPackage ./default.nix { };
+            tunelo = pkgs.callPackage ./devshell/package.nix { inherit name version; };
+            container = pkgs.callPackage ./devshell/container.nix {
+              inherit name version tunelo;
+            };
           };
 
           apps.default = flake-utils.lib.mkApp {
@@ -61,7 +81,7 @@
             rust-format = craneLib.cargoFmt { inherit src; };
             rust-clippy = craneLib.cargoClippy (commonArgs // {
               inherit cargoArtifacts;
-              cargoClippyExtraArgs = "--all-targets --workspace --bins --examples --tests --benches";
+              cargoClippyExtraArgs = pkgs.lib.strings.concatMapStrings (x: x + " ") cargoArgs;
             });
             rust-nextest = craneLib.cargoNextest (commonArgs // {
               inherit cargoArtifacts;
@@ -71,7 +91,7 @@
           };
         })) // {
       overlays.default = final: prev: {
-        tunelo = final.callPackage ./default.nix { };
+        tunelo = final.callPackage ./devshell/package.nix { };
       };
     };
 }
