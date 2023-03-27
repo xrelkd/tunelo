@@ -28,11 +28,7 @@ if [[ $KERNEL == "linux" ]]; then
     apt-get update
     apt-get install --no-install-recommends -y \
       build-essential \
-      cmake \
       binutils \
-      pkg-config \
-      libssl-dev \
-      curl \
       file
 
     ;;
