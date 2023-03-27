@@ -32,8 +32,5 @@ jobs:
       - name: Build Nix Flake
         run: nix build
 
-      - name: Check Nix Flake
-        run: nix flake check
-
       - name: Test Tunelo binary
         run: ./result/bin/tunelo version

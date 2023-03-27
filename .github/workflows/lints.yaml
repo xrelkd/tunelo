@@ -44,7 +44,7 @@ jobs:
         uses: creyD/prettier_action@v4.3
         with:
           dry: true
-          prettier_options: --check **/*.{js,ts,md,json,yaml}
+          prettier_options: --check **/*.{css,html,js,json,jsx,md,mdx,scss,ts,yaml}
 
   commit:
     name: Lint commit
