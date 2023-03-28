@@ -22,8 +22,7 @@ echo "Copying release files..."
 mkdir dist
 cp \
   "$EXECUTABLE" \
-  LICENSE-MIT \
-  LICENSE-APACHE \
+  LICENSE \
   README.md \
   "$DIST"
 
