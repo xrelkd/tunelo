@@ -5,12 +5,11 @@ use std::{collections::HashSet, convert::TryFrom};
 use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncReadExt};
 
+pub use self::datagram::Datagram;
 use crate::{
     authentication::AuthenticationMethod,
     protocol::socks::{consts, error, Address, AddressType, Error, SocksCommand, SocksVersion},
 };
-
-pub use self::datagram::Datagram;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[allow(dead_code)]

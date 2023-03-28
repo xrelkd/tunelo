@@ -12,9 +12,8 @@ use std::{
 use snafu::ResultExt;
 use tokio::io::AsyncRead;
 
-use crate::common::HostAddress;
-
 pub use self::error::Error;
+use crate::common::HostAddress;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SocksVersion {
@@ -141,8 +140,9 @@ pub struct Address(HostAddress);
 
 impl Address {
     pub fn from_bytes(buf: &mut [u8]) -> Result<(Self, usize), Error> {
-        use byteorder::{BigEndian, ReadBytesExt};
         use std::io::Read;
+
+        use byteorder::{BigEndian, ReadBytesExt};
 
         let mut rdr = std::io::Cursor::new(buf);
         let address_type = AddressType::try_from(rdr.read_u8().context(error::ReadStreamSnafu)?)?;

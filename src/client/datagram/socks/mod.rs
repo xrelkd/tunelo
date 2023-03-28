@@ -1,3 +1,5 @@
+mod split;
+
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{
@@ -14,15 +16,12 @@ use tokio::{
     time,
 };
 
+use self::split::{RecvHalf, SendHalf};
 use crate::{
     client::{error, handshake::*, Error},
     common::HostAddress,
     protocol::socks::v5::Datagram,
 };
-
-mod split;
-
-use self::split::{RecvHalf, SendHalf};
 
 pub struct Socks5Datagram {
     socket: UdpSocket,

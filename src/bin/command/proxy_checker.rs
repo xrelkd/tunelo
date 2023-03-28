@@ -8,12 +8,11 @@ use std::{
 use clap::Args;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use url::Url;
-
 use tunelo::{
     checker::{BasicProber, HttpProber, LivenessProber, Prober, SimpleProxyChecker, TaskReport},
     common::{HostAddress, ProxyHost},
 };
+use url::Url;
 
 use crate::error::{self, Error};
 

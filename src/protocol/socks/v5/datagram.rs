@@ -24,8 +24,9 @@ impl Datagram {
     }
 
     pub fn from_bytes(input: &[u8]) -> Result<Self, Error> {
-        use byteorder::{BigEndian, ReadBytesExt};
         use std::io::{Cursor, Read};
+
+        use byteorder::{BigEndian, ReadBytesExt};
 
         let mut input = Cursor::new(input);
 

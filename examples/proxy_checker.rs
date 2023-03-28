@@ -1,11 +1,10 @@
 use std::time::Duration;
 
-use url::Url;
-
 use tunelo::{
     checker::{BasicProber, HttpProber, SimpleProxyChecker},
     common::{HostAddress, ProxyHost},
 };
+use url::Url;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

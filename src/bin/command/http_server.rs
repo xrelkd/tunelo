@@ -8,7 +8,6 @@ use clap::Args;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     filter::SimpleFilter,

@@ -13,7 +13,6 @@ use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     common::{ProxyHost, ProxyStrategy},

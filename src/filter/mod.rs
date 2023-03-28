@@ -3,9 +3,8 @@ mod simple;
 
 use std::net::{IpAddr, SocketAddr};
 
-use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
-
 pub use self::{composer::ComposerFilter, simple::SimpleFilter};
+use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
 
 #[derive(Clone, Copy, Debug, Default)]
 pub enum FilterMode {

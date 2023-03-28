@@ -1,8 +1,7 @@
 use std::{sync::Arc, time::Duration};
 
-use tokio::sync::Mutex;
-
 use lru_time_cache::LruCache;
+use tokio::sync::Mutex;
 
 use crate::{common::HostAddress, service::socks::v5::udp::shutdown};
 
