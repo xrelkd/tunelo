@@ -11,7 +11,7 @@ use crate::{
     protocol::socks::{consts, error, Address, Error, SocksVersion},
 };
 
-#[derive(Debug, Hash, Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Command {
     TcpConnect,
     TcpBind,
@@ -38,7 +38,7 @@ impl TryFrom<u8> for Command {
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReplyField {
     Granted,
     Rejected,
@@ -71,7 +71,7 @@ impl TryFrom<u8> for ReplyField {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Request {
     pub command: Command,
     pub destination_socket: Address,
@@ -171,7 +171,7 @@ impl Request {
 // | 1  | 1  |    2    |         4         |
 // +---+-----+---------+----+----+----+----+
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Reply {
     pub reply: ReplyField,
     pub destination_socket: SocketAddrV4,

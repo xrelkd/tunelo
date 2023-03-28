@@ -159,7 +159,7 @@ pub async fn run<P: AsRef<Path>>(
     Ok(())
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
     enable_socks4a: bool,
     enable_socks5: bool,

@@ -127,7 +127,7 @@ impl TryInto<socks::ServerOptions> for Config {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     disable_socks4a: bool,
     disable_socks5: bool,

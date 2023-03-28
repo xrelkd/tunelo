@@ -9,7 +9,7 @@ use crate::{
 };
 
 // Datagram is the UDP packet
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Datagram {
     frag: u8,
     destination_socket: Address,

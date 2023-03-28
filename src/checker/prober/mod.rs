@@ -12,7 +12,7 @@ pub use self::{
     liveness::{LivenessProber, LivenessProberReport},
 };
 
-#[derive(Debug, Clone, Hash)]
+#[derive(Clone, Debug, Hash)]
 pub enum Prober {
     Liveness(LivenessProber),
     Basic(BasicProber),

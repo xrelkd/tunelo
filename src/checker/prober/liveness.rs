@@ -4,7 +4,7 @@ use crate::{
     common::{ProxyHost, ProxyStrategy},
 };
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct LivenessProber;
 
 impl Default for LivenessProber {

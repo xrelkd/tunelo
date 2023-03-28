@@ -168,7 +168,7 @@ where
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     proxy_servers: Vec<ProxyHost>,
     proxy_server_file: Option<PathBuf>,

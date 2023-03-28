@@ -58,7 +58,7 @@ impl SocksVersion {
     pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SocksCommand {
     TcpConnect,
     TcpBind,
@@ -100,7 +100,7 @@ impl std::fmt::Display for SocksCommand {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AddressType {
     Ipv4,
     Domain,
@@ -136,7 +136,7 @@ impl From<AddressType> for u8 {
     }
 }
 
-#[derive(Hash, Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Address(HostAddress);
 
 impl Address {

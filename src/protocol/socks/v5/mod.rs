@@ -12,7 +12,7 @@ use crate::{
 
 pub use self::datagram::Datagram;
 
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 #[allow(dead_code)]
 pub enum Method {
     /// No Authentication
@@ -76,7 +76,7 @@ impl Method {
     pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
-#[derive(Hash, Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Command {
     TcpConnect,
     TcpBind,
@@ -198,7 +198,7 @@ impl HandshakeRequest {
 // | 1  |   1    |
 // +----+--------+
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct HandshakeReply {
     pub method: Method,
 }
@@ -412,7 +412,7 @@ impl Request {
 }
 
 // Reply is the reply packet
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Reply {
     pub reply: ReplyField,
     pub bind_socket: Address,
@@ -489,7 +489,7 @@ impl Reply {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[allow(dead_code)]
 pub enum ReplyField {
     // RepSuccess means that success for replying
@@ -562,7 +562,7 @@ impl ReplyField {
     pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
-#[derive(Hash, Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum UserPasswordVersion {
     V1,
 }
@@ -592,7 +592,7 @@ impl From<UserPasswordVersion> for u8 {
     }
 }
 
-#[derive(Hash, Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum UserPasswordStatus {
     Success,
     Failure,

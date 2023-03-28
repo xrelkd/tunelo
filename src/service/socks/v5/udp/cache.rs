@@ -6,7 +6,7 @@ use lru_time_cache::LruCache;
 
 use crate::{common::HostAddress, service::socks::v5::udp::shutdown};
 
-#[derive(Debug, Clone, Hash, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 struct CacheKey(String);
 
 impl From<HostAddress> for CacheKey {
