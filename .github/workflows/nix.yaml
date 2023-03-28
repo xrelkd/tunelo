@@ -3,18 +3,21 @@ name: "Nix Flakes"
 on:
   push:
     branches:
-      - ci/*
       - main
       - develop
       - release/*
+      - hotfix/*
+      - feature/*
+      - ci/*
+
   pull_request:
     paths:
+      - ".github/**"
+      - "src/**"
       - Cargo.lock
       - Cargo.toml
-      - default.nix
       - flake.lock
       - flake.nix
-      - shell.nix
 
 jobs:
   build-nix-flake:
