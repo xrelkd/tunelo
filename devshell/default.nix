@@ -1,4 +1,5 @@
-{ cargoArgs
+{ rustToolchain
+, cargoArgs
 , unitTestArgs
 , pkgs
 , writeShellScriptBin
@@ -19,16 +20,10 @@ pkgs.mkShell rec {
     cargo-ext.cargo-test-all
     cargo-ext.cargo-udeps-all
     cargo-ext.cargo-watch-all
-
-    (fenix.default.withComponents [
-      "cargo"
-      "rustc"
-      "clippy"
-      "rustfmt"
-    ])
     cargo-nextest
     cargo-udeps
     cargo-watch
+    rustToolchain
 
     tokei
 

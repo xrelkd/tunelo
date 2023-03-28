@@ -16,13 +16,13 @@
   };
 
   outputs = { self, nixpkgs, flake-utils, fenix, crane }:
+    let
+      name = "tunelo";
+      version = "0.1.8";
+    in
     (flake-utils.lib.eachDefaultSystem
-
       (system:
         let
-          name = "tunelo";
-          version = "0.1.8";
-
           pkgs = import nixpkgs {
             inherit system;
             overlays = [
@@ -31,13 +31,30 @@
             ];
           };
 
-          craneLib = (crane.mkLib pkgs).overrideToolchain
-            (pkgs.fenix.default.withComponents [
-              "cargo"
-              "rustc"
-              "clippy"
-              "rustfmt"
-            ]);
+          rustComponents = [
+            "cargo"
+            "rustc"
+            "clippy"
+            "rustfmt"
+          ];
+
+          rustToolchainStable = (pkgs.fenix.stable.withComponents rustComponents);
+          rustToolchainNightly = (pkgs.fenix.default.withComponents rustComponents);
+          rustToolchain = rustToolchainNightly;
+
+          craneLibStable = (crane.mkLib pkgs).overrideToolchain rustToolchainStable;
+          craneLibNightly = (crane.mkLib pkgs).overrideToolchain rustToolchainNightly;
+          craneLib = craneLibNightly;
+
+          rustPlatformStable = pkgs.makeRustPlatform {
+            cargo = rustToolchainStable;
+            rustc = rustToolchainStable;
+          };
+          rustPlatformNightly = pkgs.makeRustPlatform {
+            cargo = rustToolchainNightly;
+            rustc = rustToolchainNightly;
+          };
+          rustPlatform = rustPlatformNightly;
 
           cargoArgs = [
             "--workspace"
@@ -60,11 +77,17 @@
         in
         rec {
           formatter = pkgs.treefmt;
-          devShells.default = pkgs.callPackage ./devshell { inherit cargoArgs unitTestArgs; };
+
+          devShells.default = pkgs.callPackage ./devshell {
+            inherit rustToolchain cargoArgs unitTestArgs;
+          };
 
           packages = rec {
             default = tunelo;
-            tunelo = pkgs.callPackage ./devshell/package.nix { inherit name version; };
+            tunelo = pkgs.callPackage ./devshell/package.nix {
+              inherit name version;
+              rustPlatform = rustPlatformStable;
+            };
             container = pkgs.callPackage ./devshell/container.nix {
               inherit name version tunelo;
             };
@@ -78,6 +101,9 @@
           checks = {
             format = pkgs.callPackage ./devshell/format.nix { };
 
+            rust-build = craneLibStable.cargoBuild (commonArgs // {
+              inherit cargoArtifacts;
+            });
             rust-format = craneLib.cargoFmt { inherit src; };
             rust-clippy = craneLib.cargoClippy (commonArgs // {
               inherit cargoArtifacts;
@@ -91,7 +117,9 @@
           };
         })) // {
       overlays.default = final: prev: {
-        tunelo = final.callPackage ./devshell/package.nix { };
+        tunelo = final.callPackage ./devshell/package.nix {
+          inherit name version;
+        };
       };
     };
 }
