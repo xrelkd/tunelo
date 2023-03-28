@@ -33,13 +33,14 @@
 
           rustComponents = [
             "cargo"
-            "rustc"
             "clippy"
+            "rust-src"
+            "rustc"
             "rustfmt"
           ];
 
           rustToolchainStable = (pkgs.fenix.stable.withComponents rustComponents);
-          rustToolchainNightly = (pkgs.fenix.default.withComponents rustComponents);
+          rustToolchainNightly = (pkgs.fenix.complete.withComponents rustComponents);
           rustToolchain = rustToolchainNightly;
 
           craneLibStable = (crane.mkLib pkgs).overrideToolchain rustToolchainStable;

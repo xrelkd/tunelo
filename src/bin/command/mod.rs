@@ -1,3 +1,11 @@
+#[macro_use]
+pub mod macros;
+pub mod http_server;
+pub mod multi_proxy;
+pub mod proxy_chain;
+pub mod proxy_checker;
+pub mod socks_server;
+
 use std::{future::Future, io::Write, path::PathBuf, pin::Pin, sync::Arc};
 
 use clap::{CommandFactory, Parser, Subcommand};
@@ -5,22 +13,12 @@ use clap_complete::Shell;
 use snafu::ResultExt;
 use tokio::runtime;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
-
 use tunelo::transport::{Resolver, TrustDnsResolver};
 
 use crate::{
     consts,
     error::{self, Error},
 };
-
-#[macro_use]
-pub mod macros;
-
-pub mod http_server;
-pub mod multi_proxy;
-pub mod proxy_chain;
-pub mod proxy_checker;
-pub mod socks_server;
 
 #[derive(Debug, Parser)]
 #[command(author, version, about, long_about = None)]

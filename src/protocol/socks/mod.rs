@@ -12,9 +12,8 @@ use std::{
 use snafu::ResultExt;
 use tokio::io::AsyncRead;
 
-use crate::common::HostAddress;
-
 pub use self::error::Error;
+use crate::common::HostAddress;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SocksVersion {
@@ -58,7 +57,7 @@ impl SocksVersion {
     pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum SocksCommand {
     TcpConnect,
     TcpBind,
@@ -100,7 +99,7 @@ impl std::fmt::Display for SocksCommand {
     }
 }
 
-#[derive(Clone, Copy, Eq, PartialEq, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AddressType {
     Ipv4,
     Domain,
@@ -136,13 +135,14 @@ impl From<AddressType> for u8 {
     }
 }
 
-#[derive(Hash, Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct Address(HostAddress);
 
 impl Address {
     pub fn from_bytes(buf: &mut [u8]) -> Result<(Self, usize), Error> {
-        use byteorder::{BigEndian, ReadBytesExt};
         use std::io::Read;
+
+        use byteorder::{BigEndian, ReadBytesExt};
 
         let mut rdr = std::io::Cursor::new(buf);
         let address_type = AddressType::try_from(rdr.read_u8().context(error::ReadStreamSnafu)?)?;

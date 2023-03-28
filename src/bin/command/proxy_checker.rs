@@ -8,12 +8,11 @@ use std::{
 use clap::Args;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use url::Url;
-
 use tunelo::{
     checker::{BasicProber, HttpProber, LivenessProber, Prober, SimpleProxyChecker, TaskReport},
     common::{HostAddress, ProxyHost},
 };
+use url::Url;
 
 use crate::error::{self, Error};
 
@@ -168,7 +167,7 @@ where
     Ok(())
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Config {
     proxy_servers: Vec<ProxyHost>,
     proxy_server_file: Option<PathBuf>,

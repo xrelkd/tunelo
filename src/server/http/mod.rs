@@ -17,7 +17,7 @@ use crate::{
     transport::Transport,
 };
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ServerOptions {
     pub listen_address: IpAddr,
     pub listen_port: u16,

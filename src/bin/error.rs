@@ -1,7 +1,6 @@
 use std::{fmt, path::PathBuf};
 
 use snafu::Snafu;
-
 use tunelo::common::HostAddressError;
 
 #[derive(Debug, Snafu)]

@@ -3,7 +3,6 @@ use std::{future::Future, path::Path, pin::Pin, sync::Arc};
 use futures::future::join_all;
 use snafu::ResultExt;
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     filter::SimpleFilter,

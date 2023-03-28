@@ -194,7 +194,7 @@ impl HttpServer {
     pub fn listen_socket(&self) -> SocketAddr { SocketAddr::new(self.host, self.port) }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum AuthenticationMethod {}
 
 impl ToString for AuthenticationMethod {

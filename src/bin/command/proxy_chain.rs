@@ -13,7 +13,6 @@ use futures::future::join_all;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     common::{ProxyHost, ProxyStrategy},
@@ -159,7 +158,7 @@ pub async fn run<P: AsRef<Path>>(
     Ok(())
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, Serialize, PartialEq)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
     enable_socks4a: bool,
     enable_socks5: bool,

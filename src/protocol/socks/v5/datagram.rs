@@ -9,7 +9,7 @@ use crate::{
 };
 
 // Datagram is the UDP packet
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Datagram {
     frag: u8,
     destination_socket: Address,
@@ -24,8 +24,9 @@ impl Datagram {
     }
 
     pub fn from_bytes(input: &[u8]) -> Result<Self, Error> {
-        use byteorder::{BigEndian, ReadBytesExt};
         use std::io::{Cursor, Read};
+
+        use byteorder::{BigEndian, ReadBytesExt};
 
         let mut input = Cursor::new(input);
 

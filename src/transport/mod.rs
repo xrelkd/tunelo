@@ -20,22 +20,20 @@ use tokio::{
     net::TcpStream,
 };
 
-use crate::{
-    common::{HostAddress, ProxyStrategy},
-    filter::{FilterAction, HostFilter},
+use self::{
+    connector::{Connector, ProxyConnector},
+    metrics::TransportMetrics,
+    resolver::DummyResolver,
 };
-
 pub use self::{
     error::Error,
     resolver::{Resolver, TokioResolver, TrustDnsResolver},
     // FIXME: uncomment this
     // stream_ext::StatMonitor,
 };
-
-use self::{
-    connector::{Connector, ProxyConnector},
-    metrics::TransportMetrics,
-    resolver::DummyResolver,
+use crate::{
+    common::{HostAddress, ProxyStrategy},
+    filter::{FilterAction, HostFilter},
 };
 
 pub struct Transport<Stream> {

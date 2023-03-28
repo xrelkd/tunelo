@@ -1,7 +1,5 @@
 use std::time::Duration;
 
-use crate::common::ProxyHost;
-
 pub use crate::checker::{
     error::{Error, ReportError},
     prober::{
@@ -10,6 +8,7 @@ pub use crate::checker::{
     },
     report::TaskReport,
 };
+use crate::common::ProxyHost;
 
 #[derive(Clone, Debug)]
 pub struct SimpleProxyChecker {

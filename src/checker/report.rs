@@ -3,7 +3,7 @@ use crate::{
     common::ProxyHost,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct TaskReport {
     pub proxy_server: ProxyHost,
     pub liveness_report: LivenessProberReport,

@@ -62,9 +62,8 @@ impl HostFilter for ComposerFilter {
 mod tests {
     use std::net::{IpAddr, SocketAddr};
 
-    use crate::filter::{FilterMode, SimpleFilter};
-
     use super::*;
+    use crate::filter::{FilterMode, SimpleFilter};
 
     #[test]
     fn construct() {

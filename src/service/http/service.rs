@@ -2,13 +2,12 @@ use std::{net::SocketAddr, str::FromStr, sync::Arc};
 
 use bytes::{Bytes, BytesMut};
 use http::{header::HeaderName, HeaderMap, HeaderValue, Method, StatusCode};
-use url::Url;
-
 use snafu::ResultExt;
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     sync::Mutex,
 };
+use url::Url;
 
 use crate::{
     authentication::AuthenticationManager,
