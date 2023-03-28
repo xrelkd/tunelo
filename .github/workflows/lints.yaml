@@ -3,10 +3,13 @@ name: Lint
 on:
   push:
     branches:
-      - ci/*
       - main
       - develop
       - release/*
+      - hotfix/*
+      - feature/*
+      - ci/*
+
   pull_request:
 
 env:

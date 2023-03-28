@@ -12,8 +12,8 @@ on:
 
   pull_request:
     paths:
-      - "src/**"
       - ".github/**"
+      - "src/**"
       - Cargo.lock
       - Cargo.toml
       - deny.toml
@@ -21,11 +21,7 @@ on:
       - rustfmt.toml
 
 env:
-  CI: 1
-  # Rust toolchain
-  NIGHTLY_TOOLCHAIN: nightly-2023-03-25
   CARGO_TERM_COLOR: always
-  CARGO_ARGS: --workspace --bins --examples --tests --benches --all-targets --all-features
 
 concurrency:
   group: rust-${{ github.ref }}
@@ -38,23 +34,16 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
-          override: true
-          components: rustfmt
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
 
-      - name: cargo fmt --version
+      - name: Show rustfmt version
         run: |
-          cargo fmt --version
+          nix develop --command cargo fmt --version
 
       - name: Run cargo fmt
-        uses: actions-rs/cargo@v1
-        with:
-          command: fmt
-          args: --all --verbose --check
+        run: |
+          nix develop --command cargo fmt --all --verbose --check
 
   udeps:
     name: Check unused dependencies
@@ -66,17 +55,8 @@ jobs:
         with:
           submodules: "true"
 
-      - name: Install dependencies
-        run: |
-          sudo ./dev-support/bin/install-deps
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
-          override: true
-          components: rustfmt
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
 
       - name: Pre Cache
         run: |
@@ -91,11 +71,13 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
+      - name: Show cargo-udeps version
+        run: |
+          nix develop --command cargo udeps --version
+
       - name: Run cargo-udeps
-        uses: aig787/cargo-udeps-action@v1
-        with:
-          version: latest
-          args: ${{ env.CARGO_ARGS }}
+        run: |
+          nix develop --command cargo udeps-all
 
   clippy:
     name: Clippy
@@ -105,17 +87,8 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: |
-          sudo ./dev-support/bin/install-deps
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
-          override: true
-          components: clippy,rustfmt
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
 
       - name: Pre Cache
         run: |
@@ -130,15 +103,13 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: cargo clippy --version
+      - name: Show cargo clippy version
         run: |
-          cargo clippy --version
+          nix develop --command cargo clippy --version
 
       - name: Run cargo clippy
-        uses: actions-rs/clippy-check@v1
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          args: ${{ env.CARGO_ARGS }}
+        run: |
+          nix develop --command cargo clippy-all
 
   test:
     name: Test
@@ -152,23 +123,16 @@ jobs:
       fail-fast: false
       matrix:
         toolchain:
-          - stable
+          # TODO: make `stable` available
+          # - stable
+          - nightly
         mode:
           - release
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install dependencies
-        run: |
-          sudo ./dev-support/bin/install-deps
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: ${{ matrix.toolchain == 'nightly' && env.NIGHTLY_TOOLCHAIN || matrix.toolchain }}
-          profile: minimal
-          override: true
-          components: rustfmt
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
 
       - name: Pre Cache
         run: |
@@ -183,14 +147,13 @@ jobs:
             ~/.cargo/git/db/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Install latest cargo-nextest release
-        uses: taiki-e/install-action@nextest
+      - name: Show cargo-nextest version
+        run: |
+          nix develop --command cargo nextest --version
 
       - name: Test with cargo-nextest
-        uses: actions-rs/cargo@v1
-        with:
-          command: nextest
-          args: run --workspace --no-fail-fast ${{ matrix.mode == 'release' && '--release' || '' }}
+        run: |
+          nix develop --command cargo nextest-all ${{ matrix.mode == 'release' && '--release' || '' }}
 
   doc:
     name: Doc
@@ -203,17 +166,8 @@ jobs:
         with:
           submodules: "true"
 
-      - name: Install dependencies
-        run: |
-          sudo ./dev-support/bin/install-deps
-
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.NIGHTLY_TOOLCHAIN }}
-          override: true
-          components: clippy,rustfmt
+      - name: Install Nix
+        uses: cachix/install-nix-action@v20
 
       - name: Pre Cache
         run: |
@@ -229,7 +183,5 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Run cargo doc
-        uses: actions-rs/cargo@v1
-        with:
-          command: doc
-          args: --workspace --no-deps --bins --all-features
+        run: |
+          nix develop --command cargo doc-all
