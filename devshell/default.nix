@@ -17,6 +17,7 @@ pkgs.mkShell rec {
     cargo-ext.cargo-doc-all
     cargo-ext.cargo-nextest-all
     cargo-ext.cargo-test-all
+    cargo-ext.cargo-udeps-all
     cargo-ext.cargo-watch-all
 
     (fenix.default.withComponents [
@@ -26,6 +27,7 @@ pkgs.mkShell rec {
       "rustfmt"
     ])
     cargo-nextest
+    cargo-udeps
     cargo-watch
 
     tokei

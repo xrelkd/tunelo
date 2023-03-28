@@ -62,7 +62,17 @@ in
     cargo --version
     rustc --version
     cargo nextest --version
-    cargo nextest run --no-capture
+    cargo nextest run --workspace --no-fail-fast --no-capture "$@"
+  '';
+
+  cargo-udeps-all = writeShellScriptBin "cargo-udeps-all" ''
+    if [ $# -gt 0 ] && [ "$1" = "udeps-all" ]; then
+      shift
+    fi
+
+    cargo version
+    cargo udeps --version
+    cargo udeps ${CARGO_ARGUMENTS} "$@"
   '';
 
   cargo-watch-all = writeShellScriptBin "cargo-watch-all" ''
