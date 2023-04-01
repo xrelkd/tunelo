@@ -52,7 +52,6 @@ serde_json = { version = "1", optional = true }
 toml = { version = "0.7", optional = true }
 
 trust-dns-resolver = "0.22"
-webpki = "0.22"
 webpki-roots = "0.23"
 
 byteorder = "1"
