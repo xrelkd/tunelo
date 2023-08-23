@@ -1,11 +1,10 @@
 mod socks;
 
+pub use self::socks::Socks5Datagram;
 use crate::{
     client::Error,
     common::{HostAddress, ProxyHost},
 };
-
-pub use self::socks::Socks5Datagram;
 
 pub enum ProxyDatagram {
     Socks5(Socks5Datagram),
