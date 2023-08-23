@@ -21,9 +21,8 @@ impl TrustDnsResolver {
         resolver_config: ResolverConfig,
         resolver_opts: ResolverOpts,
     ) -> Result<Self, Error> {
-        AsyncResolver::tokio(resolver_config, resolver_opts)
-            .map(|resolver| Self { resolver })
-            .context(error::InitializeTrustDnsResolverSnafu)
+        let resolver = AsyncResolver::tokio(resolver_config, resolver_opts);
+        Ok(Self { resolver })
     }
 
     pub async fn new_default() -> Result<Self, Error> {
