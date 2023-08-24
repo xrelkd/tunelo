@@ -82,15 +82,15 @@ impl HttpProber {
                     let connector = {
                         // TODO: use `lazy_static` to initialize?
                         let mut root_store = rustls::RootCertStore::empty();
-                        root_store.add_server_trust_anchors(
-                            webpki_roots::TLS_SERVER_ROOTS.iter().map(|ta| {
+                        root_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.iter().map(
+                            |ta| {
                                 rustls::OwnedTrustAnchor::from_subject_spki_name_constraints(
                                     ta.subject,
                                     ta.spki,
                                     ta.name_constraints,
                                 )
-                            }),
-                        );
+                            },
+                        ));
 
                         let config = rustls::ClientConfig::builder()
                             .with_safe_defaults()
