@@ -50,7 +50,7 @@ impl SimpleProxyChecker {
     }
 
     pub async fn check_liveness(&self) -> LivenessProberReport {
-        let liveness_prober = LivenessProber::default();
+        let liveness_prober = LivenessProber;
         liveness_prober.probe(&self.proxy_server).await
     }
 

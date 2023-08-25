@@ -300,7 +300,7 @@ impl TryInto<Prober> for ProberConfig {
         }
 
         match self {
-            Self::Liveness => Ok(LivenessProber::default().into()),
+            Self::Liveness => Ok(LivenessProber.into()),
             Self::Basic { destination_address } => Ok(BasicProber::new(destination_address).into()),
             Self::HttpGet { url, expected_response_code } => {
                 Ok(HttpProber::get(try_parse_url!(url), expected_response_code).into())
