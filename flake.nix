@@ -5,8 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     fenix = {
-      # nightly-2023-03-24
-      url = "github:nix-community/fenix?ref=d143afc6110296af610d7f77f54808e946d2e62d";
+      url = "github:nix-community/fenix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
     crane = {
@@ -31,31 +30,22 @@
             ];
           };
 
-          rustComponents = [
-            "cargo"
-            "clippy"
-            "rust-src"
-            "rustc"
-            "rustfmt"
+          rustToolchain = with fenix.packages.${system}; combine [
+            stable.rustc
+            stable.cargo
+            stable.clippy
+            stable.rust-src
+            stable.rust-std
+
+            default.rustfmt
           ];
 
-          rustToolchainStable = (pkgs.fenix.stable.withComponents rustComponents);
-          rustToolchainNightly = (pkgs.fenix.complete.withComponents rustComponents);
-          rustToolchain = rustToolchainNightly;
-
-          craneLibStable = (crane.mkLib pkgs).overrideToolchain rustToolchainStable;
-          craneLibNightly = (crane.mkLib pkgs).overrideToolchain rustToolchainNightly;
-          craneLib = craneLibNightly;
-
-          rustPlatformStable = pkgs.makeRustPlatform {
-            cargo = rustToolchainStable;
-            rustc = rustToolchainStable;
+          rustPlatform = pkgs.makeRustPlatform {
+            cargo = rustToolchain;
+            rustc = rustToolchain;
           };
-          rustPlatformNightly = pkgs.makeRustPlatform {
-            cargo = rustToolchainNightly;
-            rustc = rustToolchainNightly;
-          };
-          rustPlatform = rustPlatformNightly;
+
+          craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
 
           cargoArgs = [
             "--workspace"
@@ -86,8 +76,7 @@
           packages = rec {
             default = tunelo;
             tunelo = pkgs.callPackage ./devshell/package.nix {
-              inherit name version;
-              rustPlatform = rustPlatformStable;
+              inherit name version rustPlatform;
             };
             container = pkgs.callPackage ./devshell/container.nix {
               inherit name version tunelo;
@@ -102,7 +91,7 @@
           checks = {
             format = pkgs.callPackage ./devshell/format.nix { };
 
-            rust-build = craneLibStable.cargoBuild (commonArgs // {
+            rust-build = craneLib.cargoBuild (commonArgs // {
               inherit cargoArtifacts;
             });
             rust-format = craneLib.cargoFmt { inherit src; };
