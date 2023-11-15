@@ -61,7 +61,7 @@ bytes = "1"
 clap = { version = "4", features = ["derive", "env"], optional = true }
 clap_complete = { version = "4", optional = true }
 comfy-table = { version = "7", optional = true }
-http = "0.2"
+http = "1.0"
 httparse = "1"
 # FIXME: use `lru_time_cache` while re-implementing UDP support
 # lru_time_cache = "0.11"
