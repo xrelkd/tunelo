@@ -59,7 +59,7 @@ where
 
         match msg.status_code {
             200 => Ok(()),
-            401 | 402 | 403 | 404 => Err(Error::HostUnreachable),
+            401..=404 => Err(Error::HostUnreachable),
             _ => Err(Error::HostUnreachable),
         }
     }

@@ -42,7 +42,7 @@ pub enum Error {
     IncompleteHttpResponse,
 
     #[snafu(display("Could not construct a DNSNameRef from `{dns_name}`, error: {source}"))]
-    InvalidDnsName { dns_name: String, source: tokio_rustls::rustls::client::InvalidDnsNameError },
+    InvalidDnsName { dns_name: String, source: rustls_pki_types::InvalidDnsNameError },
 
     #[snafu(display("Operation timed out"))]
     Timeout,

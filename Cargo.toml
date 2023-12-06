@@ -11,12 +11,12 @@ autobins = false
 default = ["tunelo"]
 
 app = [
-  "clap",
-  "clap_complete",
-  "tracing-subscriber",
-  "toml",
-  "serde_json",
-  "comfy-table",
+    "clap",
+    "clap_complete",
+    "tracing-subscriber",
+    "toml",
+    "serde_json",
+    "comfy-table",
 ]
 
 tunelo = ["app"]
@@ -33,19 +33,19 @@ required-features = ["app"]
 [dependencies]
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = [
-  "env-filter",
+    "env-filter",
 ], optional = true }
 
 futures = "0.3"
 tokio = { version = "1", features = [
-  "fs",
-  "io-util",
-  "macros",
-  "net",
-  "rt-multi-thread",
-  "signal",
-  "sync",
-  "time",
+    "fs",
+    "io-util",
+    "macros",
+    "net",
+    "rt-multi-thread",
+    "signal",
+    "sync",
+    "time",
 ] }
 tokio-rustls = { version = "0.25" }
 
@@ -53,6 +53,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
 toml = { version = "0.8", optional = true }
 
+rustls-pki-types = "1"
 trust-dns-resolver = "0.23"
 webpki-roots = "0.26"
 

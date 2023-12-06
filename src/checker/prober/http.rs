@@ -75,8 +75,11 @@ impl HttpProber {
                 let stream = {
                     let server_name = {
                         let dns_name = self.host()?;
-                        rustls::ServerName::try_from(dns_name.as_str())
-                            .with_context(|_| error::InvalidDnsNameSnafu { dns_name })?
+                        rustls_pki_types::ServerName::try_from(dns_name.as_str())
+                            .with_context(|_| error::InvalidDnsNameSnafu {
+                                dns_name: dns_name.clone(),
+                            })?
+                            .to_owned()
                     };
 
                     let connector = {
@@ -85,7 +88,6 @@ impl HttpProber {
                         root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
 
                         let config = rustls::ClientConfig::builder()
-                            .with_safe_defaults()
                             .with_root_certificates(root_store)
                             .with_no_client_auth();
 
