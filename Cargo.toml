@@ -66,7 +66,7 @@ http = "1.0"
 httparse = "1"
 # FIXME: use `lru_time_cache` while re-implementing UDP support
 # lru_time_cache = "0.11"
-snafu = "0.7"
+snafu = "0.8"
 url = "2"
 
 [profile.release]
