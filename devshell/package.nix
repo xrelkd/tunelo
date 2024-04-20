@@ -1,11 +1,13 @@
 { name
 , version
 , lib
+, stdenv
 , rustPlatform
 , installShellFiles
+, darwin
 }:
 
-rustPlatform.buildRustPackage rec {
+rustPlatform.buildRustPackage {
   pname = name;
   inherit version;
 
@@ -14,6 +16,11 @@ rustPlatform.buildRustPackage rec {
   cargoLock.lockFile = ../Cargo.lock;
 
   nativeBuildInputs = [ installShellFiles ];
+
+  buildInputs = lib.optionals stdenv.isDarwin [
+    darwin.apple_sdk.frameworks.Security
+    darwin.apple_sdk.frameworks.SystemConfiguration
+  ];
 
   postInstall = ''
     installShellCompletion --cmd tunelo \

@@ -16,8 +16,8 @@
 
   outputs = { self, nixpkgs, flake-utils, fenix, crane }:
     let
+      cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
       name = "tunelo";
-      version = "0.1.8";
     in
     (flake-utils.lib.eachDefaultSystem
       (system:
@@ -76,10 +76,13 @@
           packages = rec {
             default = tunelo;
             tunelo = pkgs.callPackage ./devshell/package.nix {
-              inherit name version rustPlatform;
+              inherit (pkgs) darwin;
+              inherit (cargoToml.package) version;
+              inherit name rustPlatform;
             };
             container = pkgs.callPackage ./devshell/container.nix {
-              inherit name version tunelo;
+              inherit (cargoToml.package) version;
+              inherit name tunelo;
             };
           };
 
@@ -108,7 +111,8 @@
         })) // {
       overlays.default = final: prev: {
         tunelo = final.callPackage ./devshell/package.nix {
-          inherit name version;
+          inherit (cargoToml.package) version;
+          inherit name;
         };
       };
     };
