@@ -1,8 +1,8 @@
 [package]
 name = "tunelo"
-version = "0.1.7"
+version = "0.1.9"
 authors = ["xrelkd <46590321+xrelkd@users.noreply.github.com>"]
-edition = "2018"
+edition = "2021"
 
 default-run = "tunelo"
 autobins = false
@@ -10,7 +10,14 @@ autobins = false
 [features]
 default = ["tunelo"]
 
-app = ["structopt", "tracing-subscriber", "toml", "serde_json", "comfy-table"]
+app = [
+  "clap",
+  "clap_complete",
+  "tracing-subscriber",
+  "toml",
+  "serde_json",
+  "comfy-table",
+]
 
 tunelo = ["app"]
 
@@ -24,35 +31,47 @@ path = "src/bin/main.rs"
 required-features = ["app"]
 
 [dependencies]
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = [
+  "env-filter",
+], optional = true }
+
 futures = "0.3"
-tokio = { version = "0.2", features = ["full"] }
-tokio-rustls = { version = "0.14" }
-
-webpki = "0.21"
-webpki-roots = "0.20"
-
-trust-dns-resolver = "0.19"
-
-snafu = "0.6"
-url = "2"
+tokio = { version = "1", features = [
+  "fs",
+  "io-util",
+  "macros",
+  "net",
+  "rt-multi-thread",
+  "signal",
+  "sync",
+  "time",
+] }
+tokio-rustls = { version = "0.26", default-features = false, features = [
+  "logging",
+  "ring",
+  "tls12",
+] }
 
 serde = { version = "1", features = ["derive"] }
 serde_json = { version = "1", optional = true }
-toml = { version = "0.5", optional = true }
+toml = { version = "0.8", optional = true }
+
+rustls-pki-types = "1"
+trust-dns-resolver = "0.23"
+webpki-roots = "0.26"
 
 byteorder = "1"
-bytes = "0.5"
-
-http = "0.2"
+bytes = "1"
+clap = { version = "4", features = ["derive", "env"], optional = true }
+clap_complete = { version = "4", optional = true }
+comfy-table = { version = "7", optional = true }
+http = "1.1"
 httparse = "1"
-
-tracing = "0.1"
-tracing-subscriber = { version = "0.2", optional = true }
-
-lru_time_cache = "0.11"
-
-structopt = { version = "0.3", optional = true }
-comfy-table = { version = "1", optional = true }
+# FIXME: use `lru_time_cache` while re-implementing UDP support
+# lru_time_cache = "0.11"
+snafu = "0.8"
+url = "2"
 
 [profile.release]
 opt-level = 3

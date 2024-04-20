@@ -11,15 +11,15 @@ use crate::{
     protocol::socks::{consts, error, Address, Error, SocksVersion},
 };
 
-#[derive(Debug, Hash, Clone, Copy, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum Command {
     TcpConnect,
     TcpBind,
 }
 
-impl Into<u8> for Command {
-    fn into(self) -> u8 {
-        match self {
+impl From<Command> for u8 {
+    fn from(val: Command) -> Self {
+        match val {
             Command::TcpConnect => consts::SOCKS4_CMD_TCP_CONNECT,
             Command::TcpBind => consts::SOCKS4_CMD_TCP_BIND,
         }
@@ -31,14 +31,14 @@ impl TryFrom<u8> for Command {
 
     fn try_from(cmd: u8) -> Result<Self, Self::Error> {
         match cmd {
-            consts::SOCKS4_CMD_TCP_CONNECT => Ok(Command::TcpConnect),
-            consts::SOCKS4_CMD_TCP_BIND => Ok(Command::TcpBind),
+            consts::SOCKS4_CMD_TCP_CONNECT => Ok(Self::TcpConnect),
+            consts::SOCKS4_CMD_TCP_BIND => Ok(Self::TcpBind),
             command => Err(Error::InvalidCommand { command }),
         }
     }
 }
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ReplyField {
     Granted,
     Rejected,
@@ -46,9 +46,9 @@ pub enum ReplyField {
     InvalidId,
 }
 
-impl Into<u8> for ReplyField {
-    fn into(self) -> u8 {
-        match self {
+impl From<ReplyField> for u8 {
+    fn from(val: ReplyField) -> Self {
+        match val {
             ReplyField::Granted => consts::SOCKS4_REPLY_GRANTED,
             ReplyField::Rejected => consts::SOCKS4_REPLY_REJECTED,
             ReplyField::Unreachable => consts::SOCKS4_REPLY_UNREACHABLE,
@@ -62,16 +62,16 @@ impl TryFrom<u8> for ReplyField {
 
     fn try_from(reply: u8) -> Result<Self, Self::Error> {
         match reply {
-            consts::SOCKS4_REPLY_GRANTED => Ok(ReplyField::Granted),
-            consts::SOCKS4_REPLY_REJECTED => Ok(ReplyField::Rejected),
-            consts::SOCKS4_REPLY_UNREACHABLE => Ok(ReplyField::Unreachable),
-            consts::SOCKS4_REPLY_INVALID_ID => Ok(ReplyField::InvalidId),
+            consts::SOCKS4_REPLY_GRANTED => Ok(Self::Granted),
+            consts::SOCKS4_REPLY_REJECTED => Ok(Self::Rejected),
+            consts::SOCKS4_REPLY_UNREACHABLE => Ok(Self::Unreachable),
+            consts::SOCKS4_REPLY_INVALID_ID => Ok(Self::InvalidId),
             _ => Err(Error::BadReply),
         }
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Request {
     pub command: Command,
     pub destination_socket: Address,
@@ -79,24 +79,24 @@ pub struct Request {
 }
 
 impl Request {
-    pub async fn from_reader<R>(rdr: &mut R) -> Result<Request, Error>
+    pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
-        let command = Command::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
-        let port = rdr.read_u16().await.context(error::ReadStream)?;
+        let command = Command::try_from(rdr.read_u8().await.context(error::ReadStreamSnafu)?)?;
+        let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
         let mut ip_buf = [0u8; 4];
-        let _ = rdr.read(&mut ip_buf).await.context(error::ReadStream)?;
+        let _ = rdr.read(&mut ip_buf).await.context(error::ReadStreamSnafu)?;
 
         let (id, host) = {
             let mut buf = [0u8; 128];
-            let _ = rdr.read(&mut buf).await.context(error::ReadStream)?;
+            let _ = rdr.read(&mut buf).await.context(error::ReadStreamSnafu)?;
 
             let parts: Vec<_> = buf.split(|ch| *ch == 0x00).collect();
 
             match parts.len() {
-                0 => (vec![], vec![]),
-                1 => (parts[0].to_vec(), vec![]),
+                0 => (Vec::new(), Vec::new()),
+                1 => (parts[0].to_vec(), Vec::new()),
                 _ => (parts[0].to_vec(), parts[1].to_vec()),
             }
         };
@@ -110,12 +110,14 @@ impl Request {
             Address::from(SocketAddrV4::new(host, port))
         };
 
-        Ok(Request { command, destination_socket, id })
+        Ok(Self { command, destination_socket, id })
     }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         // +----+----+----+----+----+----+----+----+----+----+....+----+
         // | VN | CD | DSTPORT |      DSTIP        | USERID       |NULL|
@@ -133,7 +135,7 @@ impl Request {
         buf.push(self.command.into());
 
         // port
-        let _ = buf.write_u16::<BigEndian>(self.destination_socket.port());
+        let _unused = buf.write_u16::<BigEndian>(self.destination_socket.port());
 
         // IP and user ID
         match self.destination_socket.as_ref() {
@@ -169,51 +171,57 @@ impl Request {
 // | 1  | 1  |    2    |         4         |
 // +---+-----+---------+----+----+----+----+
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Reply {
     pub reply: ReplyField,
     pub destination_socket: SocketAddrV4,
 }
 
 impl Reply {
-    pub async fn from_reader<R>(rdr: &mut R) -> Result<Reply, Error>
+    pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
-        R: AsyncRead + AsyncRead + Unpin,
+        R: AsyncRead + Unpin,
     {
-        if rdr.read_u8().await.context(error::ReadStream)? != 0x00 {
+        if rdr.read_u8().await.context(error::ReadStreamSnafu)? != 0x00 {
             return Err(Error::BadReply);
         }
 
-        let reply = ReplyField::try_from(rdr.read_u8().await.context(error::ReadStream)?)?;
+        let reply = ReplyField::try_from(rdr.read_u8().await.context(error::ReadStreamSnafu)?)?;
         let destination_socket = {
-            let port = rdr.read_u16().await.context(error::ReadStream)?;
+            let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
             let mut ip = [0u8; 4];
-            rdr.read(&mut ip).await.context(error::ReadStream)?;
+            rdr.read(&mut ip).await.context(error::ReadStreamSnafu)?;
             SocketAddrV4::new(Ipv4Addr::from(ip), port)
         };
 
-        Ok(Reply { reply, destination_socket })
+        Ok(Self { reply, destination_socket })
     }
 
-    pub fn granted(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::Granted, destination_socket }
+    #[must_use]
+    pub const fn granted(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::Granted, destination_socket }
     }
 
-    pub fn rejected(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::Rejected, destination_socket }
+    #[must_use]
+    pub const fn rejected(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::Rejected, destination_socket }
     }
 
-    pub fn unreachable(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::Unreachable, destination_socket }
+    #[must_use]
+    pub const fn unreachable(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::Unreachable, destination_socket }
     }
 
     #[allow(dead_code)]
-    pub fn invalid_id(destination_socket: SocketAddrV4) -> Reply {
-        Reply { reply: ReplyField::InvalidId, destination_socket }
+    #[must_use]
+    pub const fn invalid_id(destination_socket: SocketAddrV4) -> Self {
+        Self { reply: ReplyField::InvalidId, destination_socket }
     }
 
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
+    #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
         // +----+----+----+----+----+----+----+----+
         // | VN | CD | DSTPORT |      DSTIP        |

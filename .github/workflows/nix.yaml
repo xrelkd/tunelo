@@ -1,0 +1,39 @@
+name: "Nix Flakes"
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - release/*
+      - hotfix/*
+      - feature/*
+      - ci/*
+
+  pull_request:
+    paths:
+      - ".github/**"
+      - "src/**"
+      - Cargo.lock
+      - Cargo.toml
+      - flake.lock
+      - flake.nix
+
+jobs:
+  build-nix-flake:
+    name: Build Nix Flake
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v26
+        with:
+          extra_nix_config: |
+            access-tokens = github.com=${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Nix Flake
+        run: nix build
+
+      - name: Test Tunelo binary
+        run: ./result/bin/tunelo version

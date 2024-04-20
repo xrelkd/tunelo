@@ -33,7 +33,8 @@ impl UdpServer {
 
     pub async fn serve(self) -> Result<(), Error> {
         tracing::info!("Starting UDP server for UDP associate at {}", self.local_addr);
-        let udp_socket = UdpSocket::bind(&self.local_addr).await.context(error::BindUdpSocket)?;
+        let udp_socket =
+            UdpSocket::bind(&self.local_addr).await.context(error::BindUdpSocketSnafu)?;
         let mut shutdown_slot = self.shutdown_slot;
         let (mut udp_recv, mut udp_send) = udp_socket.split();
 

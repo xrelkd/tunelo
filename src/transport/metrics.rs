@@ -9,9 +9,9 @@ use std::{
 
 use tokio::sync::Mutex;
 
-use crate::{common::HostAddress, transport::stream_ext::StatMonitor};
+use crate::common::HostAddress;
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct TransportMetrics {
     received_bytes: Arc<AtomicUsize>,
     transmitted_bytes: Arc<AtomicUsize>,
@@ -19,10 +19,11 @@ pub struct TransportMetrics {
     client_counter: Counter,
     remote_counter: Counter,
 
-    destinations: Arc<Mutex<HashSet<HostAddress>>>,
+    // TODO: use `destinations`
+    _destinations: Arc<Mutex<HashSet<HostAddress>>>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Counter {
     current: Arc<AtomicUsize>,
     accumulated: Arc<AtomicUsize>,
@@ -30,14 +31,14 @@ pub struct Counter {
 
 impl Counter {
     #[inline]
-    pub fn new(n: usize) -> Counter {
+    pub fn new(n: usize) -> Self {
         let current = Arc::new(AtomicUsize::new(n));
         let accumulated = Arc::new(AtomicUsize::new(n));
-        Counter { current, accumulated }
+        Self { current, accumulated }
     }
 
     #[inline]
-    pub fn zero() -> Counter { Counter::new(0) }
+    pub fn zero() -> Self { Self::new(0) }
 
     #[inline]
     pub fn increase(&self) -> usize {
@@ -59,9 +60,9 @@ pub struct CounterHelper(Counter);
 
 impl CounterHelper {
     #[inline]
-    pub fn count(counter: Counter) -> (CounterHelper, usize) {
+    pub fn count(counter: Counter) -> (Self, usize) {
         let prev = counter.increase();
-        (CounterHelper(counter), prev)
+        (Self(counter), prev)
     }
 }
 
@@ -69,14 +70,16 @@ impl Drop for CounterHelper {
     fn drop(&mut self) { self.0.decrease(); }
 }
 
-impl StatMonitor for TransportMetrics {
-    fn increase_tx(&mut self, n: usize) { self.transmitted_bytes.fetch_add(n, Ordering::SeqCst); }
-
-    fn increase_rx(&mut self, n: usize) { self.received_bytes.fetch_add(n, Ordering::SeqCst); }
-}
+// FIXME: re-implement this
+// impl StatMonitor for TransportMetrics {
+//     fn increase_tx(&mut self, n: usize) { self.transmitted_bytes.fetch_add(n,
+// Ordering::SeqCst); }
+//
+//     fn increase_rx(&mut self, n: usize) { self.received_bytes.fetch_add(n,
+// Ordering::SeqCst); } }
 
 impl Default for TransportMetrics {
-    fn default() -> TransportMetrics {
+    fn default() -> Self {
         let received_bytes = Arc::new(AtomicUsize::new(0));
         let transmitted_bytes = Arc::new(AtomicUsize::new(0));
         let relay_counter = Counter::zero();
@@ -85,21 +88,21 @@ impl Default for TransportMetrics {
 
         let destinations = Arc::new(Mutex::new(HashSet::new()));
 
-        TransportMetrics {
+        Self {
             received_bytes,
             transmitted_bytes,
             relay_counter,
             client_counter,
             remote_counter,
 
-            destinations,
+            _destinations: destinations,
         }
     }
 }
 
 impl TransportMetrics {
     #[inline]
-    pub fn new() -> TransportMetrics { Self::default() }
+    pub fn new() -> Self { Self::default() }
 
     #[inline]
     pub fn reset(&mut self) { *self = Self::new(); }

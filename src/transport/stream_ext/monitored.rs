@@ -4,7 +4,7 @@ use std::{
     task::{Context, Poll},
 };
 
-use tokio::io::{AsyncRead, AsyncWrite};
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 pub trait StatMonitor: Send + Sync {
     fn increase_rx(&mut self, n: usize);
@@ -54,20 +54,20 @@ where
 
 impl<Stream, Monitor> AsyncRead for MonitoredStream<Stream, Monitor>
 where
-    Stream: Unpin + AsyncRead,
-    Monitor: Unpin + StatMonitor,
+    Stream: AsyncRead,
+    Monitor: StatMonitor,
 {
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
         let n = match Pin::new(&mut self.stream).poll_read(cx, buf)? {
-            Poll::Ready(n) => n,
+            Poll::Ready(_) => buf.filled().len(),
             Poll::Pending => return Poll::Pending,
         };
         self.monitor.increase_rx(n);
-        Poll::Ready(Ok(n))
+        Poll::Ready(Ok(()))
     }
 }
 

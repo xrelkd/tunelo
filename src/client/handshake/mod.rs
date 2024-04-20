@@ -1,9 +1,10 @@
-use tokio::io::{AsyncRead, AsyncWrite};
-
 pub mod error;
 mod http;
 mod socks_v4;
 mod socks_v5;
+
+use snafu::ResultExt;
+use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
 pub use self::error::Error;
 
@@ -16,7 +17,7 @@ where
     Stream: Unpin + Send + Sync + AsyncRead + AsyncWrite,
 {
     #[inline]
-    pub fn new(stream: Stream) -> ClientHandshake<Stream> { ClientHandshake { stream } }
+    pub fn new(stream: Stream) -> Self { Self { stream } }
 
     #[allow(dead_code)]
     #[inline]
@@ -29,10 +30,7 @@ where
     #[allow(dead_code)]
     #[inline]
     pub async fn shutdown(mut self) -> Result<(), Error> {
-        use snafu::ResultExt;
-        use tokio::io::AsyncWriteExt;
-
-        self.stream.shutdown().await.context(error::ShutdownStream)?;
+        self.stream.shutdown().await.context(error::ShutdownStreamSnafu)?;
         Ok(())
     }
 }

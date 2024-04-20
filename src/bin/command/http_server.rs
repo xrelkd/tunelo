@@ -4,10 +4,10 @@ use std::{
     sync::Arc,
 };
 
+use clap::Args;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use structopt::StructOpt;
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     filter::SimpleFilter,
@@ -48,34 +48,35 @@ pub async fn run<P: AsRef<Path>>(
             rx.wait().await;
         })
         .await
-        .context(error::RunHttpServer)?;
+        .context(error::RunHttpServerSnafu)?;
 
     Ok(())
 }
 
-#[derive(Debug, StructOpt, Serialize, Deserialize)]
+#[derive(Args, Debug, Deserialize, Serialize)]
 pub struct Options {
-    #[structopt(long = "ip", help = "IP address to listen")]
+    #[arg(long = "ip", help = "IP address to listen")]
     ip: Option<IpAddr>,
 
-    #[structopt(long = "port", help = "Port number to listen")]
+    #[arg(long = "port", help = "Port number to listen")]
     port: Option<u16>,
 }
 
-#[derive(Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
     ip: IpAddr,
     port: u16,
 }
 
 impl Default for Config {
-    fn default() -> Config { Config { ip: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8118 } }
+    #[inline]
+    fn default() -> Self { Self { ip: IpAddr::V4(Ipv4Addr::LOCALHOST), port: 8118 } }
 }
 
 impl Config {
     impl_config_load!(Config);
 
-    pub fn merge(mut self, opts: Options) -> Config {
+    pub fn merge(mut self, opts: Options) -> Self {
         let Options { mut ip, mut port } = opts;
 
         merge_option_field!(self, ip);
@@ -85,11 +86,11 @@ impl Config {
     }
 }
 
-impl Into<http::ServerOptions> for Config {
-    fn into(self) -> http::ServerOptions {
-        let listen_address = self.ip;
-        let listen_port = self.port;
+impl From<Config> for http::ServerOptions {
+    fn from(val: Config) -> Self {
+        let listen_address = val.ip;
+        let listen_port = val.port;
 
-        http::ServerOptions { listen_address, listen_port }
+        Self { listen_address, listen_port }
     }
 }

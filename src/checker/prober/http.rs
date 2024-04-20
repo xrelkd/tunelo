@@ -2,8 +2,8 @@ use std::{fmt, sync::Arc};
 
 use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
+use tokio_rustls::{rustls, TlsConnector};
 use url::Url;
-use webpki::DNSNameRef;
 
 use crate::{
     checker::error::{self, Error, ReportError},
@@ -11,7 +11,7 @@ use crate::{
     common::{HostAddress, ProxyHost},
 };
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq, Hash, Ord, PartialOrd)]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub enum HttpMethod {
     Head,
     Get,
@@ -21,14 +21,14 @@ pub enum HttpMethod {
 impl fmt::Display for HttpMethod {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            HttpMethod::Get => write!(f, "GET"),
-            HttpMethod::Head => write!(f, "HEAD"),
-            HttpMethod::Delete => write!(f, "DELETE"),
+            Self::Get => write!(f, "GET"),
+            Self::Head => write!(f, "HEAD"),
+            Self::Delete => write!(f, "DELETE"),
         }
     }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, Hash, PartialEq)]
 pub struct HttpProber {
     method: HttpMethod,
     url: Url,
@@ -37,18 +37,21 @@ pub struct HttpProber {
 
 impl HttpProber {
     #[inline]
-    pub fn get(url: Url, expected_response_code: u16) -> HttpProber {
-        HttpProber { url, expected_response_code, method: HttpMethod::Get }
+    #[must_use]
+    pub const fn get(url: Url, expected_response_code: u16) -> Self {
+        Self { url, expected_response_code, method: HttpMethod::Get }
     }
 
     #[inline]
-    pub fn head(url: Url, expected_response_code: u16) -> HttpProber {
-        HttpProber { url, expected_response_code, method: HttpMethod::Head }
+    #[must_use]
+    pub const fn head(url: Url, expected_response_code: u16) -> Self {
+        Self { url, expected_response_code, method: HttpMethod::Head }
     }
 
     #[inline]
-    pub fn delete(url: Url, expected_response_code: u16) -> HttpProber {
-        HttpProber { url, expected_response_code, method: HttpMethod::Delete }
+    #[must_use]
+    pub const fn delete(url: Url, expected_response_code: u16) -> Self {
+        Self { url, expected_response_code, method: HttpMethod::Delete }
     }
 
     pub async fn probe(
@@ -60,26 +63,42 @@ impl HttpProber {
         report.method = Some(self.method);
 
         let destination = self.destination_address()?;
-        let stream = ProxyStream::connect_with_proxy(&proxy_server, &destination)
+        let stream = ProxyStream::connect_with_proxy(proxy_server, &destination)
             .await
-            .context(error::ConnectProxyServer)?;
+            .context(error::ConnectProxyServerSnafu)?;
         report.destination_reachable = true;
 
         let stream = stream.into_inner();
         match self.url.scheme() {
             "http" => self.check_http(stream, report).await,
             "https" => {
-                use tokio_rustls::{rustls::ClientConfig, TlsConnector};
+                let stream = {
+                    let server_name = {
+                        let dns_name = self.host()?;
+                        rustls_pki_types::ServerName::try_from(dns_name.as_str())
+                            .with_context(|_| error::InvalidDnsNameSnafu {
+                                dns_name: dns_name.clone(),
+                            })?
+                            .to_owned()
+                    };
 
-                let host = self.host()?;
-                let mut config = ClientConfig::new();
-                config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-                let config = TlsConnector::from(Arc::new(config));
-                let dnsname = DNSNameRef::try_from_ascii_str(&host).map_err(|source| {
-                    Error::ConstructsDNSNameRef { source, name: host.to_owned() }
-                })?;
-                let stream =
-                    config.connect(dnsname, stream).await.context(error::InitializeTlsStream)?;
+                    let connector = {
+                        // TODO: use `lazy_static` to initialize?
+                        let mut root_store = rustls::RootCertStore::empty();
+                        root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
+
+                        let config = rustls::ClientConfig::builder()
+                            .with_root_certificates(root_store)
+                            .with_no_client_auth();
+
+                        TlsConnector::from(Arc::new(config))
+                    };
+
+                    connector
+                        .connect(server_name, stream)
+                        .await
+                        .context(error::InitializeTlsStreamSnafu)?
+                };
 
                 self.check_http(stream, report).await
             }
@@ -87,23 +106,26 @@ impl HttpProber {
         }
     }
 
-    async fn check_http<Stream: Unpin + AsyncRead + AsyncWrite>(
+    async fn check_http<Stream>(
         self,
         mut stream: Stream,
         report: &mut HttpProberReport,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Error>
+    where
+        Stream: Unpin + AsyncRead + AsyncWrite,
+    {
         let request = self.build_request()?;
-        stream.write(&request).await.context(error::WriteHttpRequest)?;
+        stream.write(&request).await.context(error::WriteHttpRequestSnafu)?;
 
         let mut buf = vec![0u8; 1024];
-        stream.read(&mut buf[..]).await.context(error::ReadHttpResponse)?;
+        stream.read(&mut buf[..]).await.context(error::ReadHttpResponseSnafu)?;
 
         let mut headers = [httparse::EMPTY_HEADER; 32];
         let mut response = httparse::Response::new(&mut headers);
 
-        let res = response.parse(&buf).context(error::ParseHttpResponse)?;
+        let res = response.parse(&buf).context(error::ParseHttpResponseSnafu)?;
         if res.is_complete() {
-            stream.shutdown();
+            drop(stream.shutdown().await);
             report.response_code = response.code;
             return Ok(());
         }
@@ -116,14 +138,12 @@ impl HttpProber {
         let path = self.path()?;
 
         let req = match self.method {
-            HttpMethod::Get => {
-                format!("GET {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host).into_bytes()
-            }
+            HttpMethod::Get => format!("GET {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").into_bytes(),
             HttpMethod::Head => {
-                format!("HEAD {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host).into_bytes()
+                format!("HEAD {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").into_bytes()
             }
             HttpMethod::Delete => {
-                format!("DELETE {} HTTP/1.1\r\nHost: {}\r\n\r\n", path, host).into_bytes()
+                format!("DELETE {path} HTTP/1.1\r\nHost: {host}\r\n\r\n").into_bytes()
             }
         };
 
@@ -142,20 +162,22 @@ impl HttpProber {
 
     #[inline]
     pub fn port(&self) -> Result<u16, Error> {
-        Ok(self.url.port_or_known_default().ok_or(Error::NoPortProvided)?)
+        self.url.port_or_known_default().ok_or(Error::NoPortProvided)
     }
 
     #[inline]
     pub fn path(&self) -> Result<String, Error> { Ok(self.url.path().to_owned()) }
 
     #[inline]
+    #[must_use]
     pub fn method(&self) -> HttpMethod { self.method }
 
     #[inline]
+    #[must_use]
     pub fn url(&self) -> &Url { &self.url }
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct HttpProberReport {
     pub destination_reachable: bool,
     pub method: Option<HttpMethod>,
@@ -166,8 +188,9 @@ pub struct HttpProberReport {
 
 impl HttpProberReport {
     #[inline]
-    pub fn timeout(method: HttpMethod, url: Url) -> HttpProberReport {
-        HttpProberReport {
+    #[must_use]
+    pub const fn timeout(method: HttpMethod, url: Url) -> Self {
+        Self {
             destination_reachable: false,
             method: Some(method),
             url: Some(url),
@@ -177,17 +200,6 @@ impl HttpProberReport {
     }
 
     #[inline]
+    #[must_use]
     pub fn has_error(&self) -> bool { self.error.is_some() }
-}
-
-impl Default for HttpProberReport {
-    fn default() -> HttpProberReport {
-        HttpProberReport {
-            destination_reachable: false,
-            method: None,
-            url: None,
-            response_code: None,
-            error: None,
-        }
-    }
 }

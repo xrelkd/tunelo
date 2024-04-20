@@ -1,23 +1,19 @@
-use std::net::{IpAddr, SocketAddr};
-
-use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
-
 mod composer;
 mod simple;
 
-pub use self::{composer::ComposerFilter, simple::SimpleFilter};
+use std::net::{IpAddr, SocketAddr};
 
-#[derive(Debug, Clone, Copy)]
+pub use self::{composer::ComposerFilter, simple::SimpleFilter};
+use crate::common::{HostAddress, ProxyHost, ProxyStrategy};
+
+#[derive(Clone, Copy, Debug, Default)]
 pub enum FilterMode {
     AllowList,
+    #[default]
     DenyList,
 }
 
-impl Default for FilterMode {
-    fn default() -> Self { FilterMode::DenyList }
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum FilterAction {
     Allow,
     Deny,

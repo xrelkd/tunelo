@@ -3,7 +3,7 @@ use snafu::Snafu;
 use crate::{common::HostAddress, transport};
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
     #[snafu(display("Could not read buffer, error: {}", source))]
     ReadBuf { source: std::io::Error },
@@ -20,8 +20,8 @@ pub enum Error {
     #[snafu(display("Error occurred while relaying stream, error: {}", source))]
     RelayStream { source: transport::Error },
 
-    #[snafu(display("Could not establish connection with {}, error: {}", host, source))]
-    ConnectRemoteHost { host: HostAddress, source: transport::Error },
+    #[snafu(display("Could not establish connection with {host}, error: {source}"))]
+    ConnectRemoteHost { host: HostAddress, source: Box<transport::Error> },
 
     #[snafu(display("Unsupported method: {}", method))]
     UnsupportedMethod { method: String },

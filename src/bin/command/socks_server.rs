@@ -7,11 +7,10 @@ use std::{
     time::Duration,
 };
 
+use clap::Args;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use structopt::StructOpt;
-
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     filter::SimpleFilter,
@@ -54,7 +53,7 @@ pub async fn run<P: AsRef<Path>>(
             rx.wait().await;
         })
         .await
-        .context(error::RunSocksServer)?;
+        .context(error::RunSocksServerSnafu)?;
 
     Ok(())
 }
@@ -103,7 +102,7 @@ impl TryInto<socks::ServerOptions> for Config {
             }
 
             if self.enable_tcp_bind {
-                warn!("TCP bind is not supported yet");
+                tracing::warn!("TCP bind is not supported yet");
                 commands.insert(SocksCommand::TcpBind);
             }
 
@@ -127,7 +126,7 @@ impl TryInto<socks::ServerOptions> for Config {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Config {
     disable_socks4a: bool,
     disable_socks5: bool,
@@ -141,8 +140,8 @@ pub struct Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
-        Config {
+    fn default() -> Self {
+        Self {
             disable_socks4a: false,
             disable_socks5: false,
             enable_tcp_connect: true,
@@ -159,7 +158,7 @@ impl Default for Config {
 impl Config {
     impl_config_load!(Config);
 
-    pub fn merge(mut self, opts: Options) -> Config {
+    pub fn merge(mut self, opts: Options) -> Self {
         let Options {
             mut disable_socks4a,
             mut disable_socks5,
@@ -187,32 +186,32 @@ impl Config {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Args, Debug)]
 pub struct Options {
-    #[structopt(long = "ip", help = "IP address to listen")]
+    #[arg(long = "ip", help = "IP address to listen")]
     ip: Option<IpAddr>,
 
-    #[structopt(long = "port", help = "Port number to listen")]
+    #[arg(long = "port", help = "Port number to listen")]
     port: Option<u16>,
 
-    #[structopt(long = "disable-socks4a", help = "Disable SOCKS4a support")]
+    #[arg(long = "disable-socks4a", help = "Disable SOCKS4a support")]
     disable_socks4a: Option<bool>,
 
-    #[structopt(long = "disable-socks5", help = "Disable SOCKS5 support")]
+    #[arg(long = "disable-socks5", help = "Disable SOCKS5 support")]
     disable_socks5: Option<bool>,
 
-    #[structopt(long = "enable-tcp-connect", help = "Enable \"TCP Connect\" support")]
+    #[arg(long = "enable-tcp-connect", help = "Enable \"TCP Connect\" support")]
     enable_tcp_connect: Option<bool>,
 
-    #[structopt(long = "enable-tcp-bind", help = "Enable \"TCP Bind\" support")]
+    #[arg(long = "enable-tcp-bind", help = "Enable \"TCP Bind\" support")]
     enable_tcp_bind: Option<bool>,
 
-    #[structopt(long = "enable-udp-associate", help = "Enable \"UDP Associate\" support")]
+    #[arg(long = "enable-udp-associate", help = "Enable \"UDP Associate\" support")]
     enable_udp_associate: Option<bool>,
 
-    #[structopt(long = "udp-ports", help = "UDP ports to provide UDP associate service")]
+    #[arg(long = "udp-ports", help = "UDP ports to provide UDP associate service")]
     udp_ports: Option<Vec<u16>>,
 
-    #[structopt(long = "connection-timeout", help = "Connection timeout")]
+    #[arg(long = "connection-timeout", help = "Connection timeout")]
     connection_timeout: Option<u64>,
 }

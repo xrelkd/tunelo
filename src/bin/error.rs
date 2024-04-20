@@ -1,22 +1,21 @@
 use std::{fmt, path::PathBuf};
 
 use snafu::Snafu;
-
 use tunelo::common::HostAddressError;
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
-    #[snafu(display("Could not initialize tokio runtime, error: {}", source))]
+    #[snafu(display("Could not initialize tokio runtime, error: {source}"))]
     InitializeTokioRuntime { source: tokio::io::Error },
 
-    #[snafu(display("Could not initialize domain name resolver, error: {}", source))]
+    #[snafu(display("Could not initialize domain name resolver, error: {source}"))]
     InitializeDomainNameResolver { source: tunelo::transport::Error },
 
-    #[snafu(display("Read configuration file {}, error: {}", file_path.display(), source))]
+    #[snafu(display("Read configuration file {}, error: {source}", file_path.display()))]
     ReadConfigFile { source: std::io::Error, file_path: PathBuf },
 
-    #[snafu(display("Parse configuration from TOML, error: {}", source))]
+    #[snafu(display("Parse configuration from TOML, error: {source}"))]
     ParseConfigFromToml { source: toml::de::Error },
 
     #[snafu(display("No configuration is provided"))]
@@ -31,16 +30,16 @@ pub enum Error {
     #[snafu(display("No proxy prober is provided"))]
     NoProxyProberProvided,
 
-    #[snafu(display("Could not run SOCKs proxy server, error: {}", source))]
+    #[snafu(display("Could not run SOCKs proxy server, error: {source}"))]
     RunSocksServer { source: tunelo::server::Error },
 
-    #[snafu(display("Could not run HTTP proxy server, error: {}", source))]
+    #[snafu(display("Could not run HTTP proxy server, error: {source}"))]
     RunHttpServer { source: tunelo::server::Error },
 
     #[snafu(display("Errors occurred: {}", Errors::from(errors)))]
-    ErrorCollection { errors: Vec<Error> },
+    Collection { errors: Vec<Error> },
 
-    #[snafu(display("Could not create Transport, error: {}", source))]
+    #[snafu(display("Could not create Transport, error: {source}"))]
     CreateTransport { source: tunelo::transport::Error },
 
     #[snafu(display("No SOCKS service is enabled"))]
@@ -70,51 +69,51 @@ pub enum Error {
     #[snafu(display("HTTP listen port is missed"))]
     NoHttpListenPort,
 
-    #[snafu(display("Proxy chain format is not supported: {}", format))]
+    #[snafu(display("Proxy chain format is not supported: {format}"))]
     ProxyChainFormatNotSupported { format: String },
 
     #[snafu(display("Could not detect proxy chain format for file: {}", file_path.display()))]
     DetectProxyChainFormat { file_path: PathBuf },
 
-    #[snafu(display("Could not parse proxy chain from JSON slice, error: {}", source))]
+    #[snafu(display("Could not parse proxy chain from JSON slice, error: {source}"))]
     ParseProxyChainJson { source: serde_json::Error },
 
-    #[snafu(display("Could not parse proxy chain from TOML slice, error: {}", source))]
+    #[snafu(display("Could not parse proxy chain from TOML slice, error: {source}"))]
     ParseProxyChainToml { source: toml::de::Error },
 
-    #[snafu(display("Could not load Proxy chain file, error: {}", source))]
+    #[snafu(display("Could not load Proxy chain file, error: {source}"))]
     LoadProxyChainFile { source: std::io::Error },
 
-    #[snafu(display("Could not load proxy server file, error: {}", source))]
+    #[snafu(display("Could not load proxy server file, error: {source}"))]
     LoadProxyServerFile { source: std::io::Error },
 
-    #[snafu(display("Could not parse proxy servers from JSON slice, error: {}", source))]
+    #[snafu(display("Could not parse proxy servers from JSON slice, error: {source}"))]
     ParseProxyServerJson { source: serde_json::Error },
 
-    #[snafu(display("Could not parse proxy servers from TOML slice, error: {}", source))]
+    #[snafu(display("Could not parse proxy servers from TOML slice, error: {source}"))]
     ParseProxyServerToml { source: toml::de::Error },
 
-    #[snafu(display("Invalid proxy server: {}", server))]
+    #[snafu(display("Invalid proxy server: {server}"))]
     InvalidProxyServer { server: String },
 
-    #[snafu(display("Could not parse URL {}, error: {}", url, source))]
-    ParseUrl { source: url::ParseError, url: String },
+    #[snafu(display("Could not parse URL {url}, error: {source}"))]
+    ParseUrl { url: String, source: url::ParseError },
 
-    #[snafu(display("Invalid proxy prober: {}", prober))]
+    #[snafu(display("Invalid proxy prober: {prober}"))]
     InvalidProxyProber { prober: String },
 
-    #[snafu(display("Could not write proxy checker report, error: {}", source))]
+    #[snafu(display("Could not write proxy checker report, error: {source}"))]
     WriteProxyCheckerReport { source: std::io::Error },
 
-    #[snafu(display("Could not write available proxy hosts, error: {}", source))]
+    #[snafu(display("Could not write available proxy hosts, error: {source}"))]
     WriteProxyHosts { source: std::io::Error },
 
-    #[snafu(display("Could not parse host address, error: {}", source))]
+    #[snafu(display("Could not parse host address, error: {source}"))]
     ParseHostAddress { source: HostAddressError },
 }
 
 impl From<HostAddressError> for Error {
-    fn from(source: HostAddressError) -> Error { Error::ParseHostAddress { source } }
+    fn from(source: HostAddressError) -> Self { Self::ParseHostAddress { source } }
 }
 
 pub struct Errors<'a>(&'a Vec<Error>);
@@ -123,9 +122,9 @@ impl<'a> From<&'a Vec<Error>> for Errors<'a> {
     fn from(errors: &'a Vec<Error>) -> Errors<'a> { Errors(errors) }
 }
 
-impl<'a> fmt::Display for Errors<'a> {
+impl fmt::Display for Errors<'_> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let errors = self.0.iter().map(|e| e.to_string()).collect::<Vec<_>>().join("\n");
-        write!(f, "{}", errors)
+        let errors = self.0.iter().map(ToString::to_string).collect::<Vec<_>>().join("\n");
+        write!(f, "{errors}")
     }
 }

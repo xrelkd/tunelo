@@ -34,7 +34,7 @@ where
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
         enable_tcp_connect: bool,
         enable_tcp_bind: bool,
-    ) -> Service<ClientStream, TransportStream> {
+    ) -> Self {
         let supported_commands = {
             let mut commands = HashSet::new();
             if enable_tcp_connect {
@@ -53,7 +53,7 @@ where
             commands
         };
 
-        Service {
+        Self {
             supported_commands,
             transport,
             _authentication_manager: authentication_manager,
@@ -68,12 +68,12 @@ where
     ) -> Result<(), Error> {
         tracing::info!("Receive request from {}", peer_addr);
 
-        let request = Request::from_reader(&mut stream).await.context(error::ParseRequest)?;
+        let request = Request::from_reader(&mut stream).await.context(error::ParseRequestSnafu)?;
 
         if !self.supported_commands.contains(&request.command) {
             let reply = Reply::rejected(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0));
-            let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-            stream.shutdown().await.context(error::Shutdown)?;
+            let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+            stream.shutdown().await.context(error::ShutdownSnafu)?;
             return Err(Error::UnsupportedCommand { command: request.command.into() });
         }
 
@@ -82,8 +82,7 @@ where
                 let remote_host = request.destination_socket.as_ref();
                 use crate::common::HostAddress;
 
-                let (remote_socket, remote_addr) = match self.transport.connect(&remote_host).await
-                {
+                let (remote_socket, remote_addr) = match self.transport.connect(remote_host).await {
                     Ok((socket, addr)) => {
                         tracing::info!("Remote host {} is connected", remote_host.to_string());
                         let remote_addr = match addr {
@@ -97,19 +96,18 @@ where
                     }
                     Err(source) => {
                         let reply = Reply::unreachable(SocketAddrV4::new(Ipv4Addr::UNSPECIFIED, 0));
-                        let _ =
-                            stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-                        stream.shutdown().await.context(error::Shutdown)?;
+                        let _ = stream
+                            .write(&reply.into_bytes())
+                            .await
+                            .context(error::WriteStreamSnafu)?;
+                        stream.shutdown().await.context(error::ShutdownSnafu)?;
 
-                        return Err(Error::ConnectRemoteHost {
-                            source,
-                            host: remote_host.to_owned(),
-                        });
+                        return Err(Error::ConnectRemoteHost { source, host: remote_host.clone() });
                     }
                 };
 
                 let reply = Reply::granted(remote_addr);
-                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
+                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
                 self.transport
                     .relay(
@@ -120,13 +118,13 @@ where
                         })),
                     )
                     .await
-                    .context(error::RelayStream)?;
+                    .context(error::RelayStreamSnafu)?;
 
                 Ok(())
             }
             Command::TcpBind => {
                 tracing::debug!("Unsupported SOCKS command, close connection: {:?}", peer_addr);
-                let _ = stream.shutdown().await.context(error::Shutdown)?;
+                stream.shutdown().await.context(error::ShutdownSnafu)?;
                 Err(Error::UnsupportedCommand { command: Command::TcpBind.into() })
             }
         }

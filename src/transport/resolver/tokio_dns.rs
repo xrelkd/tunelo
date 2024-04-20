@@ -1,6 +1,7 @@
 use std::net::ToSocketAddrs;
 
 use futures::FutureExt;
+use tokio::task;
 
 use crate::transport::{
     resolver::{Resolve, Resolver},
@@ -11,16 +12,14 @@ use crate::transport::{
 pub struct TokioResolver;
 
 impl TokioResolver {
-    pub fn new() -> Result<TokioResolver, Error> { Ok(TokioResolver) }
+    pub const fn new() -> Self { Self }
 }
 
 impl Resolver for TokioResolver {
     fn resolve(&self, host: &str) -> Resolve {
-        use tokio::task::spawn_blocking;
-
         let host = host.to_owned();
         async move {
-            let res = spawn_blocking({
+            let res = task::spawn_blocking({
                 let host = host.clone();
                 move || {
                     (host.as_str(), 0)
@@ -32,7 +31,7 @@ impl Resolver for TokioResolver {
             })
             .await;
 
-            res.map_err(|_err| Error::ResolveDomainName { domain_name: host.to_owned() })
+            res.map_err(|_err| Error::ResolveDomainName { domain_name: host.clone() })
         }
         .boxed()
     }

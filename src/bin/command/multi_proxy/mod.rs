@@ -3,7 +3,6 @@ use std::{future::Future, path::Path, pin::Pin, sync::Arc};
 use futures::future::join_all;
 use snafu::ResultExt;
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     filter::SimpleFilter,
@@ -62,7 +61,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server.serve_with_shutdown(signal).await.context(error::RunSocksServer)?)
+                server.serve_with_shutdown(signal).await.context(error::RunSocksServerSnafu)
             })
         };
 
@@ -77,7 +76,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server.serve_with_shutdown(signal).await.context(error::RunHttpServer)?)
+                server.serve_with_shutdown(signal).await.context(error::RunHttpServerSnafu)
             })
         };
 
@@ -89,13 +88,13 @@ pub async fn run<P: AsRef<Path>>(
     }
 
     signal_handler::start(Box::new(move || {
-        let _ = shutdown_sender.shutdown();
+        shutdown_sender.shutdown();
     }));
 
     let handle = join_all(futs).await;
     let errors: Vec<_> = handle.into_iter().filter_map(Result::err).collect();
     if !errors.is_empty() {
-        return Err(Error::ErrorCollection { errors });
+        return Err(Error::Collection { errors });
     }
 
     Ok(())

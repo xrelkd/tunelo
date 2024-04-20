@@ -17,19 +17,20 @@ use crate::{
     transport::Transport,
 };
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ServerOptions {
     pub listen_address: IpAddr,
     pub listen_port: u16,
 }
 
 impl Default for ServerOptions {
-    fn default() -> ServerOptions {
-        ServerOptions { listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST), listen_port: 8118 }
+    fn default() -> Self {
+        Self { listen_address: IpAddr::V4(Ipv4Addr::LOCALHOST), listen_port: 8118 }
     }
 }
 
 impl ServerOptions {
+    #[must_use]
     pub fn listen_socket(&self) -> SocketAddr {
         SocketAddr::new(self.listen_address, self.listen_port)
     }
@@ -47,18 +48,18 @@ impl Server {
         config: ServerOptions,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
-    ) -> Server {
+    ) -> Self {
         let tcp_address = SocketAddr::new(config.listen_address, config.listen_port);
 
-        Server { tcp_address, transport, authentication_manager }
+        Self { tcp_address, transport, authentication_manager }
     }
 
     pub async fn serve_with_shutdown<F: std::future::Future<Output = ()>>(
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
-        let mut tcp_listener =
-            TcpListener::bind(self.tcp_address).await.context(error::BindTcpListener)?;
+        let tcp_listener =
+            TcpListener::bind(self.tcp_address).await.context(error::BindTcpListenerSnafu)?;
         tracing::info!("Starting HTTP proxy server at {}", self.tcp_address);
 
         let service = Arc::new(Service::new(self.transport, self.authentication_manager));

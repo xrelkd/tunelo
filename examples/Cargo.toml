@@ -2,7 +2,7 @@
 name = "examples"
 version = "0.0.0"
 publish = false
-edition = "2018"
+edition = "2021"
 
 [dev-dependencies]
 tunelo = { path = "../tunelo" }
@@ -12,5 +12,5 @@ name = "myip"
 path = "myip.rs"
 
 [[example]]
-name = "proxy_checker"
+name = "proxy-checker"
 path = "proxy_checker.rs"

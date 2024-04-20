@@ -1,3 +1,6 @@
+mod monitored;
+mod timed;
+
 use std::{
     io,
     pin::Pin,
@@ -5,10 +8,7 @@ use std::{
     time::Duration,
 };
 
-use tokio::io::{AsyncRead, AsyncWrite};
-
-mod monitored;
-mod timed;
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
 pub use self::{
     monitored::{MonitoredStream, StatMonitor},
@@ -52,8 +52,8 @@ where
     fn poll_read(
         mut self: Pin<&mut Self>,
         cx: &mut Context<'_>,
-        buf: &mut [u8],
-    ) -> Poll<io::Result<usize>> {
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
         Pin::new(&mut self.stream).poll_read(cx, buf)
     }
 }

@@ -18,21 +18,21 @@ async fn run(shutdown_hook: ShutdownHookFn) {
         loop {
             futures::select! {
                 _ = term_signal.recv().fuse() => {
-                    info!("SIGTERM received!");
+                    tracing::info!("SIGTERM received!");
                     break;
                 },
                 _ = int_signal.recv().fuse() => {
-                    info!("SIGINT received!");
+                    tracing::info!("SIGINT received!");
                     break;
                 },
             }
         }
 
         if SHUTDOWN.load(atomic::Ordering::SeqCst) {
-            info!("Terminating process!");
+            tracing::info!("Terminating process!");
             std::process::abort();
         } else {
-            info!("Shutting down cleanly. Interrupt again to shut down immediately.");
+            tracing::info!("Shutting down cleanly. Interrupt again to shut down immediately.");
             SHUTDOWN.store(true, atomic::Ordering::SeqCst);
             let shutdown_hook = shutdown_hook.take().unwrap();
             shutdown_hook();

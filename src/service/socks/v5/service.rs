@@ -38,7 +38,7 @@ where
         enable_tcp_connect: bool,
         enable_tcp_bind: bool,
         udp_associate_stream_tx: Option<Mutex<mpsc::Sender<(ClientStream, HostAddress)>>>,
-    ) -> Service<ClientStream, TransportStream> {
+    ) -> Self {
         let supported_commands = {
             let mut commands = HashSet::new();
             if enable_tcp_connect {
@@ -64,7 +64,7 @@ where
             commands
         };
 
-        Service { authentication_manager, transport, udp_associate_stream_tx, supported_commands }
+        Self { authentication_manager, transport, udp_associate_stream_tx, supported_commands }
     }
 
     #[inline]
@@ -80,7 +80,7 @@ where
         self.handshake(&mut stream, client_addr).await?;
 
         let request = {
-            let req = Request::from_reader(&mut stream).await.context(error::ParseRequest)?;
+            let req = Request::from_reader(&mut stream).await.context(error::ParseRequestSnafu)?;
 
             // check if we support this SOCKS5 command
             if !self.is_supported_command(req.command) {
@@ -91,9 +91,9 @@ where
                     req.command,
                     client_addr,
                 );
-                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-                stream.flush().await.context(error::FlushStream)?;
-                stream.shutdown().await.context(error::Shutdown)?;
+                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+                stream.flush().await.context(error::FlushStreamSnafu)?;
+                stream.shutdown().await.context(error::ShutdownSnafu)?;
 
                 return Err(Error::UnsupportedCommand { command: req.command.into() });
             }
@@ -105,27 +105,25 @@ where
             Command::TcpConnect => {
                 let remote_host: &HostAddress = request.destination_socket.as_ref();
 
-                let (remote_socket, remote_addr) = match self.transport.connect(&remote_host).await
-                {
+                let (remote_socket, remote_addr) = match self.transport.connect(remote_host).await {
                     Ok((socket, addr)) => {
                         tracing::info!("Remote host {} is connected", remote_host.to_string());
                         (socket, addr)
                     }
                     Err(source) => {
                         let reply = Reply::unreachable(request.address_type());
-                        let _ =
-                            stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-                        stream.flush().await.context(error::FlushStream)?;
-                        stream.shutdown().await.context(error::Shutdown)?;
-                        return Err(Error::ConnectRemoteHost {
-                            source,
-                            host: remote_host.to_owned(),
-                        });
+                        let _ = stream
+                            .write(&reply.into_bytes())
+                            .await
+                            .context(error::WriteStreamSnafu)?;
+                        stream.flush().await.context(error::FlushStreamSnafu)?;
+                        stream.shutdown().await.context(error::ShutdownSnafu)?;
+                        return Err(Error::ConnectRemoteHost { source, host: remote_host.clone() });
                     }
                 };
 
                 let reply = Reply::success(Address::empty_ipv4());
-                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStream)?;
+                let _ = stream.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
                 self.transport
                     .relay(
@@ -139,14 +137,14 @@ where
                         })),
                     )
                     .await
-                    .context(error::RelayStream)?;
+                    .context(error::RelayStreamSnafu)?;
 
                 Ok(())
             }
             Command::UdpAssociate => match self.udp_associate_stream_tx {
                 Some(ref tx) => {
                     let target_addr: HostAddress = request.destination_socket.into();
-                    let _ = tx.lock().await.send((stream, target_addr)).await;
+                    let _unused = tx.lock().await.send((stream, target_addr)).await;
                     Ok(())
                 }
                 None => unreachable!(),
@@ -163,8 +161,9 @@ where
         client: &mut ClientStream,
         client_addr: SocketAddr,
     ) -> Result<(), Error> {
-        let req =
-            HandshakeRequest::from_reader(client).await.context(error::ParseHandshakeRequest)?;
+        let req = HandshakeRequest::from_reader(client)
+            .await
+            .context(error::ParseHandshakeRequestSnafu)?;
         tracing::debug!("Received {:?}", req);
 
         let supported_method: Method =
@@ -172,25 +171,25 @@ where
 
         if !req.contains_method(supported_method) {
             let reply = HandshakeReply::new(Method::NotAcceptable);
-            client.write(&reply.into_bytes()).await.context(error::WriteStream)?;
+            client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
             return Err(Error::UnsupportedMethod { method: supported_method });
         }
 
         let reply = HandshakeReply::new(supported_method);
-        client.write(&reply.into_bytes()).await.context(error::WriteStream)?;
+        client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
         match supported_method {
             Method::NoAuthentication => {}
             Method::UsernamePassword => {
                 let request = UserPasswordHandshakeRequest::from_reader(client)
                     .await
-                    .context(error::ParseHandshakeRequest)?;
+                    .context(error::ParseHandshakeRequestSnafu)?;
 
                 // check authentication
                 tracing::info!(
                     "Received authentication from user: {}",
-                    String::from_utf8_lossy(&request.user_name).to_owned()
+                    String::from_utf8_lossy(&request.user_name)
                 );
                 let auth_passed = {
                     let handler = self.authentication_manager.lock().await;
@@ -203,15 +202,15 @@ where
 
                 if !auth_passed {
                     let reply = UserPasswordHandshakeReply::failure();
-                    client.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-                    client.flush().await.context(error::FlushStream)?;
+                    client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+                    client.flush().await.context(error::FlushStreamSnafu)?;
 
                     tracing::warn!(
                         "Invalid authentication from user: {}",
-                        String::from_utf8_lossy(&request.user_name).to_owned()
+                        String::from_utf8_lossy(&request.user_name)
                     );
 
-                    client.shutdown().await.context(error::Shutdown)?;
+                    client.shutdown().await.context(error::ShutdownSnafu)?;
                     return Err(Error::AccessDenied {
                         user_name: request.user_name,
                         password: request.password,
@@ -219,12 +218,12 @@ where
                 }
 
                 let reply = UserPasswordHandshakeReply::success();
-                client.write(&reply.into_bytes()).await.context(error::WriteStream)?;
-                client.flush().await.context(error::FlushStream)?;
+                client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+                client.flush().await.context(error::FlushStreamSnafu)?;
             }
             Method::GSSAPI => {
                 // TODO
-                client.shutdown().await.context(error::Shutdown)?;
+                client.shutdown().await.context(error::ShutdownSnafu)?;
                 return Err(Error::UnsupportedMethod { method: Method::GSSAPI });
             }
             Method::NotAcceptable => unreachable!(),

@@ -3,7 +3,7 @@ use crate::{
     common::ProxyHost,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct TaskReport {
     pub proxy_server: ProxyHost,
     pub liveness_report: LivenessProberReport,
@@ -11,9 +11,11 @@ pub struct TaskReport {
 }
 
 impl TaskReport {
-    pub fn is_proxy_server_alive(&self) -> bool { self.liveness_report.alive }
+    #[must_use]
+    pub const fn is_proxy_server_alive(&self) -> bool { self.liveness_report.alive }
 
-    pub fn liveness_report(&self) -> &LivenessProberReport { &self.liveness_report }
+    #[must_use]
+    pub const fn liveness_report(&self) -> &LivenessProberReport { &self.liveness_report }
 
     pub fn basic_reports(&self) -> impl Iterator<Item = &BasicProberReport> {
         self.prober_reports.iter().filter_map(|p| match p {
@@ -29,7 +31,9 @@ impl TaskReport {
         })
     }
 
+    #[must_use]
     pub fn basic_report_count(&self) -> usize { self.basic_reports().count() }
 
+    #[must_use]
     pub fn http_report_count(&self) -> usize { self.http_reports().count() }
 }

@@ -1,0 +1,72 @@
+name: Lint
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - release/*
+      - hotfix/*
+      - feature/*
+      - ci/*
+
+  pull_request:
+
+env:
+  CI: 1
+
+jobs:
+  format:
+    name: Lint format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v26
+        with:
+          nix_path: nixpkgs=channel:nixos-unstable
+
+      - name: Install nixpkgs-fmt
+        run: nix profile install 'nixpkgs#nixpkgs-fmt'
+
+      - name: Run shfmt, shellcheck, checkbashisms
+        uses: luizm/action-sh-checker@v0.8.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          sh_checker_comment: true
+          sh_checker_checkbashisms_enable: true
+          sh_checker_exclude: "dev-support/bin/create-package"
+
+      - name: Run nixpkgs-fmt
+        run: |
+          nixpkgs-fmt --check .
+
+      - name: Run prettier
+        uses: creyD/prettier_action@v4.3
+        with:
+          dry: true
+          prettier_options: --check **/*.{css,html,js,json,jsx,md,mdx,scss,ts,yaml}
+
+  commit:
+    name: Lint commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run commitlint
+        uses: wagoid/commitlint-github-action@v6.0.1
+
+  codespell:
+    name: Codespell
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: codespell-project/codespell-problem-matcher@v1
+
+      - name: Codespell
+        uses: codespell-project/actions-codespell@master

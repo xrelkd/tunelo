@@ -9,7 +9,7 @@ use crate::{
 };
 
 // Datagram is the UDP packet
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug)]
 pub struct Datagram {
     frag: u8,
     destination_socket: Address,
@@ -18,57 +18,60 @@ pub struct Datagram {
 
 impl Datagram {
     #[inline]
-    pub fn new(frag: u8, destination_socket: Address, data: BytesMut) -> Datagram {
-        Datagram { frag, destination_socket, data }
+    #[must_use]
+    pub fn new(frag: u8, destination_socket: Address, data: BytesMut) -> Self {
+        Self { frag, destination_socket, data }
     }
 
-    pub fn from_bytes(input: &[u8]) -> Result<Datagram, Error> {
-        use byteorder::{BigEndian, ReadBytesExt};
+    pub fn from_bytes(input: &[u8]) -> Result<Self, Error> {
         use std::io::{Cursor, Read};
+
+        use byteorder::{BigEndian, ReadBytesExt};
 
         let mut input = Cursor::new(input);
 
-        // comsume rsv field
-        if input.read_u16::<BigEndian>().context(error::ReadStream)? != 0x0000 {
+        // consume rsv field
+        if input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)? != 0x0000 {
             return Err(Error::BadRequest);
         }
 
         // current fragment number
-        let frag = input.read_u8().context(error::ReadStream)?;
+        let frag = input.read_u8().context(error::ReadStreamSnafu)?;
 
         let destination_socket =
-            match AddressType::try_from(input.read_u8().context(error::ReadStream)?)? {
+            match AddressType::try_from(input.read_u8().context(error::ReadStreamSnafu)?)? {
                 AddressType::Ipv4 => {
                     let mut host = [0u8; 4];
-                    input.read_exact(&mut host).context(error::ReadStream)?;
+                    input.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
-                    let port = input.read_u16::<BigEndian>().context(error::ReadStream)?;
+                    let port = input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                     Address::from(SocketAddr::new(host.into(), port))
                 }
                 AddressType::Ipv6 => {
                     let mut host = [0u8; 16];
-                    input.read_exact(&mut host).context(error::ReadStream)?;
+                    input.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
-                    let port = input.read_u16::<BigEndian>().context(error::ReadStream)?;
+                    let port = input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                     Address::from(SocketAddr::new(host.into(), port))
                 }
                 AddressType::Domain => {
-                    let len = input.read_u8().context(error::ReadStream)? as usize;
+                    let len = input.read_u8().context(error::ReadStreamSnafu)? as usize;
 
                     let mut host = vec![0u8; len];
-                    input.read_exact(&mut host).context(error::ReadStream)?;
+                    input.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
-                    let port = input.read_u16::<BigEndian>().context(error::ReadStream)?;
+                    let port = input.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
                     Address::new_domain(&host, port)
                 }
             };
 
         let mut data = BytesMut::new();
-        input.read(&mut data[..]).context(error::ReadStream)?;
-        Ok(Datagram { frag, destination_socket, data })
+        input.read(&mut data[..]).context(error::ReadStreamSnafu)?;
+        Ok(Self { frag, destination_socket, data })
     }
 
     #[inline]
+    #[must_use]
     pub fn into_bytes(self) -> Vec<u8> {
         let mut buf = self.header_internal(true);
         buf.extend(&self.data);
@@ -76,15 +79,19 @@ impl Datagram {
     }
 
     #[inline]
+    #[must_use]
     pub fn header(&self) -> Vec<u8> { self.header_internal(false) }
 
     #[inline]
-    pub fn data(&self) -> &[u8] { &self.data.as_ref() }
+    #[must_use]
+    pub fn data(&self) -> &[u8] { self.data.as_ref() }
 
     #[inline]
-    pub fn frag(&self) -> u8 { self.frag }
+    #[must_use]
+    pub const fn frag(&self) -> u8 { self.frag }
 
     #[inline]
+    #[must_use]
     pub fn destination_address(&self) -> &HostAddress { self.destination_socket.as_ref() }
 
     fn header_internal(&self, extensible: bool) -> Vec<u8> {
@@ -103,6 +110,7 @@ impl Datagram {
     }
 
     #[inline]
+    #[must_use]
     pub fn destruct(self) -> (u8, HostAddress, BytesMut) {
         (self.frag, self.destination_socket.into(), self.data)
     }

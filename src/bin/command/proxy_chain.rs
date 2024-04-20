@@ -8,11 +8,11 @@ use std::{
     time::Duration,
 };
 
+use clap::Args;
 use futures::future::join_all;
+use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
-use structopt::StructOpt;
 use tokio::sync::Mutex;
-
 use tunelo::{
     authentication::AuthenticationManager,
     common::{ProxyHost, ProxyStrategy},
@@ -84,7 +84,7 @@ pub async fn run<P: AsRef<Path>>(
             (None, None) => return Err(Error::NoProxyChain),
         };
 
-        info!("Proxy chain: {}", strategy);
+        tracing::info!("Proxy chain: {}", strategy);
         Arc::new(strategy)
     };
 
@@ -100,7 +100,7 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let transport = Arc::new(
-        Transport::proxy(resolver, filter, proxy_strategy).context(error::CreateTransport)?,
+        Transport::proxy(resolver, filter, proxy_strategy).context(error::CreateTransportSnafu)?,
     );
     let authentication_manager = Arc::new(Mutex::new(AuthenticationManager::new()));
 
@@ -119,7 +119,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server.serve_with_shutdown(signal).await.context(error::RunSocksServer)?)
+                server.serve_with_shutdown(signal).await.context(error::RunSocksServerSnafu)
             })
         };
 
@@ -134,7 +134,7 @@ pub async fn run<P: AsRef<Path>>(
                 shutdown_receiver.wait().await;
             };
             Box::pin(async {
-                Ok(server.serve_with_shutdown(signal).await.context(error::RunHttpServer)?)
+                server.serve_with_shutdown(signal).await.context(error::RunHttpServerSnafu)
             })
         };
 
@@ -146,19 +146,19 @@ pub async fn run<P: AsRef<Path>>(
     }
 
     signal_handler::start(Box::new(move || {
-        let _ = shutdown_sender.shutdown();
+        shutdown_sender.shutdown();
     }));
 
     let handle = join_all(futs).await;
     let errors: Vec<_> = handle.into_iter().filter_map(Result::err).collect();
     if !errors.is_empty() {
-        return Err(Error::ErrorCollection { errors });
+        return Err(Error::Collection { errors });
     }
 
     Ok(())
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Config {
     enable_socks4a: bool,
     enable_socks5: bool,
@@ -174,7 +174,7 @@ pub struct Config {
 impl Config {
     impl_config_load!(Config);
 
-    fn merge(mut self, opts: Options) -> Config {
+    fn merge(mut self, opts: Options) -> Self {
         let Options {
             disable_socks4a,
             disable_socks5,
@@ -211,8 +211,8 @@ impl Config {
 }
 
 impl Default for Config {
-    fn default() -> Config {
-        Config {
+    fn default() -> Self {
+        Self {
             enable_socks4a: true,
             enable_socks5: true,
             enable_http: true,
@@ -226,77 +226,78 @@ impl Default for Config {
     }
 }
 
-#[derive(Debug, StructOpt)]
+#[derive(Args, Debug)]
 pub struct Options {
-    #[structopt(long = "disable-socks4a")]
+    #[arg(long = "disable-socks4a")]
     disable_socks4a: bool,
 
-    #[structopt(long = "disable-socks5")]
+    #[arg(long = "disable-socks5")]
     disable_socks5: bool,
 
-    #[structopt(long = "disable-http")]
+    #[arg(long = "disable-http")]
     disable_http: bool,
 
-    #[structopt(long = "socks-ip")]
+    #[arg(long = "socks-ip")]
     socks_ip: Option<IpAddr>,
 
-    #[structopt(long = "socks-port")]
+    #[arg(long = "socks-port")]
     socks_port: Option<u16>,
 
-    #[structopt(long = "http-ip")]
+    #[arg(long = "http-ip")]
     http_ip: Option<IpAddr>,
 
-    #[structopt(long = "http-port")]
+    #[arg(long = "http-port")]
     http_port: Option<u16>,
 
-    #[structopt(long = "proxy-chain-file")]
+    #[arg(long = "proxy-chain-file")]
     proxy_chain_file: Option<PathBuf>,
 
-    #[structopt(long = "proxy-chain")]
+    #[arg(long = "proxy-chain")]
     proxy_chain: Option<Vec<ProxyHost>>,
 }
 
-#[derive(Debug, Clone, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProxyChain {
     proxy_chain: Vec<ProxyHost>,
 }
 
 impl ProxyChain {
-    pub fn from_json(json: &[u8]) -> Result<ProxyChain, Error> {
-        serde_json::from_slice(&json).context(error::ParseProxyChainJson)
+    pub fn from_json(json: &[u8]) -> Result<Self, Error> {
+        serde_json::from_slice(json).context(error::ParseProxyChainJsonSnafu)
     }
 
-    pub fn from_toml(toml: &[u8]) -> Result<ProxyChain, Error> {
-        toml::from_slice(&toml).context(error::ParseProxyChainToml)
+    pub fn from_toml(toml: &[u8]) -> Result<Self, Error> {
+        let content = String::from_utf8_lossy(toml);
+        toml::from_str(content.to_string().as_str()).context(error::ParseProxyChainTomlSnafu)
     }
 
-    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
+    pub fn load<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let file_path = file_path.as_ref();
         match file_path.extension() {
             None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             Some(ext) => match ext.to_str() {
-                Some("json") => ProxyChain::load_json_file(file_path),
-                Some("toml") => ProxyChain::load_toml_file(file_path),
+                Some("json") => Self::load_json_file(file_path),
+                Some("toml") => Self::load_toml_file(file_path),
                 Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
                 None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
             },
         }
     }
 
-    pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
-        let content = std::fs::read(&file_path).context(error::LoadProxyChainFile)?;
+    pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
+        let content = std::fs::read(&file_path).context(error::LoadProxyChainFileSnafu)?;
         Self::from_json(&content)
     }
 
-    pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<ProxyChain, Error> {
-        let content = std::fs::read(&file_path).context(error::LoadProxyChainFile)?;
+    pub fn load_toml_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
+        let content = std::fs::read(&file_path).context(error::LoadProxyChainFileSnafu)?;
         Self::from_toml(&content)
     }
 }
 
-impl Into<ProxyStrategy> for ProxyChain {
-    fn into(self) -> ProxyStrategy { ProxyStrategy::Chained(self.proxy_chain) }
+impl From<ProxyChain> for ProxyStrategy {
+    fn from(val: ProxyChain) -> Self { Self::Chained(val.proxy_chain) }
 }
 
 #[cfg(test)]
@@ -334,7 +335,7 @@ mod tests {
             ],
         };
 
-        assert_eq!(ProxyChain::from_json(&json.as_bytes()).unwrap(), chain);
+        assert_eq!(ProxyChain::from_json(json.as_bytes()).unwrap(), chain);
     }
 
     #[test]
@@ -375,7 +376,7 @@ port = 1080
             ],
         };
 
-        assert_eq!(ProxyChain::from_toml(&toml.as_bytes()).unwrap(), chain);
+        assert_eq!(ProxyChain::from_toml(toml.as_bytes()).unwrap(), chain);
     }
 
     #[test]
@@ -433,6 +434,6 @@ host = "127.99.0.3"
 port = 1080
             "#;
 
-        assert_eq!(Config::from_toml(toml.as_bytes()).unwrap(), config);
+        assert_eq!(Config::from_toml(toml).unwrap(), config);
     }
 }

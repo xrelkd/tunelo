@@ -5,30 +5,29 @@ use std::{
 
 use crate::filter::{FilterAction, HostFilter};
 
+#[derive(Default)]
 pub struct ComposerFilter {
     filters: Vec<Arc<dyn HostFilter>>,
 }
 
-impl Default for ComposerFilter {
-    fn default() -> ComposerFilter { ComposerFilter { filters: vec![] } }
-}
-
 impl ComposerFilter {
     #[inline]
-    pub fn new() -> ComposerFilter { ComposerFilter::default() }
+    #[must_use]
+    pub fn new() -> Self { Self::default() }
 
     #[inline]
     pub fn add_filter(&mut self, filter: Arc<dyn HostFilter>) { self.filters.push(filter); }
 
     #[inline]
-    fn filter<F: FnMut(&Arc<dyn HostFilter>) -> bool>(&self, mut predictor: F) -> FilterAction {
-        if self.filters.iter().any(|filter| predictor(filter)) {
+    fn filter<F: FnMut(&Arc<dyn HostFilter>) -> bool>(&self, predictor: F) -> FilterAction {
+        if self.filters.iter().any(predictor) {
             return FilterAction::Deny;
         }
         FilterAction::Allow
     }
 
     #[inline]
+    #[must_use]
     pub fn destruct(self) -> Vec<Arc<dyn HostFilter>> { self.filters }
 }
 
@@ -63,9 +62,8 @@ impl HostFilter for ComposerFilter {
 mod tests {
     use std::net::{IpAddr, SocketAddr};
 
-    use crate::filter::{FilterMode, SimpleFilter};
-
     use super::*;
+    use crate::filter::{FilterMode, SimpleFilter};
 
     #[test]
     fn construct() {
@@ -97,8 +95,8 @@ mod tests {
         let mut simple = SimpleFilter::default();
 
         simple.add_port(port);
-        simple.add_address(ip.clone());
-        simple.add_socket(socket.clone());
+        simple.add_address(ip);
+        simple.add_socket(socket);
         simple.add_hostname(hostname);
         simple.add_host(hostname, port);
 

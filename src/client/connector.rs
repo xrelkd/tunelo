@@ -2,12 +2,12 @@ use std::{sync::Arc, time::Duration};
 
 use snafu::ResultExt;
 use tokio::{
-    io::{AsyncRead, AsyncWrite},
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt},
     net::TcpStream,
 };
 
 use crate::{
-    client::{error, Error, ProxyStream},
+    client::{error, handshake::ClientHandshake, Error, ProxyStream},
     common::{HostAddress, ProxyHost, ProxyStrategy},
 };
 
@@ -17,24 +17,22 @@ pub struct ProxyConnector {
 }
 
 impl ProxyConnector {
-    pub fn new(strategy: Arc<ProxyStrategy>) -> Result<ProxyConnector, Error> {
-        Ok(ProxyConnector { strategy })
-    }
+    pub fn new(strategy: Arc<ProxyStrategy>) -> Result<Self, Error> { Ok(Self { strategy }) }
 
     pub async fn connect(&self, host: &HostAddress) -> Result<ProxyStream, Error> {
         let strategy = self.strategy.clone();
         let mut socket = Self::build_socket(&strategy).await?;
 
         let res = match self.strategy.as_ref() {
-            ProxyStrategy::Single(proxy) => Self::handshake(&mut socket, &proxy, &host).await,
+            ProxyStrategy::Single(proxy) => Self::handshake(&mut socket, proxy, host).await,
             ProxyStrategy::Chained(proxies) => match proxies.last() {
-                Some(proxy_host) => Self::handshake(&mut socket, &proxy_host, &host).await,
+                Some(proxy_host) => Self::handshake(&mut socket, proxy_host, host).await,
                 None => return Err(Error::NoProxyServiceProvided),
             },
         };
 
         if let Err(err) = res {
-            socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
+            socket.shutdown().await.context(error::ShutdownSnafu)?;
             return Err(err);
         }
 
@@ -45,13 +43,13 @@ impl ProxyConnector {
         strategy: &ProxyStrategy,
         timeout: Option<Duration>,
     ) -> Result<bool, Error> {
-        let socket = match timeout {
-            Some(t) => tokio::time::timeout(t, Self::build_socket(&strategy))
+        let mut socket = match timeout {
+            Some(t) => tokio::time::timeout(t, Self::build_socket(strategy))
                 .await
                 .map_err(|_| Error::Timeout)??,
-            None => Self::build_socket(&strategy).await?,
+            None => Self::build_socket(strategy).await?,
         };
-        socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
+        socket.shutdown().await.context(error::ShutdownSnafu)?;
         Ok(true)
     }
 
@@ -60,7 +58,9 @@ impl ProxyConnector {
         let socket = match strategy {
             ProxyStrategy::Single(proxy) => {
                 let host = proxy.host_address();
-                TcpStream::connect(host.to_string()).await.context(error::ConnectProxyServer)?
+                TcpStream::connect(host.to_string())
+                    .await
+                    .context(error::ConnectProxyServerSnafu)?
             }
             ProxyStrategy::Chained(proxies) => match proxies.len() {
                 0 => return Err(Error::NoProxyServiceProvided),
@@ -68,15 +68,15 @@ impl ProxyConnector {
                     let proxy_host = proxies[0].host_address();
                     let mut socket = TcpStream::connect(proxy_host.to_string())
                         .await
-                        .context(error::ConnectProxyServer)?;
+                        .context(error::ConnectProxyServerSnafu)?;
 
                     for i in 0..(len - 1) {
                         let proxy_host = &proxies[i];
-                        let target_host = proxies[i + 1].host_address().clone();
+                        let target_host = proxies[i + 1].host_address();
                         if let Err(err) =
                             Self::handshake(&mut socket, proxy_host, &target_host).await
                         {
-                            socket.shutdown(std::net::Shutdown::Both).context(error::Shutdown)?;
+                            drop(socket.shutdown().await);
                             return Err(err);
                         };
                     }
@@ -95,14 +95,11 @@ impl ProxyConnector {
         target_host: &HostAddress,
     ) -> Result<(), Error>
     where
-        Stream: AsyncRead + AsyncWrite + Unpin + Send + Sync,
+        Stream: Unpin + Send + Sync + AsyncRead + AsyncWrite,
     {
-        use crate::client::handshake::*;
-
         let mut handshake = ClientHandshake::new(stream);
         match proxy_host {
-            ProxyHost::Socks4a { id, .. } => {
-                let _ = id;
+            ProxyHost::Socks4a { .. } => {
                 handshake.handshake_socks_v4_tcp_connect(target_host, None).await?;
             }
             ProxyHost::Socks5 { username, password, .. } => {

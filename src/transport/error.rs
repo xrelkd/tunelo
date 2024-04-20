@@ -5,7 +5,7 @@ use snafu::Snafu;
 use crate::{client, common::HostAddress};
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility = "pub(crate)")]
+#[snafu(visibility(pub(crate)))]
 pub enum Error {
     #[snafu(display("Could not open file {}, error: {}", file_path.display(), source))]
     OpenFile { file_path: PathBuf, source: std::io::Error },

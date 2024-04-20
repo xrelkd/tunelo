@@ -57,7 +57,8 @@ impl RecvHalf {
 
         let mut data_len = header.len() - n;
         buf.copy_from_slice(&header[n..]);
-        data_len += self.socket_recv.recv(&mut buf[n + 1..]).await.context(error::RecvDatagram)?;
+        data_len +=
+            self.socket_recv.recv(&mut buf[n + 1..]).await.context(error::RecvDatagramSnafu)?;
 
         Ok((data_len, address.into_inner()))
     }
@@ -82,8 +83,8 @@ impl SendHalf {
 
         let mut data = Vec::with_capacity(3 + Address::max_len() + buf.len());
         let mut wrt = std::io::Cursor::new(&mut data);
-        let n =
-            Datagram::serialize(&mut wrt, 0, target_addr, buf).context(error::SerializeDatagram)?;
-        Ok(self.socket_send.send(&data[..n]).await.context(error::SendDatagram)?)
+        let n = Datagram::serialize(&mut wrt, 0, target_addr, buf)
+            .context(error::SerializeDatagramSnafu)?;
+        self.socket_send.send(&data[..n]).await.context(error::SendDatagramSnafu)
     }
 }

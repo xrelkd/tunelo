@@ -1,6 +1,5 @@
 use futures::FutureExt;
 use snafu::ResultExt;
-use tokio::runtime::Handle;
 use trust_dns_resolver::{
     config::{ResolverConfig, ResolverOpts},
     AsyncResolver, TokioAsyncResolver,
@@ -19,28 +18,21 @@ pub struct TrustDnsResolver {
 
 impl TrustDnsResolver {
     pub async fn new(
-        runtime_handle: Handle,
         resolver_config: ResolverConfig,
         resolver_opts: ResolverOpts,
-    ) -> Result<TrustDnsResolver, Error> {
-        AsyncResolver::new(resolver_config, resolver_opts, runtime_handle)
-            .await
-            .map(|resolver| TrustDnsResolver { resolver })
-            .context(error::InitializeTrustDnsResolver)
+    ) -> Result<Self, Error> {
+        let resolver = AsyncResolver::tokio(resolver_config, resolver_opts);
+        Ok(Self { resolver })
     }
 
-    pub async fn new_default(runtime_handle: Handle) -> Result<TrustDnsResolver, Error> {
-        AsyncResolver::new(ResolverConfig::default(), ResolverOpts::default(), runtime_handle)
-            .await
-            .map(|resolver| TrustDnsResolver { resolver })
-            .context(error::InitializeTrustDnsResolver)
+    pub async fn new_default() -> Result<Self, Error> {
+        Self::new(ResolverConfig::default(), ResolverOpts::default()).await
     }
 
-    pub async fn from_system_conf(runtime_handle: Handle) -> Result<TrustDnsResolver, Error> {
-        AsyncResolver::from_system_conf(runtime_handle)
-            .await
-            .map(|resolver| TrustDnsResolver { resolver })
-            .context(error::InitializeTrustDnsResolver)
+    pub async fn from_system_conf() -> Result<Self, Error> {
+        AsyncResolver::tokio_from_system_conf()
+            .map(|resolver| Self { resolver })
+            .context(error::InitializeTrustDnsResolverSnafu)
     }
 }
 
@@ -50,7 +42,8 @@ impl Resolver for TrustDnsResolver {
         let resolver = self.resolver.clone();
 
         async move {
-            let response = resolver.lookup_ip(host).await.context(error::LookupTrustDnsResolver)?;
+            let response =
+                resolver.lookup_ip(host).await.context(error::LookupTrustDnsResolverSnafu)?;
 
             Ok(response.iter().collect())
         }

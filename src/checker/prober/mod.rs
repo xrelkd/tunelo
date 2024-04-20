@@ -12,7 +12,7 @@ pub use self::{
     liveness::{LivenessProber, LivenessProberReport},
 };
 
-#[derive(Debug, Clone, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Hash)]
 pub enum Prober {
     Liveness(LivenessProber),
     Basic(BasicProber),
@@ -20,19 +20,20 @@ pub enum Prober {
 }
 
 impl Prober {
-    pub fn precedence(&self) -> usize {
+    #[must_use]
+    pub const fn precedence(&self) -> usize {
         match self {
-            Prober::Liveness(_) => 0,
-            Prober::Basic(_) => 1,
-            Prober::Http(_) => 2,
+            Self::Liveness(_) => 0,
+            Self::Basic(_) => 1,
+            Self::Http(_) => 2,
         }
     }
 
     fn timeout_report(&self) -> ProberReport {
         match self {
-            Prober::Liveness(_) => LivenessProberReport::timeout().into(),
-            Prober::Basic(p) => BasicProberReport::timeout(p.destination().clone()).into(),
-            Prober::Http(p) => HttpProberReport::timeout(p.method(), p.url().clone()).into(),
+            Self::Liveness(_) => LivenessProberReport::timeout().into(),
+            Self::Basic(p) => BasicProberReport::timeout(p.destination().clone()).into(),
+            Self::Http(p) => HttpProberReport::timeout(p.method(), p.url().clone()).into(),
         }
     }
 
@@ -51,8 +52,8 @@ impl Prober {
 
     async fn probe_internal(self, proxy_server: &ProxyHost) -> ProberReport {
         match self {
-            Prober::Liveness(prober) => ProberReport::Liveness(prober.probe(proxy_server).await),
-            Prober::Basic(prober) => {
+            Self::Liveness(prober) => ProberReport::Liveness(prober.probe(proxy_server).await),
+            Self::Basic(prober) => {
                 let mut report = BasicProberReport::default();
                 match prober.probe(proxy_server, &mut report).await {
                     Ok(_) => ProberReport::Basic(report),
@@ -62,7 +63,7 @@ impl Prober {
                     }
                 }
             }
-            Prober::Http(prober) => {
+            Self::Http(prober) => {
                 let mut report = HttpProberReport::default();
                 match prober.probe(proxy_server, &mut report).await {
                     Ok(_) => ProberReport::Http(report),
@@ -88,19 +89,19 @@ impl_from_prober!(LivenessProber, Liveness);
 impl_from_prober!(BasicProber, Basic);
 impl_from_prober!(HttpProber, Http);
 
-impl Ord for Prober {
-    fn cmp(&self, other: &Prober) -> std::cmp::Ordering {
-        self.precedence().cmp(&other.precedence())
-    }
-}
+// impl Ord for Prober {
+//     fn cmp(&self, other: &Prober) -> std::cmp::Ordering {
+//         self.precedence().cmp(&other.precedence())
+//     }
+// }
+//
+// impl PartialOrd for Prober {
+//     fn partial_cmp(&self, other: &Prober) -> Option<std::cmp::Ordering> {
+//         self.precedence().partial_cmp(&other.precedence())
+//     }
+// }
 
-impl PartialOrd for Prober {
-    fn partial_cmp(&self, other: &Prober) -> Option<std::cmp::Ordering> {
-        self.precedence().partial_cmp(&other.precedence())
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Clone, Debug)]
 pub enum ProberReport {
     Liveness(LivenessProberReport),
     Basic(BasicProberReport),
@@ -108,19 +109,21 @@ pub enum ProberReport {
 }
 
 impl ProberReport {
-    pub fn precedence(&self) -> usize {
+    #[must_use]
+    pub const fn precedence(&self) -> usize {
         match self {
-            ProberReport::Liveness(_) => 0,
-            ProberReport::Basic(_) => 1,
-            ProberReport::Http(_) => 2,
+            Self::Liveness(_) => 0,
+            Self::Basic(_) => 1,
+            Self::Http(_) => 2,
         }
     }
 
+    #[must_use]
     pub fn has_error(&self) -> bool {
         match self {
-            ProberReport::Liveness(r) => r.has_error(),
-            ProberReport::Basic(r) => r.has_error(),
-            ProberReport::Http(r) => r.has_error(),
+            Self::Liveness(r) => r.has_error(),
+            Self::Basic(r) => r.has_error(),
+            Self::Http(r) => r.has_error(),
         }
     }
 }
@@ -137,14 +140,14 @@ impl_from_prober_report!(LivenessProberReport, Liveness);
 impl_from_prober_report!(BasicProberReport, Basic);
 impl_from_prober_report!(HttpProberReport, Http);
 
-impl Ord for ProberReport {
-    fn cmp(&self, other: &ProberReport) -> std::cmp::Ordering {
-        self.precedence().cmp(&other.precedence())
-    }
-}
-
-impl PartialOrd for ProberReport {
-    fn partial_cmp(&self, other: &ProberReport) -> Option<std::cmp::Ordering> {
-        self.precedence().partial_cmp(&other.precedence())
-    }
-}
+// impl Ord for ProberReport {
+//     fn cmp(&self, other: &ProberReport) -> std::cmp::Ordering {
+//         self.precedence().cmp(&other.precedence())
+//     }
+// }
+//
+// impl PartialOrd for ProberReport {
+//     fn partial_cmp(&self, other: &ProberReport) -> Option<std::cmp::Ordering>
+// {         self.precedence().partial_cmp(&other.precedence())
+//     }
+// }
