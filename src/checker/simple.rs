@@ -1,11 +1,7 @@
 use std::time::Duration;
 
 pub use crate::checker::{
-    error::{Error, ReportError},
-    prober::{
-        BasicProber, BasicProberReport, HttpMethod, HttpProber, HttpProberReport, LivenessProber,
-        LivenessProberReport, Prober, ProberReport,
-    },
+    prober::{LivenessProber, LivenessProberReport, Prober},
     report::TaskReport,
 };
 use crate::common::ProxyHost;
