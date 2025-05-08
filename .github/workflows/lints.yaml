@@ -44,7 +44,7 @@ jobs:
           nixpkgs-fmt --check .
 
       - name: Run prettier
-        uses: creyD/prettier_action@v4.3
+        uses: creyD/prettier_action@v4.5
         with:
           dry: true
           prettier_options: --check **/*.{css,html,js,json,jsx,md,mdx,scss,ts,yaml}
