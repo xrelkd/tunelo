@@ -59,7 +59,7 @@ toml = { version = "0.8", optional = true }
 
 rustls-pki-types = "1"
 trust-dns-resolver = "0.23"
-webpki-roots = "0.26"
+webpki-roots = "1.0"
 
 byteorder = "1"
 bytes = "1"
