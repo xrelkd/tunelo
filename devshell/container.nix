@@ -1,10 +1,11 @@
-{ name
-, version
-, dockerTools
-, tunelo
-, bashInteractive
-, buildEnv
-, ...
+{
+  name,
+  version,
+  dockerTools,
+  tunelo,
+  bashInteractive,
+  buildEnv,
+  ...
 }:
 
 dockerTools.buildImage {
@@ -13,11 +14,17 @@ dockerTools.buildImage {
 
   copyToRoot = buildEnv {
     name = "image-root";
-    paths = [ tunelo bashInteractive ];
+    paths = [
+      tunelo
+      bashInteractive
+    ];
     pathsToLink = [ "/bin" ];
   };
 
   config = {
-    Entrypoint = [ "${tunelo}/bin/tunelo" "socks-server" ];
+    Entrypoint = [
+      "${tunelo}/bin/tunelo"
+      "socks-server"
+    ];
   };
 }
