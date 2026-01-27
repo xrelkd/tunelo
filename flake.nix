@@ -14,23 +14,32 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, fenix, crane }:
+  outputs =
+    {
+      self,
+      nixpkgs,
+      flake-utils,
+      fenix,
+      crane,
+    }:
     let
       cargoToml = builtins.fromTOML (builtins.readFile ./Cargo.toml);
       name = "tunelo";
     in
-    (flake-utils.lib.eachDefaultSystem
-      (system:
-        let
-          pkgs = import nixpkgs {
-            inherit system;
-            overlays = [
-              self.overlays.default
-              fenix.overlays.default
-            ];
-          };
+    (flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs {
+          inherit system;
+          overlays = [
+            self.overlays.default
+            fenix.overlays.default
+          ];
+        };
 
-          rustToolchain = with fenix.packages.${system}; combine [
+        rustToolchain =
+          with fenix.packages.${system};
+          combine [
             stable.rustc
             stable.cargo
             stable.clippy
@@ -40,75 +49,86 @@
             default.rustfmt
           ];
 
-          rustPlatform = pkgs.makeRustPlatform {
-            cargo = rustToolchain;
-            rustc = rustToolchain;
+        rustPlatform = pkgs.makeRustPlatform {
+          cargo = rustToolchain;
+          rustc = rustToolchain;
+        };
+
+        craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
+
+        cargoArgs = [
+          "--workspace"
+          "--bins"
+          "--examples"
+          "--tests"
+          "--benches"
+          "--all-targets"
+        ];
+
+        unitTestArgs = [
+          "--workspace"
+        ];
+
+        src = craneLib.cleanCargoSource (craneLib.path ./.);
+        commonArgs = {
+          inherit src;
+        };
+        cargoArtifacts = craneLib.buildDepsOnly commonArgs;
+      in
+      rec {
+        formatter = pkgs.treefmt;
+
+        devShells.default = pkgs.callPackage ./devshell {
+          inherit rustToolchain cargoArgs unitTestArgs;
+        };
+
+        packages = rec {
+          default = tunelo;
+          tunelo = pkgs.callPackage ./devshell/package.nix {
+            inherit (pkgs) darwin;
+            inherit (cargoToml.package) version;
+            inherit name rustPlatform;
           };
-
-          craneLib = (crane.mkLib pkgs).overrideToolchain rustToolchain;
-
-          cargoArgs = [
-            "--workspace"
-            "--bins"
-            "--examples"
-            "--tests"
-            "--benches"
-            "--all-targets"
-          ];
-
-          unitTestArgs = [
-            "--workspace"
-          ];
-
-          src = craneLib.cleanCargoSource (craneLib.path ./.);
-          commonArgs = {
-            inherit src;
+          container = pkgs.callPackage ./devshell/container.nix {
+            inherit (cargoToml.package) version;
+            inherit name tunelo;
           };
-          cargoArtifacts = craneLib.buildDepsOnly commonArgs;
-        in
-        rec {
-          formatter = pkgs.treefmt;
+        };
 
-          devShells.default = pkgs.callPackage ./devshell {
-            inherit rustToolchain cargoArgs unitTestArgs;
-          };
+        apps.default = flake-utils.lib.mkApp {
+          drv = packages.tunelo;
+          exePath = "/bin/tunelo";
+        };
 
-          packages = rec {
-            default = tunelo;
-            tunelo = pkgs.callPackage ./devshell/package.nix {
-              inherit (pkgs) darwin;
-              inherit (cargoToml.package) version;
-              inherit name rustPlatform;
-            };
-            container = pkgs.callPackage ./devshell/container.nix {
-              inherit (cargoToml.package) version;
-              inherit name tunelo;
-            };
-          };
+        checks = {
+          format = pkgs.callPackage ./devshell/format.nix { };
 
-          apps.default = flake-utils.lib.mkApp {
-            drv = packages.tunelo;
-            exePath = "/bin/tunelo";
-          };
-
-          checks = {
-            format = pkgs.callPackage ./devshell/format.nix { };
-
-            rust-build = craneLib.cargoBuild (commonArgs // {
+          rust-build = craneLib.cargoBuild (
+            commonArgs
+            // {
               inherit cargoArtifacts;
-            });
-            rust-format = craneLib.cargoFmt { inherit src; };
-            rust-clippy = craneLib.cargoClippy (commonArgs // {
+            }
+          );
+          rust-format = craneLib.cargoFmt { inherit src; };
+          rust-clippy = craneLib.cargoClippy (
+            commonArgs
+            // {
               inherit cargoArtifacts;
               cargoClippyExtraArgs = pkgs.lib.strings.concatMapStrings (x: x + " ") cargoArgs;
-            });
-            rust-nextest = craneLib.cargoNextest (commonArgs // {
+            }
+          );
+          rust-nextest = craneLib.cargoNextest (
+            commonArgs
+            // {
               inherit cargoArtifacts;
               partitions = 1;
               partitionType = "count";
-            });
-          };
-        })) // {
+            }
+          );
+        };
+      }
+    ))
+    // {
       overlays.default = final: prev: {
         tunelo = final.callPackage ./devshell/package.nix {
           inherit (cargoToml.package) version;

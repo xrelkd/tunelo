@@ -1,18 +1,18 @@
 use std::sync::{
-    atomic::{AtomicBool, Ordering},
     Arc,
+    atomic::{AtomicBool, Ordering},
 };
 
 use snafu::ResultExt;
 use tokio::net::{
-    udp::{RecvHalf as UdpRecvHalf, SendHalf as UdpSendHalf},
     UdpSocket,
+    udp::{RecvHalf as UdpRecvHalf, SendHalf as UdpSendHalf},
 };
 
 use crate::{
-    client::{error, Error},
+    client::{Error, error},
     common::HostAddress,
-    protocol::socks::{v5::Datagram, Address},
+    protocol::socks::{Address, v5::Datagram},
 };
 
 pub struct RecvHalf {

@@ -1,7 +1,7 @@
 use std::{net::SocketAddr, str::FromStr, sync::Arc};
 
 use bytes::{Bytes, BytesMut};
-use http::{header::HeaderName, HeaderMap, HeaderValue, Method, StatusCode};
+use http::{HeaderMap, HeaderValue, Method, StatusCode, header::HeaderName};
 use snafu::ResultExt;
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
@@ -12,7 +12,7 @@ use url::Url;
 use crate::{
     authentication::AuthenticationManager,
     common::HostAddress,
-    service::http::{error, Error},
+    service::http::{Error, error},
     transport::Transport,
 };
 
@@ -135,7 +135,7 @@ where
                 return Err(Error::ConnectRemoteHost {
                     host: remote_host,
                     source: Box::new(source),
-                })
+                });
             }
         };
 

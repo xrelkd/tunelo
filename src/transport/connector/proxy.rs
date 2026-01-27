@@ -8,8 +8,9 @@ use crate::{
     client,
     common::{HostAddress, ProxyStrategy},
     transport::{
+        Error,
         connector::{Connect, Connector},
-        error, Error,
+        error,
     },
 };
 

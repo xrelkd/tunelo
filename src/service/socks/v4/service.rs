@@ -13,7 +13,7 @@ use tokio::{
 use crate::{
     authentication::AuthenticationManager,
     protocol::socks::v4::{Command, Reply, Request},
-    service::socks::{error, Error},
+    service::socks::{Error, error},
     transport::Transport,
 };
 

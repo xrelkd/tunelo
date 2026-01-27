@@ -77,20 +77,12 @@ impl SimpleFilter {
 
     #[inline]
     const fn allow(b: bool) -> FilterAction {
-        if b {
-            FilterAction::Allow
-        } else {
-            FilterAction::Deny
-        }
+        if b { FilterAction::Allow } else { FilterAction::Deny }
     }
 
     #[inline]
     const fn deny(b: bool) -> FilterAction {
-        if b {
-            FilterAction::Deny
-        } else {
-            FilterAction::Allow
-        }
+        if b { FilterAction::Deny } else { FilterAction::Allow }
     }
 }
 

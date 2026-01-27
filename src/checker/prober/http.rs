@@ -2,7 +2,7 @@ use std::{fmt, sync::Arc};
 
 use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
-use tokio_rustls::{rustls, TlsConnector};
+use tokio_rustls::{TlsConnector, rustls};
 use url::Url;
 
 use crate::{

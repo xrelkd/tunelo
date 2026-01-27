@@ -2,8 +2,8 @@ use std::{
     collections::HashSet,
     fmt,
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
 };
 

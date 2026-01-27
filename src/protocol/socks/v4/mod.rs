@@ -8,7 +8,7 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 
 use crate::{
     common::HostAddress,
-    protocol::socks::{consts, error, Address, Error, SocksVersion},
+    protocol::socks::{Address, Error, SocksVersion, consts, error},
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]

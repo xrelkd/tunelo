@@ -1,14 +1,13 @@
 use futures::FutureExt;
 use snafu::ResultExt;
 use trust_dns_resolver::{
-    config::{ResolverConfig, ResolverOpts},
     AsyncResolver, TokioAsyncResolver,
+    config::{ResolverConfig, ResolverOpts},
 };
 
 use crate::transport::{
-    error,
+    Error, error,
     resolver::{Resolve, Resolver},
-    Error,
 };
 
 #[derive(Clone)]

@@ -4,12 +4,16 @@ use futures::FutureExt;
 use tokio::task;
 
 use crate::transport::{
-    resolver::{Resolve, Resolver},
     Error,
+    resolver::{Resolve, Resolver},
 };
 
 #[derive(Clone)]
 pub struct TokioResolver;
+
+impl Default for TokioResolver {
+    fn default() -> Self { Self::new() }
+}
 
 impl TokioResolver {
     pub const fn new() -> Self { Self }

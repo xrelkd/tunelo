@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    fmt,
     net::{IpAddr, Ipv4Addr, SocketAddr},
     path::Path,
     str::FromStr,
@@ -32,7 +33,7 @@ impl Config {
 
 impl Default for Config {
     fn default() -> Self {
-        let proxy_servers = vec![ProxyServer::Http, ProxyServer::Socks].into_iter().collect();
+        let proxy_servers = [ProxyServer::Http, ProxyServer::Socks].into_iter().collect();
 
         Self {
             proxy_servers,
@@ -61,11 +62,11 @@ impl FromStr for ProxyServer {
     }
 }
 
-impl ToString for ProxyServer {
-    fn to_string(&self) -> String {
+impl fmt::Display for ProxyServer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::Socks => "socks".to_owned(),
-            Self::Http => "http".to_owned(),
+            Self::Socks => f.write_str("socks"),
+            Self::Http => f.write_str("http"),
         }
     }
 }
@@ -194,11 +195,13 @@ impl HttpServer {
     pub fn listen_socket(&self) -> SocketAddr { SocketAddr::new(self.host, self.port) }
 }
 
+// FIXME: Use `AuthenticationMethod`.
+#[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum AuthenticationMethod {}
 
-impl ToString for AuthenticationMethod {
-    fn to_string(&self) -> String { String::new() }
+impl fmt::Display for AuthenticationMethod {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result { f.write_str("") }
 }
 
 #[cfg(test)]

@@ -2,15 +2,15 @@ use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncWrite};
 
 use crate::{
-    client::handshake::{error, ClientHandshake, Error},
+    client::handshake::{ClientHandshake, Error, error},
     common::HostAddress,
     protocol::socks::{
+        Address,
         v5::{
             Command, HandshakeReply, HandshakeRequest, Method, Reply, ReplyField, Request,
             UserPasswordHandshakeReply, UserPasswordHandshakeRequest, UserPasswordStatus,
             UserPasswordVersion,
         },
-        Address,
     },
 };
 

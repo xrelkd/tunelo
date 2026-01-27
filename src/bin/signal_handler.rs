@@ -1,7 +1,7 @@
 use std::sync::atomic;
 
 use futures::FutureExt;
-use tokio::signal::unix::{signal, SignalKind};
+use tokio::signal::unix::{SignalKind, signal};
 
 use crate::SHUTDOWN;
 

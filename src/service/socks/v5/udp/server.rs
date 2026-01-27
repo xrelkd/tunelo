@@ -6,8 +6,8 @@ use snafu::ResultExt;
 use tokio::{net::UdpSocket, sync::mpsc, time};
 
 use crate::{
-    protocol::socks::{error, v5::Datagram, Error},
-    service::socks::v5::udp::{shutdown, UdpAssociate, UdpAssociateCache},
+    protocol::socks::{Error, error, v5::Datagram},
+    service::socks::v5::udp::{UdpAssociate, UdpAssociateCache, shutdown},
     transport::Resolver,
 };
 
