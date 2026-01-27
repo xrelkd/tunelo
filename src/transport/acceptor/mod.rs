@@ -7,6 +7,8 @@ use tokio::{
     sync::Mutex,
 };
 
+// FIXME: Use `Acceptor`.
+#[allow(dead_code)]
 pub trait Acceptor {
     type Stream: Unpin + AsyncRead + AsyncWrite;
     type Address;
@@ -18,6 +20,8 @@ pub trait Acceptor {
 pub type Accept<Stream, Address, Error> =
     Pin<Box<dyn Future<Output = Result<(Stream, Address), Error>> + Send>>;
 
+// FIXME: Use `TcpAcceptor`.
+#[allow(dead_code)]
 pub struct TcpAcceptor {
     listener: Arc<Mutex<TcpListener>>,
     timeout: Option<Duration>,

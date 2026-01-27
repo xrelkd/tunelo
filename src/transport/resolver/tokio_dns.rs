@@ -11,6 +11,12 @@ use crate::transport::{
 #[derive(Clone)]
 pub struct TokioResolver;
 
+impl Default for TokioResolver {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl TokioResolver {
     pub const fn new() -> Self { Self }
 }
