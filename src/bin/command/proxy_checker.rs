@@ -57,7 +57,7 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
     write_reports_to(&mut std::io::stdout(), &reports)
         .context(error::WriteProxyCheckerReportSnafu)?;
 
-    if let Some(ref path) = &output_path {
+    if let Some(path) = &output_path {
         let mut file = std::fs::OpenOptions::new()
             .write(true)
             .truncate(true)

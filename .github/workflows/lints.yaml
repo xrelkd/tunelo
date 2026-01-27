@@ -20,18 +20,25 @@ jobs:
     name: Lint format
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Nix
-        uses: cachix/install-nix-action@v26
-        with:
-          nix_path: nixpkgs=channel:nixos-unstable
+        uses: DeterminateSystems/nix-installer-action@v21
 
-      - name: Install nixpkgs-fmt
-        run: nix profile install 'nixpkgs#nixpkgs-fmt'
+      - name: Install treefmt
+        run: nix profile add 'nixpkgs#treefmt'
+
+      - name: Install prettier
+        run: nix profile add 'nixpkgs#nodePackages.prettier'
+
+      - name: Install nixfmt
+        run: nix profile add 'nixpkgs#nixfmt'
+
+      - name: Install taplo
+        run: nix profile add 'nixpkgs#taplo'
 
       - name: Run shfmt, shellcheck, checkbashisms
-        uses: luizm/action-sh-checker@v0.8.0
+        uses: luizm/action-sh-checker@v0.10.0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -39,32 +46,33 @@ jobs:
           sh_checker_checkbashisms_enable: true
           sh_checker_exclude: "dev-support/bin/create-package"
 
-      - name: Run nixpkgs-fmt
+      - name: Run treefmt
         run: |
-          nixpkgs-fmt --check .
-
-      - name: Run prettier
-        uses: creyD/prettier_action@v4.3
-        with:
-          dry: true
-          prettier_options: --check **/*.{css,html,js,json,jsx,md,mdx,scss,ts,yaml}
+          treefmt \
+            --allow-missing-formatter \
+            --fail-on-change \
+            --no-cache \
+            --formatters prettier \
+            --formatters nix \
+            --formatters shell \
+            --formatters toml
 
   commit:
     name: Lint commit
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
       - name: Run commitlint
-        uses: wagoid/commitlint-github-action@v6.0.1
+        uses: wagoid/commitlint-github-action@v6.2.1
 
   codespell:
     name: Codespell
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: codespell-project/codespell-problem-matcher@v1
 

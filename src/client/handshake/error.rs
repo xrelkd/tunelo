@@ -1,6 +1,6 @@
 use snafu::Snafu;
 
-use crate::protocol::socks::{v5::Method as SocksV5Method, Error as SocksError};
+use crate::protocol::socks::{Error as SocksError, v5::Method as SocksV5Method};
 
 #[derive(Debug, Snafu)]
 #[snafu(visibility(pub(crate)))]

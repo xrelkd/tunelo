@@ -7,7 +7,7 @@ use tokio::{
 };
 
 use crate::{
-    client::{error, handshake::ClientHandshake, Error, ProxyStream},
+    client::{Error, ProxyStream, error, handshake::ClientHandshake},
     common::{HostAddress, ProxyHost, ProxyStrategy},
 };
 

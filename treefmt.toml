@@ -1,12 +1,7 @@
 [formatter.rust]
-command = "cargo"
-options = [
-  "fmt",
-  "--all",
-  "--verbose",
-  "--"
-]
-includes = [ "*.rs" ]
+command  = "cargo"
+options  = ["fmt", "--all", "--verbose", "--"]
+includes = ["*.rs"]
 
 [formatter.prettier]
 command = "prettier"
@@ -24,23 +19,22 @@ includes = [
   "*.yaml",
 ]
 
+[formatter.toml]
+command  = "taplo"
+options  = ["format", "$@"]
+includes = ["*.toml"]
+
 [formatter.nix]
-command = "nixpkgs-fmt"
-includes = [
-  "*.nix"
-]
+command  = "nixfmt"
+includes = ["*.nix"]
 
 [formatter.shell]
 command = "sh"
-options = [
-    "-eucx",
-    """
+options = ["-eucx", """
 # Perform static analysis tool
 shellcheck --external-sources --source-path=SCRIPTDIR "$@"
 
 # Run formatter
 shfmt --write --simplify --case-indent --indent 4 "$@"
-    """,
-    "--"
-]
+    """, "--"]
 includes = ["*.sh"]

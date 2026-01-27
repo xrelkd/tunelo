@@ -8,7 +8,7 @@ use tokio::io::{AsyncRead, AsyncReadExt};
 pub use self::datagram::Datagram;
 use crate::{
     authentication::AuthenticationMethod,
-    protocol::socks::{consts, error, Address, AddressType, Error, SocksCommand, SocksVersion},
+    protocol::socks::{Address, AddressType, Error, SocksCommand, SocksVersion, consts, error},
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -366,7 +366,7 @@ impl Request {
         match SocksVersion::try_from(buf[0]) {
             Err(err) => return Err(err),
             Ok(version) if version != SocksVersion::V5 => {
-                return Err(Error::UnsupportedSocksVersion { version })
+                return Err(Error::UnsupportedSocksVersion { version });
             }
             Ok(_) => {}
         }
