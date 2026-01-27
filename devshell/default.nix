@@ -1,18 +1,19 @@
-{ rustToolchain
-, cargoArgs
-, unitTestArgs
-, pkgs
-, lib
-, stdenv
-, darwin
-, libiconv
-, ...
+{
+  rustToolchain,
+  cargoArgs,
+  unitTestArgs,
+  pkgs,
+  lib,
+  stdenv,
+  darwin,
+  libiconv,
+  ...
 }:
 
 let
   cargo-ext = pkgs.callPackage ./cargo-ext.nix { inherit cargoArgs unitTestArgs; };
 in
-pkgs.mkShell rec {
+pkgs.mkShell {
   name = "dev-shell";
 
   buildInputs = lib.optionals stdenv.isDarwin [
@@ -38,9 +39,10 @@ pkgs.mkShell rec {
     tokei
 
     treefmt
+    taplo
 
     jq
-    nixpkgs-fmt
+    nixfmt
     shfmt
     nodePackages.prettier
     shellcheck
