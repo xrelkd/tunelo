@@ -1,8 +1,8 @@
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
 };
 
@@ -10,12 +10,12 @@ use bytes::BytesMut;
 use snafu::ResultExt;
 use tokio::{
     net::UdpSocket,
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
 };
 
 use crate::{
     protocol::socks::v5::Datagram,
-    service::socks::{error, Error},
+    service::socks::{Error, error},
     transport::Resolver,
 };
 

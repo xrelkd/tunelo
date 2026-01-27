@@ -5,7 +5,7 @@ use snafu::ResultExt;
 
 use crate::{
     common::HostAddress,
-    protocol::socks::{error, Address, AddressRef, AddressType, Error, SocksVersion},
+    protocol::socks::{Address, AddressRef, AddressType, Error, SocksVersion, error},
 };
 
 // Datagram is the UDP packet

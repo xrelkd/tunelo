@@ -2,13 +2,13 @@ use std::{
     collections::HashSet,
     net::{IpAddr, SocketAddr},
     sync::{
-        atomic::{AtomicUsize, Ordering},
         Arc,
+        atomic::{AtomicUsize, Ordering},
     },
     time::Duration,
 };
 
-use futures::{stream::FuturesUnordered, FutureExt, StreamExt};
+use futures::{FutureExt, StreamExt, stream::FuturesUnordered};
 use snafu::ResultExt;
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
@@ -18,8 +18,8 @@ use tokio::{
 
 use crate::{
     common::HostAddress,
-    protocol::socks::{error, v5::Reply, Address, Error},
-    service::socks::v5::udp::{shutdown, UdpAssociateCache, UdpServer},
+    protocol::socks::{Address, Error, error, v5::Reply},
+    service::socks::v5::udp::{UdpAssociateCache, UdpServer, shutdown},
     transport::Resolver,
 };
 

@@ -4,7 +4,7 @@ use crate::{
     common::HostAddress,
     protocol::{
         self,
-        socks::{v5::Method, SocksCommand, SocksVersion},
+        socks::{SocksCommand, SocksVersion, v5::Method},
     },
     transport,
 };

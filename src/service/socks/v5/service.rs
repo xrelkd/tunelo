@@ -3,20 +3,20 @@ use std::{collections::HashSet, net::SocketAddr, sync::Arc};
 use snafu::ResultExt;
 use tokio::{
     io::{AsyncRead, AsyncWrite, AsyncWriteExt},
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
 };
 
 use crate::{
     authentication::{Authentication, AuthenticationManager},
     common::HostAddress,
     protocol::socks::{
+        Address,
         v5::{
             Command, HandshakeReply, HandshakeRequest, Method, Reply, Request,
             UserPasswordHandshakeReply, UserPasswordHandshakeRequest,
         },
-        Address,
     },
-    service::socks::{error, Error},
+    service::socks::{Error, error},
     transport::Transport,
 };
 

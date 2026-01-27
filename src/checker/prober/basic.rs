@@ -2,7 +2,7 @@ use snafu::ResultExt;
 use tokio::io::AsyncWriteExt;
 
 use crate::{
-    checker::{error, Error, ReportError},
+    checker::{Error, ReportError, error},
     client::ProxyStream,
     common::{HostAddress, ProxyHost},
 };

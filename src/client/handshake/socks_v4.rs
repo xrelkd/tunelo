@@ -2,11 +2,11 @@ use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncWrite, AsyncWriteExt};
 
 use crate::{
-    client::handshake::{error, ClientHandshake, Error},
+    client::handshake::{ClientHandshake, Error, error},
     common::HostAddress,
     protocol::socks::{
-        v4::{Command, Reply, ReplyField, Request},
         Address,
+        v4::{Command, Reply, ReplyField, Request},
     },
 };
 

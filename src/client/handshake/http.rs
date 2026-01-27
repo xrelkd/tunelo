@@ -3,7 +3,7 @@ use snafu::ResultExt;
 use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 use crate::{
-    client::handshake::{error, ClientHandshake, Error},
+    client::handshake::{ClientHandshake, Error, error},
     common::HostAddress,
 };
 

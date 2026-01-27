@@ -3,8 +3,8 @@ mod split;
 use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{
-        atomic::{AtomicBool, Ordering},
         Arc,
+        atomic::{AtomicBool, Ordering},
     },
     time::Duration,
 };
@@ -18,7 +18,7 @@ use tokio::{
 
 use self::split::{RecvHalf, SendHalf};
 use crate::{
-    client::{error, handshake::*, Error},
+    client::{Error, error, handshake::*},
     common::HostAddress,
     protocol::socks::v5::Datagram,
 };

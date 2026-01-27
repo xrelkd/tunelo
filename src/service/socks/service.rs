@@ -2,14 +2,14 @@ use std::{collections::HashSet, net::SocketAddr, sync::Arc};
 
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
-    sync::{mpsc, Mutex},
+    sync::{Mutex, mpsc},
 };
 
 use crate::{
     authentication::AuthenticationManager,
     common::HostAddress,
     protocol::socks::SocksVersion,
-    service::socks::{v4, v5, Error},
+    service::socks::{Error, v4, v5},
     transport::Transport,
 };
 
