@@ -1,0 +1,96 @@
+name: Container
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - release/*
+      - ci/*
+    tags:
+      - v*
+  pull_request:
+    paths:
+      - "dev-support/containers/alpine/Containerfile"
+      - "dev-support/containers/docker-bake.hcl"
+      - Cargo.lock
+      - Cargo.toml
+
+env:
+  CI: 1
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+concurrency:
+  group: image-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    name: Build and publish images
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        mode:
+          - release
+    outputs:
+      version: ${{ steps.meta.outputs.version }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          submodules: true
+
+      - name: Configure sccache
+        uses: actions/github-script@v8
+        with:
+          script: |
+            core.exportVariable('ACTIONS_CACHE_URL', process.env.ACTIONS_CACHE_URL || '');
+            core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env.ACTIONS_RUNTIME_TOKEN || '');
+
+      - name: Install docker-buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          version: latest
+
+      - name: Login to the GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup container metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=schedule
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=edge
+            type=raw,enable=${{ github.event_name != 'pull_request' && !contains(github.ref, 'refs/tags/') }},value=build-{{date 'YYYY.MM.DD'}}-{{sha}}
+          flavor: |
+            latest=auto
+            suffix=${{ matrix.mode == 'debug' && '-debug' || ''}}
+          bake-target: tunelo
+
+      - name: Build container image
+        uses: docker/bake-action@v6
+        with:
+          pull: true
+          push: true
+          set: |
+            tunelo.args.SCCACHE_GHA_ENABLED=on
+            tunelo.args.ACTIONS_CACHE_URL=${{ env.ACTIONS_CACHE_URL }}
+            tunelo.args.ACTIONS_RUNTIME_TOKEN=${{ env.ACTIONS_RUNTIME_TOKEN }}
+
+          files: |
+            ./dev-support/containers/docker-bake.hcl
+            cwd://${{ steps.meta.outputs.bake-file }}
+          targets: tunelo
