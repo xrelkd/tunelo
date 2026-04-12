@@ -56,7 +56,7 @@ impl Prober {
             Self::Basic(prober) => {
                 let mut report = BasicProberReport::default();
                 match prober.probe(proxy_server, &mut report).await {
-                    Ok(_) => ProberReport::Basic(report),
+                    Ok(()) => ProberReport::Basic(report),
                     Err(err) => {
                         report.error = Some(err.into());
                         ProberReport::Basic(report)
@@ -66,7 +66,7 @@ impl Prober {
             Self::Http(prober) => {
                 let mut report = HttpProberReport::default();
                 match prober.probe(proxy_server, &mut report).await {
-                    Ok(_) => ProberReport::Http(report),
+                    Ok(()) => ProberReport::Http(report),
                     Err(err) => {
                         report.error = Some(err.into());
                         ProberReport::Http(report)
@@ -119,7 +119,7 @@ impl ProberReport {
     }
 
     #[must_use]
-    pub fn has_error(&self) -> bool {
+    pub const fn has_error(&self) -> bool {
         match self {
             Self::Liveness(r) => r.has_error(),
             Self::Basic(r) => r.has_error(),

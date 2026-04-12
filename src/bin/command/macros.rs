@@ -1,6 +1,6 @@
 macro_rules! merge_option_field {
     ($config:ident, $opt:ident) => {
-        $opt.take().map(|opt| $config.$opt = opt);
+        let _ = $opt.take().map(|opt| $config.$opt = opt);
     };
 }
 

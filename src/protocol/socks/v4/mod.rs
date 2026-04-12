@@ -79,6 +79,13 @@ pub struct Request {
 }
 
 impl Request {
+    /// Parses a SOCKS4 request from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Invalid command byte ([`Error::InvalidCommand`])
     pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
@@ -159,7 +166,7 @@ impl Request {
                 buf.extend(host.as_bytes());
                 buf.push(0x00);
             }
-        };
+        }
 
         buf
     }
@@ -178,6 +185,14 @@ pub struct Reply {
 }
 
 impl Reply {
+    /// Parses a SOCKS4 reply from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Bad reply format ([`Error::BadReply`])
+    /// - Invalid reply field ([`Error::InvalidCommand`])
     pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
@@ -190,7 +205,7 @@ impl Reply {
         let destination_socket = {
             let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
             let mut ip = [0u8; 4];
-            rdr.read(&mut ip).await.context(error::ReadStreamSnafu)?;
+            let _unused = rdr.read(&mut ip).await.context(error::ReadStreamSnafu)?;
             SocketAddrV4::new(Ipv4Addr::from(ip), port)
         };
 
@@ -212,7 +227,6 @@ impl Reply {
         Self { reply: ReplyField::Unreachable, destination_socket }
     }
 
-    #[allow(dead_code)]
     #[must_use]
     pub const fn invalid_id(destination_socket: SocketAddrV4) -> Self {
         Self { reply: ReplyField::InvalidId, destination_socket }
@@ -221,12 +235,13 @@ impl Reply {
     #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
+    /// Converts the reply to a byte vector.
+    ///
+    /// # Panics
+    ///
+    /// Panics if writing to the buffer fails.
     #[must_use]
     pub fn to_bytes(&self) -> Vec<u8> {
-        // +----+----+----+----+----+----+----+----+
-        // | VN | CD | DSTPORT |      DSTIP        |
-        // +----+----+----+----+----+----+----+----+
-        //   1    1      2              4
         use byteorder::{BigEndian, WriteBytesExt};
 
         let mut buf = Vec::with_capacity(8);

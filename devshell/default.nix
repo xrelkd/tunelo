@@ -44,7 +44,7 @@ pkgs.mkShell {
     jq
     nixfmt
     shfmt
-    nodePackages.prettier
+    prettier
     shellcheck
   ];
 

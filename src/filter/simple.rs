@@ -40,24 +40,26 @@ impl SimpleFilter {
     #[must_use]
     pub fn deny_list() -> Self { Self { mode: FilterMode::DenyList, ..Default::default() } }
 
-    pub fn set_mode(&mut self, mode: FilterMode) { self.mode = mode; }
+    pub const fn set_mode(&mut self, mode: FilterMode) { self.mode = mode; }
 
     #[inline]
-    pub fn add_socket(&mut self, socket: SocketAddr) { self.sockets.insert(socket); }
+    pub fn add_socket(&mut self, socket: SocketAddr) { let _unused = self.sockets.insert(socket); }
 
     #[inline]
     pub fn add_host(&mut self, host: &str, port: u16) {
-        self.hosts.insert((host.to_owned(), port));
+        let _unused = self.hosts.insert((host.to_owned(), port));
     }
 
     #[inline]
-    pub fn add_hostname(&mut self, host: &str) { self.hostnames.insert(host.to_owned()); }
+    pub fn add_hostname(&mut self, host: &str) {
+        let _unused = self.hostnames.insert(host.to_owned());
+    }
 
     #[inline]
-    pub fn add_port(&mut self, port: u16) { self.ports.insert(port); }
+    pub fn add_port(&mut self, port: u16) { let _unused = self.ports.insert(port); }
 
     #[inline]
-    pub fn add_address(&mut self, addr: IpAddr) { self.addresses.insert(addr); }
+    pub fn add_address(&mut self, addr: IpAddr) { let _unused = self.addresses.insert(addr); }
 
     #[inline]
     pub fn add_host_address(&mut self, addr: HostAddress) {

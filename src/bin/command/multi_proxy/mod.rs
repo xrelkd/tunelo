@@ -1,3 +1,5 @@
+mod config;
+
 use std::{future::Future, path::Path, pin::Pin, sync::Arc};
 
 use futures::future::join_all;
@@ -10,11 +12,10 @@ use tunelo::{
     transport::{Resolver, Transport},
 };
 
+pub use self::config::Config;
 use crate::{error, error::Error, shutdown, signal_handler};
 
-mod config;
-
-pub use self::config::Config;
+type ServeFuture = Pin<Box<dyn Future<Output = Result<(), Error>> + Send>>;
 
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
@@ -33,10 +34,10 @@ pub async fn run<P: AsRef<Path>>(
     let filter = {
         let mut f = SimpleFilter::deny_list();
         if let Some(config) = socks_server_config.as_ref() {
-            f.add_socket(config.listen_socket())
+            f.add_socket(config.listen_socket());
         }
         if let Some(config) = http_server_config.as_ref() {
-            f.add_socket(config.listen_socket())
+            f.add_socket(config.listen_socket());
         }
         Arc::new(f)
     };
@@ -45,7 +46,6 @@ pub async fn run<P: AsRef<Path>>(
 
     let (shutdown_sender, mut shutdown_receiver) = shutdown::new();
 
-    type ServeFuture = Pin<Box<dyn Future<Output = Result<(), Error>>>>;
     let mut futs: Vec<ServeFuture> = Vec::new();
 
     if let Some(config) = socks_server_config {
@@ -87,15 +87,11 @@ pub async fn run<P: AsRef<Path>>(
         return Err(Error::NoProxyServer);
     }
 
-    signal_handler::start(Box::new(move || {
+    let _unused = signal_handler::start(Box::new(move || {
         shutdown_sender.shutdown();
     }));
 
     let handle = join_all(futs).await;
-    let errors: Vec<_> = handle.into_iter().filter_map(Result::err).collect();
-    if !errors.is_empty() {
-        return Err(Error::Collection { errors });
-    }
-
-    Ok(())
+    let errors = handle.into_iter().filter_map(Result::err).collect::<Vec<_>>();
+    if errors.is_empty() { Ok(()) } else { Err(Error::Collection { errors }) }
 }

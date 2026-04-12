@@ -29,7 +29,7 @@ impl<TransportStream> Service<TransportStream>
 where
     TransportStream: Unpin + AsyncRead + AsyncWrite,
 {
-    pub fn new(
+    pub const fn new(
         transport: Arc<Transport<TransportStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
     ) -> Self {
@@ -68,7 +68,7 @@ where
                             value: String::from_utf8_lossy(header.value).to_string(),
                         }
                     })?;
-                    headers.append(name, value);
+                    let _unused = headers.append(name, value);
                 }
 
                 let header_buf = buf.split_to(parsed_len).freeze();
@@ -77,6 +77,17 @@ where
         }
     }
 
+    /// Handles an HTTP proxy connection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read buffer ([`Error::ReadBuf`])
+    /// - Request too large ([`Error::RequestTooLarge`])
+    /// - Cannot parse request ([`Error::ParseRequest`])
+    /// - No host provided ([`Error::NoHostProvided`])
+    /// - Cannot connect to remote host ([`Error::ConnectRemoteHost`])
+    /// - Cannot relay stream ([`Error::RelayStream`])
     pub async fn handle(
         &self,
         mut client_stream: TransportStream,
@@ -106,12 +117,9 @@ where
             }
         };
 
-        let remote_host = match msg.host_address() {
-            Some(r) => r,
-            None => {
-                Self::shutdown_with_status(client_stream, StatusCode::NOT_FOUND).await?;
-                return Err(Error::NoHostProvided);
-            }
+        let Some(remote_host) = msg.host_address() else {
+            Self::shutdown_with_status(client_stream, StatusCode::NOT_FOUND).await?;
+            return Err(Error::NoHostProvided);
         };
 
         let (remote_socket, _remote_addr) = match self.transport.connect(&remote_host).await {
@@ -155,7 +163,7 @@ where
         mut stream: TransportStream,
         status_code: StatusCode,
     ) -> Result<(), Error> {
-        stream
+        let _unused = stream
             .write(status_code.status_line().as_bytes())
             .await
             .context(error::WriteStreamSnafu)?;
@@ -170,10 +178,10 @@ trait StatusCodeExt {
 
 impl StatusCodeExt for StatusCode {
     fn status_line(&self) -> String {
-        match self.canonical_reason() {
-            Some(reason) => format!("HTTP/1.1 {} {}\r\n\r\n", self.as_u16(), reason),
-            None => format!("HTTP/1.1 {}\r\n\r\n", self.as_u16()),
-        }
+        self.canonical_reason().map_or_else(
+            || format!("HTTP/1.1 {}\r\n\r\n", self.as_u16()),
+            |reason| format!("HTTP/1.1 {} {}\r\n\r\n", self.as_u16(), reason),
+        )
     }
 }
 
@@ -187,15 +195,14 @@ struct ParsedMessage {
 
 impl ParsedMessage {
     fn host_address(&self) -> Option<HostAddress> {
-        match (&self.req_method, self.headers.get(http::header::HOST)) {
-            (&Method::CONNECT, Some(host)) => {
-                HostAddress::from_str(host.to_str().unwrap_or_default()).ok()
-            }
-            _ => {
-                let domain = &self.url.host_str()?;
-                let port = self.url.port_or_known_default()?;
-                Some(HostAddress::new(domain, port))
-            }
+        if let (&Method::CONNECT, Some(host)) =
+            (&self.req_method, self.headers.get(http::header::HOST))
+        {
+            HostAddress::from_str(host.to_str().unwrap_or_default()).ok()
+        } else {
+            let domain = &self.url.host_str()?;
+            let port = self.url.port_or_known_default()?;
+            Some(HostAddress::new(domain, port))
         }
     }
 }

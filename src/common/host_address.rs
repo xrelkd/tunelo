@@ -17,7 +17,7 @@ impl PartialEq<(String, u16)> for HostAddress {
     fn eq(&self, other: &(String, u16)) -> bool {
         match self {
             Self::DomainName(host, port) => host == &other.0 && port == &other.1,
-            _ => false,
+            Self::Socket(_) => false,
         }
     }
 }
@@ -25,7 +25,7 @@ impl PartialEq<SocketAddr> for HostAddress {
     fn eq(&self, other: &SocketAddr) -> bool {
         match self {
             Self::Socket(addr) => addr == other,
-            _ => false,
+            Self::DomainName(..) => false,
         }
     }
 }
@@ -34,18 +34,18 @@ impl HostAddress {
     #[inline]
     #[must_use]
     pub fn new(host: &str, port: u16) -> Self {
-        match host.parse() {
-            Ok(ip) => Self::Socket(SocketAddr::new(ip, port)),
-            Err(_) => Self::DomainName(host.to_owned(), port),
-        }
+        host.parse().map_or_else(
+            |_| Self::DomainName(host.to_owned(), port),
+            |ip| Self::Socket(SocketAddr::new(ip, port)),
+        )
     }
 
     #[inline]
     pub fn fit(&mut self) {
-        if let Self::DomainName(host, port) = self {
-            if let Ok(ip) = host.parse() {
-                *self = Self::Socket(SocketAddr::new(ip, *port));
-            }
+        if let Self::DomainName(host, port) = self
+            && let Ok(ip) = host.parse()
+        {
+            *self = Self::Socket(SocketAddr::new(ip, *port));
         }
     }
 
@@ -60,7 +60,7 @@ impl HostAddress {
 
     #[inline]
     #[must_use]
-    pub fn port(&self) -> u16 {
+    pub const fn port(&self) -> u16 {
         match self {
             Self::Socket(socket) => socket.port(),
             Self::DomainName(_, port) => *port,
@@ -68,7 +68,7 @@ impl HostAddress {
     }
 
     #[inline]
-    pub fn set_port(&mut self, port: u16) {
+    pub const fn set_port(&mut self, port: u16) {
         match self {
             Self::Socket(socket) => {
                 socket.set_port(port);

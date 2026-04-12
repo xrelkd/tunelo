@@ -25,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let report = task.run_parallel(Some(Duration::from_secs(3))).await;
-    println!("{:?}", report);
+    println!("{report:?}");
     Ok(())
 }
 

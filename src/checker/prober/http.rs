@@ -54,6 +54,14 @@ impl HttpProber {
         Self { url, expected_response_code, method: HttpMethod::Delete }
     }
 
+    /// Probes the HTTP/HTTPS endpoint through the proxy server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot connect to proxy server ([`Error::ConnectProxyServer`])
+    /// - Invalid DNS name ([`Error::InvalidDnsName`])
+    /// - Connection fails ([`Error::ConnectProxyServer`])
     pub async fn probe(
         self,
         proxy_server: &ProxyHost,
@@ -115,10 +123,10 @@ impl HttpProber {
         Stream: Unpin + AsyncRead + AsyncWrite,
     {
         let request = self.build_request()?;
-        stream.write(&request).await.context(error::WriteHttpRequestSnafu)?;
+        let _unused = stream.write(&request).await.context(error::WriteHttpRequestSnafu)?;
 
         let mut buf = vec![0u8; 1024];
-        stream.read(&mut buf[..]).await.context(error::ReadHttpResponseSnafu)?;
+        let _unused = stream.read(&mut buf[..]).await.context(error::ReadHttpResponseSnafu)?;
 
         let mut headers = [httparse::EMPTY_HEADER; 32];
         let mut response = httparse::Response::new(&mut headers);
@@ -150,31 +158,52 @@ impl HttpProber {
         Ok(req)
     }
 
+    /// Returns the destination address (host + port) for probing.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::NoHostProvided`] if the URL has no host.
+    /// Returns [`Error::NoPortProvided`] if the URL has no port.
     #[inline]
     pub fn destination_address(&self) -> Result<HostAddress, Error> {
         Ok(HostAddress::new(&self.host()?, self.port()?))
     }
 
+    /// Returns the host from the URL.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::NoHostProvided`] if the URL has no host.
     #[inline]
     pub fn host(&self) -> Result<String, Error> {
         Ok(self.url.host_str().ok_or(Error::NoHostProvided)?.to_owned())
     }
 
+    /// Returns the port from the URL.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::NoPortProvided`] if the URL has no port.
     #[inline]
     pub fn port(&self) -> Result<u16, Error> {
         self.url.port_or_known_default().ok_or(Error::NoPortProvided)
     }
 
+    /// Returns the path from the URL.
+    ///
+    /// # Errors
+    ///
+    /// Always returns Ok, never an error.
     #[inline]
     pub fn path(&self) -> Result<String, Error> { Ok(self.url.path().to_owned()) }
 
     #[inline]
     #[must_use]
-    pub fn method(&self) -> HttpMethod { self.method }
+    pub const fn method(&self) -> HttpMethod { self.method }
 
     #[inline]
     #[must_use]
-    pub fn url(&self) -> &Url { &self.url }
+    pub const fn url(&self) -> &Url { &self.url }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
@@ -201,5 +230,5 @@ impl HttpProberReport {
 
     #[inline]
     #[must_use]
-    pub fn has_error(&self) -> bool { self.error.is_some() }
+    pub const fn has_error(&self) -> bool { self.error.is_some() }
 }

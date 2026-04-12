@@ -38,3 +38,8 @@ shellcheck --external-sources --source-path=SCRIPTDIR "$@"
 shfmt --write --simplify --case-indent --indent 4 "$@"
     """, "--"]
 includes = ["*.sh"]
+
+[formatter.hcl]
+command  = "hclfmt"
+options  = ["-w"]
+includes = ["*.hcl"]

@@ -34,8 +34,18 @@ impl Acceptor for TcpAcceptor {
 
     fn accept(&mut self) -> Accept<Self::Stream, Self::Address, Self::Error> {
         let listener = self.listener.clone();
+        #[expect(
+            clippy::no_effect_underscore_binding,
+            reason = "Timeout stored for future use; may be needed for accept timeout \
+                      configuration"
+        )]
         let _timeout = self.timeout;
 
+        #[expect(
+            clippy::significant_drop_tightening,
+            reason = "Arc<Mutex<TcpListener>> is cloned for async operation; the clone is \
+                      intentionally held across await boundary"
+        )]
         Box::pin(async move {
             let listener = listener.lock().await;
             let (stream, addr) = listener.accept().await?;
