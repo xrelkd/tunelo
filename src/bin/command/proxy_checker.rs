@@ -38,18 +38,16 @@ pub async fn run<P: AsRef<Path>>(options: Options, config_file: Option<P>) -> Re
         return Err(Error::NoProxyProberProvided);
     }
 
-    let checkers: Vec<_> = config
-        .proxy_servers
-        .into_iter()
-        .map(|proxy_host| SimpleProxyChecker::with_probers(proxy_host, &probers))
-        .collect();
-
     let reports = {
         let max_timeout_per_probe = config.max_timeout_per_probe;
-        let report_futs = checkers.into_iter().map(|checker| async {
-            println!("Checking proxy server: {}", checker.proxy_server());
-            checker.run_parallel(max_timeout_per_probe).await
-        });
+        let report_futs = config
+            .proxy_servers
+            .into_iter()
+            .map(|proxy_host| SimpleProxyChecker::with_probers(proxy_host, &probers))
+            .map(|checker| async {
+                println!("Checking proxy server: {}", checker.proxy_server());
+                checker.run_parallel(max_timeout_per_probe).await
+            });
 
         futures::future::join_all(report_futs).await
     };
@@ -98,9 +96,10 @@ where
     for report in reports {
         {
             let mut table = Table::new();
-            table
-                .set_content_arrangement(ContentArrangement::Dynamic)
-                .set_header(vec!["Server", "Type", "Host", "Port", "Alive", "Error"]);
+            {
+                let _ = table.set_content_arrangement(ContentArrangement::Dynamic);
+                let _ = table.set_header(vec!["Server", "Type", "Host", "Port", "Alive", "Error"]);
+            }
 
             let r = report.liveness_report();
 
@@ -108,33 +107,36 @@ where
             let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
             let proxy_server = &report.proxy_server;
             let proxy_server_url = proxy_server.to_string();
-            table.add_row(vec![
-                proxy_server_url,
-                proxy_server.proxy_type_str().to_owned(),
-                proxy_server.host().to_owned(),
-                proxy_server.port().to_string(),
-                alive,
-                err,
-            ]);
+            {
+                let _ = table.add_row(vec![
+                    proxy_server_url,
+                    proxy_server.proxy_type_str().to_owned(),
+                    proxy_server.host().to_owned(),
+                    proxy_server.port().to_string(),
+                    alive,
+                    err,
+                ]);
+            }
 
             writeln!(writer, "{table}")?;
         }
 
         if report.basic_report_count() != 0 {
             let mut table = Table::new();
-            table.set_content_arrangement(ContentArrangement::Dynamic).set_header(vec![
-                "Basic Probe",
-                "Destination",
-                "Connected",
-                "Error",
-            ]);
+            {
+                let _ = table.set_content_arrangement(ContentArrangement::Dynamic);
+                let _ = table.set_header(vec!["Basic Probe", "Destination", "Connected", "Error"]);
+            }
 
             for r in report.basic_reports() {
                 let destination_reachable = r.destination_reachable.to_string();
                 let destination =
                     r.destination.as_ref().map(ToString::to_string).unwrap_or_default();
                 let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
-                table.add_row(vec![String::new(), destination, destination_reachable, err]);
+                {
+                    let _ =
+                        table.add_row(vec![String::new(), destination, destination_reachable, err]);
+                }
             }
 
             writeln!(writer, "{table}")?;
@@ -142,13 +144,11 @@ where
 
         if report.http_report_count() != 0 {
             let mut table = Table::new();
-            table.set_content_arrangement(ContentArrangement::Dynamic).set_header(vec![
-                "HTTP Probe",
-                "Method ",
-                "URL",
-                "Resp. Code",
-                "Error",
-            ]);
+            {
+                let _ = table.set_content_arrangement(ContentArrangement::Dynamic);
+                let _ =
+                    table.set_header(vec!["HTTP Probe", "Method ", "URL", "Resp. Code", "Error"]);
+            }
 
             for r in report.http_reports() {
                 let method = r.method.as_ref().map(ToString::to_string).unwrap_or_default();
@@ -157,7 +157,9 @@ where
                 let url = r.url.as_ref().map(ToString::to_string).unwrap_or_default();
                 let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
 
-                table.add_row(vec![String::new(), method, url, response_code, err]);
+                {
+                    let _ = table.add_row(vec![String::new(), method, url, response_code, err]);
+                }
             }
 
             writeln!(writer, "{table}")?;
@@ -322,10 +324,10 @@ pub struct ProxyServerFile {
 }
 
 impl ProxyServerFile {
-    pub fn from_text(text: &str) -> Result<Self, Error> {
+    pub fn from_text(text: &str) -> Self {
         let proxy_servers =
             text.lines().map(str::trim).filter_map(|line| ProxyHost::from_str(line).ok()).collect();
-        Ok(Self { proxy_servers })
+        Self { proxy_servers }
     }
 
     pub fn from_json(json: &[u8]) -> Result<Self, Error> {
@@ -339,22 +341,22 @@ impl ProxyServerFile {
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let file_path = file_path.as_ref();
-        match file_path.extension() {
+        let ext = file_path
+            .extension()
+            .ok_or_else(|| Error::DetectProxyChainFormat { file_path: file_path.to_owned() })?;
+        match ext.to_str() {
+            Some("txt") => Self::load_text_file(file_path),
+            Some("json") => Self::load_json_file(file_path),
+            Some("toml") => Self::load_toml_file(file_path),
+            Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
             None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
-            Some(ext) => match ext.to_str() {
-                Some("txt") => Self::load_text_file(file_path),
-                Some("json") => Self::load_json_file(file_path),
-                Some("toml") => Self::load_toml_file(file_path),
-                Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
-                None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
-            },
         }
     }
 
     pub fn load_text_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let content =
             std::fs::read_to_string(&file_path).context(error::LoadProxyServerFileSnafu)?;
-        Self::from_text(&content)
+        Ok(Self::from_text(&content))
     }
 
     pub fn load_json_file<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
@@ -370,57 +372,57 @@ impl ProxyServerFile {
 
 #[cfg(test)]
 mod tests {
+
     use super::*;
 
     #[test]
     fn proxy_server_file_from_text() {
-        let text = r#"
+        let text = r"
 socks4://50.235.92.65:32100
 socks5://96.69.174.252:39593
 socks4a://67.204.1.222:64312
-   http://50.233.42.98:30717
+http://50.233.42.98:30717
 http://52.2.42.8
 
 http://70.83.106.82:55801
 
 socks4a://45.5.94.34:56731
 socks5://50.30.24.217:54321
-"#;
+";
 
-        use ProxyHost::{HttpTunnel, Socks4a, Socks5};
         let file = ProxyServerFile {
             proxy_servers: vec![
-                Socks4a { host: "50.235.92.65".to_owned(), port: 32100, id: None },
-                Socks5 {
+                ProxyHost::Socks4a { host: "50.235.92.65".to_owned(), port: 32100, id: None },
+                ProxyHost::Socks5 {
                     host: "96.69.174.252".to_owned(),
                     port: 39593,
                     username: None,
                     password: None,
                 },
-                Socks4a { host: "67.204.1.222".to_owned(), port: 64312, id: None },
-                HttpTunnel {
+                ProxyHost::Socks4a { host: "67.204.1.222".to_owned(), port: 64312, id: None },
+                ProxyHost::HttpTunnel {
                     host: "50.233.42.98".to_owned(),
                     port: 30717,
                     user_agent: None,
                     username: None,
                     password: None,
                 },
-                HttpTunnel {
+                ProxyHost::HttpTunnel {
                     host: "52.2.42.8".to_owned(),
                     port: 80,
                     user_agent: None,
                     username: None,
                     password: None,
                 },
-                HttpTunnel {
+                ProxyHost::HttpTunnel {
                     host: "70.83.106.82".to_owned(),
                     port: 55801,
                     user_agent: None,
                     username: None,
                     password: None,
                 },
-                Socks4a { host: "45.5.94.34".to_owned(), port: 56731, id: None },
-                Socks5 {
+                ProxyHost::Socks4a { host: "45.5.94.34".to_owned(), port: 56731, id: None },
+                ProxyHost::Socks5 {
                     host: "50.30.24.217".to_owned(),
                     port: 54321,
                     username: None,
@@ -429,7 +431,7 @@ socks5://50.30.24.217:54321
             ],
         };
 
-        assert_eq!(ProxyServerFile::from_text(text).unwrap(), file);
+        assert_eq!(ProxyServerFile::from_text(text), file);
     }
 
     #[test]

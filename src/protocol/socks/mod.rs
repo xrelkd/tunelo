@@ -54,7 +54,7 @@ impl fmt::Display for SocksVersion {
 impl SocksVersion {
     #[inline]
     #[must_use]
-    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len() -> usize { size_of::<u8>() }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -67,7 +67,7 @@ pub enum SocksCommand {
 impl SocksCommand {
     #[inline]
     #[must_use]
-    pub const fn serialized_len(&self) -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len(&self) -> usize { size_of::<u8>() }
 }
 
 impl From<v4::Command> for SocksCommand {
@@ -89,8 +89,8 @@ impl From<v5::Command> for SocksCommand {
     }
 }
 
-impl std::fmt::Display for SocksCommand {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl fmt::Display for SocksCommand {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::TcpConnect => write!(f, "TCP Connect"),
             Self::TcpBind => write!(f, "TCP Bind"),
@@ -109,7 +109,7 @@ pub enum AddressType {
 impl AddressType {
     #[inline]
     #[must_use]
-    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len() -> usize { size_of::<u8>() }
 }
 
 impl TryFrom<u8> for AddressType {
@@ -139,6 +139,16 @@ impl From<AddressType> for u8 {
 pub struct Address(HostAddress);
 
 impl Address {
+    /// Parses an address from a byte buffer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading from the buffer fails or if the address type
+    /// is invalid.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the cursor position cannot be converted to usize.
     pub fn from_bytes(buf: &mut [u8]) -> Result<(Self, usize), Error> {
         use std::io::Read;
 
@@ -149,17 +159,19 @@ impl Address {
         match address_type {
             AddressType::Ipv4 => {
                 let mut buf = [0u8; 4];
-                rdr.read(&mut buf).context(error::ReadStreamSnafu)?;
+                let _unused = rdr.read(&mut buf).context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
-                Ok((SocketAddr::new(buf.into(), port).into(), rdr.position() as usize))
+                let pos = usize::try_from(rdr.position()).expect("cursor position fits in usize");
+                Ok((SocketAddr::new(buf.into(), port).into(), pos))
             }
             AddressType::Ipv6 => {
                 let mut buf = [0u8; 16];
                 rdr.read_exact(&mut buf).context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
-                Ok((SocketAddr::new(buf.into(), port).into(), rdr.position() as usize))
+                let pos = usize::try_from(rdr.position()).expect("cursor position fits in usize");
+                Ok((SocketAddr::new(buf.into(), port).into(), pos))
             }
             AddressType::Domain => {
                 let len = rdr.read_u8().context(error::ReadStreamSnafu)? as usize;
@@ -168,11 +180,18 @@ impl Address {
                 rdr.read_exact(&mut host).context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16::<BigEndian>().context(error::ReadStreamSnafu)?;
-                Ok((Self::new_domain(&host, port), rdr.position() as usize))
+                let pos = usize::try_from(rdr.position()).expect("cursor position fits in usize");
+                Ok((Self::new_domain(&host, port), pos))
             }
         }
     }
 
+    /// Reads an address from an async reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading from the reader fails or if the address type
+    /// is invalid.
     pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
@@ -184,14 +203,14 @@ impl Address {
         match address_type {
             AddressType::Ipv4 => {
                 let mut buf = [0u8; 4];
-                rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
+                let _unused = rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
                 Ok(SocketAddr::new(buf.into(), port).into())
             }
             AddressType::Ipv6 => {
                 let mut buf = [0u8; 16];
-                rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
+                let _unused = rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
                 Ok(SocketAddr::new(buf.into(), port).into())
@@ -200,7 +219,7 @@ impl Address {
                 let len = rdr.read_u8().await.context(error::ReadStreamSnafu)? as usize;
 
                 let mut host = vec![0u8; len];
-                rdr.read_exact(&mut host).await.context(error::ReadStreamSnafu)?;
+                let _unused = rdr.read_exact(&mut host).await.context(error::ReadStreamSnafu)?;
 
                 let port = rdr.read_u16().await.context(error::ReadStreamSnafu)?;
                 Ok(Self::new_domain(&host, port))
@@ -211,12 +230,12 @@ impl Address {
     #[inline]
     #[must_use]
     pub const fn max_len() -> usize {
-        AddressType::serialized_len() + std::mem::size_of::<u8>() + 256 + std::mem::size_of::<u16>()
+        AddressType::serialized_len() + size_of::<u8>() + 256 + size_of::<u16>()
     }
 
     #[inline]
     #[must_use]
-    pub fn serialized_len(&self, socks_version: SocksVersion) -> usize {
+    pub const fn serialized_len(&self, socks_version: SocksVersion) -> usize {
         AddressRef(&self.0).serialized_len(socks_version)
     }
 
@@ -247,13 +266,13 @@ impl Address {
 
     #[inline]
     #[must_use]
-    pub fn port(&self) -> u16 { self.0.port() }
+    pub const fn port(&self) -> u16 { self.0.port() }
 
     #[inline]
-    pub fn set_port(&mut self, port: u16) { self.0.set_port(port); }
+    pub const fn set_port(&mut self, port: u16) { self.0.set_port(port); }
 
     #[must_use]
-    pub fn address_type(&self) -> AddressType { AddressRef(&self.0).address_type() }
+    pub const fn address_type(&self) -> AddressType { AddressRef(&self.0).address_type() }
 
     #[inline]
     #[must_use]
@@ -264,7 +283,7 @@ impl Address {
 pub struct AddressRef<'a>(&'a HostAddress);
 
 impl<'a> From<&'a HostAddress> for AddressRef<'a> {
-    fn from(addr: &'a HostAddress) -> AddressRef<'a> { AddressRef(addr) }
+    fn from(addr: &'a HostAddress) -> Self { AddressRef(addr) }
 }
 
 impl<'a> From<AddressRef<'a>> for &'a HostAddress {
@@ -284,23 +303,18 @@ impl AddressRef<'_> {
 
     #[inline]
     #[must_use]
-    pub fn serialized_len(&self, socks_version: SocksVersion) -> usize {
+    pub const fn serialized_len(&self, socks_version: SocksVersion) -> usize {
         match (socks_version, self.0) {
-            (SocksVersion::V4, HostAddress::Socket(SocketAddr::V4(_))) => {
-                std::mem::size_of::<u16>() + 4
-            }
+            (SocksVersion::V4, HostAddress::Socket(SocketAddr::V4(_))) => size_of::<u16>() + 4,
             (SocksVersion::V4, _) => 0,
             (SocksVersion::V5, HostAddress::Socket(SocketAddr::V4(_))) => {
-                AddressType::serialized_len() + std::mem::size_of::<u16>() + 4
+                AddressType::serialized_len() + size_of::<u16>() + 4
             }
             (SocksVersion::V5, HostAddress::Socket(SocketAddr::V6(_))) => {
-                AddressType::serialized_len() + std::mem::size_of::<u16>() + 16
+                AddressType::serialized_len() + size_of::<u16>() + 16
             }
             (SocksVersion::V5, HostAddress::DomainName(host, _)) => {
-                AddressType::serialized_len()
-                    + std::mem::size_of::<u8>()
-                    + host.len()
-                    + std::mem::size_of::<u16>()
+                AddressType::serialized_len() + size_of::<u8>() + host.len() + size_of::<u16>()
             }
         }
     }
@@ -329,6 +343,10 @@ impl AddressRef<'_> {
                 buf
             }
             (SocksVersion::V5, HostAddress::DomainName(host, port)) => {
+                #[expect(
+                    clippy::cast_possible_truncation,
+                    reason = "SOCKS5 protocol limits domain name to 255 bytes, which fits in u8"
+                )]
                 let host_len = host.len() as u8;
                 buf.push(AddressType::Domain.into());
                 buf.write_u8(host_len).unwrap();
@@ -344,6 +362,11 @@ impl AsRef<HostAddress> for Address {
     fn as_ref(&self) -> &HostAddress { &self.0 }
 }
 
+#[expect(
+    clippy::to_string_trait_impl,
+    reason = "Address wraps HostAddress; ToString provides interface compatibility for \
+              logging/display"
+)]
 impl ToString for Address {
     fn to_string(&self) -> String { self.0.to_string() }
 }

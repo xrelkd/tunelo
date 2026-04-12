@@ -12,7 +12,6 @@ use crate::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-#[allow(dead_code)]
 pub enum Method {
     /// No Authentication
     NoAuthentication,
@@ -20,7 +19,7 @@ pub enum Method {
     /// GSSAPI is gssapi method
     GSSAPI, // MUST support // todo
 
-    /// UsernamePassword is username/assword auth method
+    /// `UsernamePassword` is username/assword auth method
     UsernamePassword, // SHOULD support
 
     /// Not acceptable authentication method
@@ -72,7 +71,7 @@ impl From<u8> for Method {
 impl Method {
     #[inline]
     #[must_use]
-    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len() -> usize { size_of::<u8>() }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -118,7 +117,7 @@ impl From<Command> for u8 {
 impl Command {
     #[inline]
     #[must_use]
-    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len() -> usize { size_of::<u8>() }
 }
 
 //  +----+----------+----------+
@@ -135,12 +134,19 @@ impl HandshakeRequest {
     #[must_use]
     pub fn new(methods: Vec<Method>) -> Self {
         let methods = methods.into_iter().fold(HashSet::new(), |mut methods, method| {
-            methods.insert(method);
+            let _unused = methods.insert(method);
             methods
         });
         Self { methods }
     }
 
+    /// Parses a SOCKS5 negotiation request from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Bad request ([`Error::BadRequest`])
     pub async fn from_reader<R>(client: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
@@ -151,7 +157,7 @@ impl HandshakeRequest {
         }
 
         let mut buf = vec![0u8; nmethods as usize];
-        client.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
+        let _unused = client.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
         let methods = buf.into_iter().map(Method::from).collect();
         tracing::debug!(
@@ -167,13 +173,16 @@ impl HandshakeRequest {
     #[must_use]
     pub fn contains_method(&self, method: Method) -> bool { self.methods.contains(&method) }
 
-    #[allow(dead_code)]
     #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
     pub fn to_bytes(&self) -> Vec<u8> {
         let mut methods_vec = self.methods.iter().copied().map(Into::into).collect::<Vec<u8>>();
         methods_vec.sort_unstable();
+        #[expect(
+            clippy::cast_possible_truncation,
+            reason = "SOCKS5 protocol limits methods to 255, which fits in u8"
+        )]
         let nmethods = methods_vec.len() as u8;
 
         let mut buf = Vec::with_capacity(self.serialized_len());
@@ -187,7 +196,7 @@ impl HandshakeRequest {
     #[inline]
     #[must_use]
     pub fn serialized_len(&self) -> usize {
-        SocksVersion::serialized_len() + std::mem::size_of::<u8>() + self.methods.len()
+        SocksVersion::serialized_len() + size_of::<u8>() + self.methods.len()
     }
 }
 
@@ -206,12 +215,20 @@ impl HandshakeReply {
     #[must_use]
     pub const fn new(method: Method) -> Self { Self { method } }
 
+    /// Parses a SOCKS5 handshake reply from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Bad reply ([`Error::BadReply`])
+    /// - Unsupported SOCKS version ([`Error::UnsupportedSocksVersion`])
     pub async fn from_reader<R>(rdr: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
         let mut buf = [0u8; 2];
-        rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
+        let _unused = rdr.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
         match SocksVersion::try_from(buf[0]) {
             Ok(SocksVersion::V4) => return Err(Error::BadReply),
@@ -250,7 +267,7 @@ pub struct UserPasswordHandshakeRequest {
 impl UserPasswordHandshakeRequest {
     #[inline]
     #[must_use]
-    pub fn serialized_len(&self) -> usize {
+    pub const fn serialized_len(&self) -> usize {
         SocksVersion::serialized_len() + self.user_name.len() + self.password.len()
     }
 
@@ -268,12 +285,20 @@ impl UserPasswordHandshakeRequest {
     #[must_use]
     pub fn into_bytes(self) -> Vec<u8> { self.to_bytes() }
 
+    /// Parses a SOCKS5 user/password handshake request from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Bad request ([`Error::BadRequest`])
+    /// - Invalid version ([`Error::InvalidUserPasswordVersion`])
     pub async fn from_reader<R>(client: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
         let mut buf = [0u8; 2];
-        client.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
+        let _unused = client.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
 
         let user_len = buf[1] as usize;
         if user_len == 0 {
@@ -286,7 +311,7 @@ impl UserPasswordHandshakeRequest {
         }
 
         let mut user_name = vec![0u8; user_len];
-        client.read_exact(&mut user_name).await.context(error::ReadStreamSnafu)?;
+        let _unused = client.read_exact(&mut user_name).await.context(error::ReadStreamSnafu)?;
 
         let password = {
             let password_len = client.read_u8().await.context(error::ReadStreamSnafu)? as usize;
@@ -295,7 +320,7 @@ impl UserPasswordHandshakeRequest {
             }
 
             let mut password = vec![0u8; password_len];
-            client.read_exact(&mut password).await.context(error::ReadStreamSnafu)?;
+            let _unused = client.read_exact(&mut password).await.context(error::ReadStreamSnafu)?;
             password
         };
 
@@ -311,12 +336,19 @@ pub struct UserPasswordHandshakeReply {
 }
 
 impl UserPasswordHandshakeReply {
+    /// Parses a SOCKS5 user/password handshake reply from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Invalid version ([`Error::InvalidUserPasswordVersion`])
     pub async fn from_reader<R>(reader: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
         let mut buf = [0u8; 2];
-        reader.read(&mut buf).await.context(error::ReadStreamSnafu)?;
+        let _unused = reader.read(&mut buf).await.context(error::ReadStreamSnafu)?;
         let version = UserPasswordVersion::try_from(buf[0])?;
         let status = UserPasswordStatus::from(buf[1]);
         Ok(Self { version, status })
@@ -355,12 +387,24 @@ pub struct Request {
 }
 
 impl Request {
+    /// Parses a SOCKS5 request from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Unsupported SOCKS version ([`Error::UnsupportedSocksVersion`])
+    /// - Invalid command ([`Error::InvalidCommand`])
     pub async fn from_reader<R>(client: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
         let mut buf = [0u8; 3];
         let _n = client.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
+        #[expect(
+            clippy::no_effect_underscore_binding,
+            reason = "Reserved field in SOCKS5 response; read for protocol correctness"
+        )]
         let _rsv = buf[2];
 
         match SocksVersion::try_from(buf[0]) {
@@ -382,14 +426,14 @@ impl Request {
 
     #[inline]
     #[must_use]
-    pub fn address_type(&self) -> AddressType { self.destination_socket.address_type() }
+    pub const fn address_type(&self) -> AddressType { self.destination_socket.address_type() }
 
     #[inline]
     #[must_use]
-    pub fn serialized_len(&self) -> usize {
+    pub const fn serialized_len(&self) -> usize {
         SocksVersion::serialized_len()
             + Command::serialized_len()
-            + std::mem::size_of::<u8>()
+            + size_of::<u8>()
             + self.destination_socket.serialized_len(SocksVersion::V5)
     }
 
@@ -418,12 +462,24 @@ pub struct Reply {
 }
 
 impl Reply {
+    /// Parses a SOCKS5 reply from the reader.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read from stream ([`Error::ReadStream`])
+    /// - Bad reply ([`Error::BadReply`])
+    /// - Unsupported SOCKS version ([`Error::UnsupportedSocksVersion`])
     pub async fn from_reader<R>(reader: &mut R) -> Result<Self, Error>
     where
         R: AsyncRead + Unpin,
     {
         let mut buf = [0u8; 3];
         let _n = reader.read_exact(&mut buf).await.context(error::ReadStreamSnafu)?;
+        #[expect(
+            clippy::no_effect_underscore_binding,
+            reason = "Reserved field in SOCKS5 reply; read for protocol correctness"
+        )]
         let _rsv = buf[2];
 
         match SocksVersion::try_from(buf[0]) {
@@ -440,10 +496,10 @@ impl Reply {
 
     #[inline]
     #[must_use]
-    pub fn serialized_len(&self) -> usize {
+    pub const fn serialized_len(&self) -> usize {
         SocksVersion::serialized_len()
             + ReplyField::serialized_len()
-            + std::mem::size_of::<u8>()
+            + size_of::<u8>()
             + self.bind_socket.serialized_len(SocksVersion::V5)
     }
 
@@ -489,7 +545,6 @@ impl Reply {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub enum ReplyField {
     // RepSuccess means that success for replying
     Success,
@@ -558,7 +613,7 @@ impl From<u8> for ReplyField {
 impl ReplyField {
     #[inline]
     #[must_use]
-    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len() -> usize { size_of::<u8>() }
 }
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
@@ -569,7 +624,7 @@ pub enum UserPasswordVersion {
 impl UserPasswordVersion {
     #[inline]
     #[must_use]
-    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len() -> usize { size_of::<u8>() }
 }
 
 impl TryFrom<u8> for UserPasswordVersion {
@@ -618,7 +673,7 @@ impl From<UserPasswordStatus> for u8 {
 impl UserPasswordStatus {
     #[inline]
     #[must_use]
-    pub const fn serialized_len() -> usize { std::mem::size_of::<u8>() }
+    pub const fn serialized_len() -> usize { size_of::<u8>() }
 }
 
 #[cfg(test)]

@@ -42,7 +42,7 @@ impl Counter {
 
     #[inline]
     pub fn increase(&self) -> usize {
-        self.accumulated.fetch_add(1, Ordering::SeqCst);
+        let _unused = self.accumulated.fetch_add(1, Ordering::SeqCst);
         self.current.fetch_add(1, Ordering::SeqCst)
     }
 
@@ -67,7 +67,7 @@ impl CounterHelper {
 }
 
 impl Drop for CounterHelper {
-    fn drop(&mut self) { self.0.decrease(); }
+    fn drop(&mut self) { let _ = self.0.decrease(); }
 }
 
 // FIXME: re-implement this

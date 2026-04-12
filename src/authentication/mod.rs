@@ -27,17 +27,14 @@ impl AuthenticationManager {
         AuthenticationMethod::NoAuthentication
     }
 
-    pub async fn authenticate(&self, auth: Authentication) -> bool {
+    #[must_use]
+    pub fn authenticate(&self, auth: Authentication) -> bool {
         match auth {
             Authentication::UsernamePassword { user_name, password } => {
-                match self.user_list.get(&user_name) {
-                    Some(passwd) => passwd == &password,
-                    None => false,
-                }
+                self.user_list.get(&user_name) == Some(&password)
             }
-            Authentication::Token { token } => {
-                let _unused = token;
-                // TODO
+            Authentication::Token { .. } => {
+                // TODO: implement token-based authentication
                 false
             }
         }

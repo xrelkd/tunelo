@@ -20,10 +20,7 @@ where
         destination_socket: &HostAddress,
         id: Option<&[u8]>,
     ) -> Result<(), Error> {
-        let id = match id {
-            Some(id) => id.to_vec(),
-            None => vec![],
-        };
+        let id = id.map_or_else(Vec::new, <[u8]>::to_vec);
 
         let destination_socket = Address::from(destination_socket.clone());
         let req = Request { command, destination_socket, id: id.clone() };
@@ -40,6 +37,15 @@ where
         }
     }
 
+    /// Initiates a SOCKS4 TCP connect handshake.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot write to stream ([`Error::WriteStream`])
+    /// - Proxy rejected the request ([`Error::ProxyRejected`])
+    /// - Host unreachable ([`Error::HostUnreachable`])
+    /// - Invalid ID ([`Error::InvalidSocks4aId`])
     #[inline]
     pub async fn handshake_socks_v4_tcp_connect(
         &mut self,
@@ -49,6 +55,15 @@ where
         self.handshake_socks_v4(Command::TcpConnect, destination_socket, id).await
     }
 
+    /// Initiates a SOCKS4 TCP bind handshake.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot write to stream ([`Error::WriteStream`])
+    /// - Proxy rejected the request ([`Error::ProxyRejected`])
+    /// - Host unreachable ([`Error::HostUnreachable`])
+    /// - Invalid ID ([`Error::InvalidSocks4aId`])
     #[inline]
     pub async fn handshake_socks_v4_tcp_bind(
         &mut self,

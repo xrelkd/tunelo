@@ -14,7 +14,7 @@ use tokio::sync::Mutex;
 use tunelo::{
     authentication::AuthenticationManager,
     filter::SimpleFilter,
-    server::socks::{self, Server, ServerOptions},
+    server::socks::{Server, ServerOptions},
     transport::{Resolver, Transport},
 };
 
@@ -44,7 +44,7 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let (tx, mut rx) = shutdown::new();
-    signal_handler::start(Box::new(move || {
+    let _unused = signal_handler::start(Box::new(move || {
         tx.shutdown();
     }));
 
@@ -58,10 +58,10 @@ pub async fn run<P: AsRef<Path>>(
     Ok(())
 }
 
-impl TryInto<socks::ServerOptions> for Config {
+impl TryInto<ServerOptions> for Config {
     type Error = Error;
 
-    fn try_into(self) -> Result<socks::ServerOptions, Self::Error> {
+    fn try_into(self) -> Result<ServerOptions, Self::Error> {
         use tunelo::protocol::socks::{SocksCommand, SocksVersion};
 
         let listen_address = self.ip;
@@ -73,11 +73,11 @@ impl TryInto<socks::ServerOptions> for Config {
             let mut versions = HashSet::new();
 
             if !self.disable_socks4a {
-                versions.insert(SocksVersion::V4);
+                let _unused = versions.insert(SocksVersion::V4);
             }
 
             if !self.disable_socks5 {
-                versions.insert(SocksVersion::V5);
+                let _unused = versions.insert(SocksVersion::V5);
             }
 
             if versions.is_empty() {
@@ -90,20 +90,20 @@ impl TryInto<socks::ServerOptions> for Config {
         let supported_commands = {
             let mut commands = HashSet::new();
             if self.enable_tcp_connect {
-                commands.insert(SocksCommand::TcpConnect);
+                let _unused = commands.insert(SocksCommand::TcpConnect);
             }
 
             match (self.enable_udp_associate, udp_ports.is_empty()) {
                 (false, _) => {}
                 (true, false) => {
-                    commands.insert(SocksCommand::UdpAssociate);
+                    let _unused = commands.insert(SocksCommand::UdpAssociate);
                 }
                 (true, true) => return Err(Error::NoSocksUdpPort),
             }
 
             if self.enable_tcp_bind {
                 tracing::warn!("TCP bind is not supported yet");
-                commands.insert(SocksCommand::TcpBind);
+                let _unused = commands.insert(SocksCommand::TcpBind);
             }
 
             if commands.is_empty() {
@@ -127,6 +127,10 @@ impl TryInto<socks::ServerOptions> for Config {
 }
 
 #[derive(Debug, Deserialize, Serialize)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Config struct has multiple boolean flags for clarity"
+)]
 pub struct Config {
     disable_socks4a: bool,
     disable_socks5: bool,

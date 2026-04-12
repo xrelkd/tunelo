@@ -143,14 +143,14 @@ where
             .block_on(async move {
                 tracing::info!("Initializing domain name resolver");
 
-                match TrustDnsResolver::from_system_conf().await {
+                match TrustDnsResolver::from_system_conf() {
                     Ok(resolver) => Ok(resolver),
                     Err(err) => {
                         tracing::warn!(
                             "Failed to initialize domain name resolver from system configuration, \
                              try to initialize with fallback option, error: {err}"
                         );
-                        TrustDnsResolver::new_default().await
+                        TrustDnsResolver::new_default()
                     }
                 }
             })

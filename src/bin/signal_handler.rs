@@ -7,7 +7,10 @@ use crate::SHUTDOWN;
 
 pub type ShutdownHookFn = Box<dyn FnOnce() + Send>;
 
-#[allow(clippy::never_loop)]
+#[expect(
+    clippy::never_loop,
+    reason = "Inner loop waits for signal; outer loop handles shutdown state"
+)]
 async fn run(shutdown_hook: ShutdownHookFn) {
     let mut term_signal = signal(SignalKind::terminate()).unwrap();
     let mut int_signal = signal(SignalKind::interrupt()).unwrap();

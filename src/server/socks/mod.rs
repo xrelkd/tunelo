@@ -51,7 +51,7 @@ impl Default for ServerOptions {
 
 impl ServerOptions {
     #[must_use]
-    pub fn listen_socket(&self) -> SocketAddr {
+    pub const fn listen_socket(&self) -> SocketAddr {
         SocketAddr::new(self.listen_address, self.listen_port)
     }
 }
@@ -65,19 +65,19 @@ pub struct Server {
 
     tcp_address: SocketAddr,
     connection_timeout: Option<Duration>,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "Reserved for future TCP keepalive configuration")]
     tcp_keepalive: Option<Duration>,
 
     // FIXME: use `udp_*` fields
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "UDP support to be implemented; field kept for future extension")]
     udp_address: IpAddr,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "UDP support to be implemented; field kept for future extension")]
     udp_ports: HashSet<u16>,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "UDP support to be implemented; field kept for future extension")]
     udp_timeout: Option<Duration>,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "UDP support to be implemented; field kept for future extension")]
     udp_session_time: Duration,
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "UDP support to be implemented; field kept for future extension")]
     udp_cache_expiry_duration: Duration,
 }
 
@@ -115,7 +115,14 @@ impl Server {
         }
     }
 
-    pub async fn serve_with_shutdown<F: std::future::Future<Output = ()>>(
+    /// Starts the SOCKS proxy server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot bind TCP listener ([`Error::BindTcpListener`])
+    /// - Cannot accept TCP connection ([`Error::AcceptTcpStream`])
+    pub async fn serve_with_shutdown<F: Future<Output = ()>>(
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
@@ -157,7 +164,7 @@ impl Server {
         loop {
             let stream = futures::select! {
                 stream = tcp_listener.accept().fuse() => stream,
-                _ = shutdown => {
+                () = shutdown => {
                     tracing::info!("Stopping SOCKS server");
                     break;
                 },
@@ -168,7 +175,7 @@ impl Server {
                     let service = service.clone();
                     let _connection_timeout = self.connection_timeout;
                     let _stat_monitor = self.transport.stat_monitor();
-                    tokio::spawn(async move {
+                    let _unused = tokio::spawn(async move {
                         // let _ = socket.set_keepalive(Some(tcp_keepalive));
                         // FIXME: enable `TimedStream`, `MonitoredStream`
                         // let socket = TimedStream::new(socket, connection_timeout);

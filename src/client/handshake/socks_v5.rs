@@ -34,7 +34,11 @@ where
         };
 
         let handshake_request = HandshakeRequest::new(vec![method]);
-        self.stream.write(&handshake_request.to_bytes()).await.context(error::WriteStreamSnafu)?;
+        let _unused = self
+            .stream
+            .write(&handshake_request.to_bytes())
+            .await
+            .context(error::WriteStreamSnafu)?;
 
         let handshake_reply = HandshakeReply::from_reader(&mut self.stream)
             .await
@@ -54,7 +58,8 @@ where
                 user_name: user_name.clone(),
                 password: password.clone(),
             };
-            self.stream.write(&req.into_bytes()).await.context(error::WriteStreamSnafu)?;
+            let _unused =
+                self.stream.write(&req.into_bytes()).await.context(error::WriteStreamSnafu)?;
             let reply = UserPasswordHandshakeReply::from_reader(&mut self.stream)
                 .await
                 .context(error::ParseSocks5ReplySnafu)?;
@@ -77,6 +82,17 @@ where
         Ok(reply.bind_socket.into())
     }
 
+    /// Initiates a SOCKS5 TCP connect handshake.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read/write stream ([`Error::ReadStream`],
+    ///   [`Error::WriteStream`])
+    /// - Unsupported SOCKS method ([`Error::UnsupportedSocksMethod`])
+    /// - Access denied ([`Error::AccessDenied`])
+    /// - Proxy rejects the request ([`Error::ProxyRejected`])
+    /// - Host unreachable ([`Error::HostUnreachable`])
     #[inline]
     pub async fn handshake_socks_v5_tcp_connect(
         &mut self,
@@ -87,6 +103,17 @@ where
         self.handshake_socks_v5(Command::TcpConnect, destination_socket, user_name, password).await
     }
 
+    /// Initiates a SOCKS5 UDP associate handshake.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read/write stream ([`Error::ReadStream`],
+    ///   [`Error::WriteStream`])
+    /// - Unsupported SOCKS method ([`Error::UnsupportedSocksMethod`])
+    /// - Access denied ([`Error::AccessDenied`])
+    /// - Proxy rejects the request ([`Error::ProxyRejected`])
+    /// - Host unreachable ([`Error::HostUnreachable`])
     #[inline]
     pub async fn handshake_socks_v5_udp_associate(
         &mut self,
@@ -98,6 +125,17 @@ where
             .await
     }
 
+    /// Initiates a SOCKS5 TCP bind handshake.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot read/write stream ([`Error::ReadStream`],
+    ///   [`Error::WriteStream`])
+    /// - Unsupported SOCKS method ([`Error::UnsupportedSocksMethod`])
+    /// - Access denied ([`Error::AccessDenied`])
+    /// - Proxy rejects the request ([`Error::ProxyRejected`])
+    /// - Host unreachable ([`Error::HostUnreachable`])
     #[inline]
     pub async fn handshake_socks_v5_tcp_bind(
         &mut self,

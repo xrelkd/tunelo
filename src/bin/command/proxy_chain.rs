@@ -17,6 +17,7 @@ use tunelo::{
     authentication::AuthenticationManager,
     common::{ProxyHost, ProxyStrategy},
     filter::SimpleFilter,
+    protocol::socks::{SocksCommand, SocksVersion},
     server::{http, socks},
     transport::{Resolver, Transport},
 };
@@ -26,6 +27,10 @@ use crate::{
     shutdown, signal_handler,
 };
 
+type ServeFuture = Pin<Box<dyn Future<Output = Result<(), Error>> + Send>>;
+
+// FIXME: Split or simplify this function.
+#[allow(clippy::too_many_lines)]
 pub async fn run<P: AsRef<Path>>(
     resolver: Arc<dyn Resolver>,
     options: Options,
@@ -37,15 +42,13 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let socks_opts = if config.enable_socks4a || config.enable_socks5 {
-        use tunelo::protocol::socks::{SocksCommand, SocksVersion};
-
         let supported_versions = {
             let mut v = HashSet::new();
             if config.enable_socks4a {
-                v.insert(SocksVersion::V4);
+                let _unused = v.insert(SocksVersion::V4);
             }
             if config.enable_socks5 {
-                v.insert(SocksVersion::V5);
+                let _unused = v.insert(SocksVersion::V5);
             }
             v
         };
@@ -84,17 +87,17 @@ pub async fn run<P: AsRef<Path>>(
             (None, None) => return Err(Error::NoProxyChain),
         };
 
-        tracing::info!("Proxy chain: {}", strategy);
+        tracing::info!("Proxy chain: {strategy}");
         Arc::new(strategy)
     };
 
     let filter = {
         let mut f = SimpleFilter::deny_list();
         if let Some(config) = socks_opts.as_ref() {
-            f.add_socket(config.listen_socket())
+            f.add_socket(config.listen_socket());
         }
         if let Some(config) = http_opts.as_ref() {
-            f.add_socket(config.listen_socket())
+            f.add_socket(config.listen_socket());
         }
         Arc::new(f)
     };
@@ -106,7 +109,6 @@ pub async fn run<P: AsRef<Path>>(
 
     let (shutdown_sender, mut shutdown_receiver) = shutdown::new();
 
-    type ServeFuture = Pin<Box<dyn Future<Output = Result<(), Error>>>>;
     let mut futs: Vec<ServeFuture> = Vec::new();
 
     if let Some(opts) = socks_opts {
@@ -145,7 +147,7 @@ pub async fn run<P: AsRef<Path>>(
         return Err(Error::NoProxyServer);
     }
 
-    signal_handler::start(Box::new(move || {
+    let _unused = signal_handler::start(Box::new(move || {
         shutdown_sender.shutdown();
     }));
 
@@ -274,14 +276,14 @@ impl ProxyChain {
 
     pub fn load<P: AsRef<Path>>(file_path: P) -> Result<Self, Error> {
         let file_path = file_path.as_ref();
-        match file_path.extension() {
+        let ext = file_path
+            .extension()
+            .ok_or_else(|| Error::DetectProxyChainFormat { file_path: file_path.to_owned() })?;
+        match ext.to_str() {
+            Some("json") => Self::load_json_file(file_path),
+            Some("toml") => Self::load_toml_file(file_path),
+            Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
             None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
-            Some(ext) => match ext.to_str() {
-                Some("json") => Self::load_json_file(file_path),
-                Some("toml") => Self::load_toml_file(file_path),
-                Some(ext) => Err(Error::ProxyChainFormatNotSupported { format: ext.to_owned() }),
-                None => Err(Error::DetectProxyChainFormat { file_path: file_path.to_owned() }),
-            },
         }
     }
 

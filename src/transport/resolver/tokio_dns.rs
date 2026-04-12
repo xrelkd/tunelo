@@ -16,6 +16,7 @@ impl Default for TokioResolver {
 }
 
 impl TokioResolver {
+    #[must_use]
     pub const fn new() -> Self { Self }
 }
 

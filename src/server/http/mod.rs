@@ -17,7 +17,7 @@ use crate::{
     transport::Transport,
 };
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ServerOptions {
     pub listen_address: IpAddr,
     pub listen_port: u16,
@@ -31,7 +31,7 @@ impl Default for ServerOptions {
 
 impl ServerOptions {
     #[must_use]
-    pub fn listen_socket(&self) -> SocketAddr {
+    pub const fn listen_socket(&self) -> SocketAddr {
         SocketAddr::new(self.listen_address, self.listen_port)
     }
 }
@@ -44,7 +44,7 @@ pub struct Server {
 }
 
 impl Server {
-    pub fn new(
+    pub const fn new(
         config: ServerOptions,
         transport: Arc<Transport<TcpStream>>,
         authentication_manager: Arc<Mutex<AuthenticationManager>>,
@@ -54,7 +54,14 @@ impl Server {
         Self { tcp_address, transport, authentication_manager }
     }
 
-    pub async fn serve_with_shutdown<F: std::future::Future<Output = ()>>(
+    /// Starts the HTTP proxy server.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot bind TCP listener ([`Error::BindTcpListener`])
+    /// - Cannot accept TCP connection ([`Error::AcceptTcpStream`])
+    pub async fn serve_with_shutdown<F: Future<Output = ()>>(
         self,
         shutdown_signal: F,
     ) -> Result<(), Error> {
@@ -70,7 +77,7 @@ impl Server {
         loop {
             let stream = futures::select! {
                 stream = tcp_listener.accept().fuse() => stream,
-                _ = shutdown => {
+                () = shutdown => {
                     tracing::info!("Stopping HTTP server");
                     break;
                 },
@@ -79,7 +86,7 @@ impl Server {
             match stream {
                 Ok((socket, socket_addr)) => {
                     let service = service.clone();
-                    tokio::spawn(async move {
+                    let _unused = tokio::spawn(async move {
                         let _n = service.handle(socket, socket_addr).await;
                     });
                 }

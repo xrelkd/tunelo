@@ -43,7 +43,7 @@ where
             let mut commands = HashSet::new();
             if enable_tcp_connect {
                 tracing::info!("SOCKS5: TCP Connect is supported.");
-                commands.insert(Command::TcpConnect);
+                let _unused = commands.insert(Command::TcpConnect);
             }
 
             if enable_tcp_bind {
@@ -55,7 +55,7 @@ where
 
             if udp_associate_stream_tx.is_some() {
                 tracing::info!("SOCKS5: UDP Associate is supported.");
-                commands.insert(Command::UdpAssociate);
+                let _unused = commands.insert(Command::UdpAssociate);
             }
 
             if commands.is_empty() {
@@ -72,6 +72,18 @@ where
         self.supported_commands.contains(&command)
     }
 
+    /// Handles a SOCKS5 proxy connection.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Handshake fails
+    /// - Cannot parse request ([`Error::ParseRequest`])
+    /// - Unsupported command ([`Error::UnsupportedCommand`])
+    /// - Cannot write/flush stream ([`Error::WriteStream`],
+    ///   [`Error::FlushStream`])
+    /// - Cannot relay stream ([`Error::RelayStream`])
+    /// - Cannot connect to remote host ([`Error::ConnectRemoteHost`])
     pub async fn handle(
         &self,
         mut stream: ClientStream,
@@ -171,13 +183,14 @@ where
 
         if !req.contains_method(supported_method) {
             let reply = HandshakeReply::new(Method::NotAcceptable);
-            client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+            let _unused =
+                client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
             return Err(Error::UnsupportedMethod { method: supported_method });
         }
 
         let reply = HandshakeReply::new(supported_method);
-        client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+        let _unused = client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
 
         match supported_method {
             Method::NoAuthentication => {}
@@ -197,13 +210,14 @@ where
                         user_name: request.user_name.clone(),
                         password: request.password.clone(),
                     };
-                    handler.authenticate(auth).await
+                    handler.authenticate(auth)
                 };
 
                 if !auth_passed {
                     let reply = UserPasswordHandshakeReply::failure();
-                    client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
-                    client.flush().await.context(error::FlushStreamSnafu)?;
+                    let _unused =
+                        client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+                    let () = client.flush().await.context(error::FlushStreamSnafu)?;
 
                     tracing::warn!(
                         "Invalid authentication from user: {}",
@@ -218,8 +232,9 @@ where
                 }
 
                 let reply = UserPasswordHandshakeReply::success();
-                client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
-                client.flush().await.context(error::FlushStreamSnafu)?;
+                let _unused =
+                    client.write(&reply.into_bytes()).await.context(error::WriteStreamSnafu)?;
+                let () = client.flush().await.context(error::FlushStreamSnafu)?;
             }
             Method::GSSAPI => {
                 // TODO

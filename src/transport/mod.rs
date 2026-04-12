@@ -121,6 +121,13 @@ impl Transport<TcpStream> {
         Self { metrics, resolver, connector, filter }
     }
 
+    /// Creates a new `Transport` via proxy.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::ConnectForbiddenHosts`] if the proxy strategy contains
+    /// forbidden hosts. Returns [`Error::CreateProxyConnector`] if the
+    /// proxy connector cannot be created.
     pub fn proxy(
         resolver: Arc<dyn Resolver>,
         filter: Arc<dyn HostFilter>,
@@ -173,6 +180,12 @@ where
     #[must_use]
     pub fn stat_monitor(&self) -> TransportMetrics { self.metrics.clone() }
 
+    /// Resolves a hostname to an IP address.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::ResolveDomainName`] if the domain name cannot be
+    /// resolved.
     pub async fn resolve_host(&self, host: &str) -> Result<IpAddr, Error> {
         let addrs = self.resolver.resolve(host).await?;
         if addrs.is_empty() {
@@ -184,6 +197,12 @@ where
         Ok(addr)
     }
 
+    /// Resolves a `HostAddress` to a `SocketAddr`.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::ResolveDomainName`] if a domain name cannot be
+    /// resolved.
     pub async fn resolve(&self, host: &HostAddress) -> Result<SocketAddr, Error> {
         match host {
             HostAddress::Socket(addr) => Ok(*addr),
@@ -194,6 +213,12 @@ where
         }
     }
 
+    /// Connects to a host through the transport.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::ConnectForbiddenHosts`] if the host is denied by the
+    /// filter. Returns an error if resolving or connecting fails.
     #[inline]
     pub async fn connect(&self, host: &HostAddress) -> Result<(Stream, HostAddress), Error> {
         if self.filter.filter_host_address(host) == FilterAction::Deny {
@@ -213,6 +238,12 @@ where
         Ok((stream, host.clone()))
     }
 
+    /// Connects to a socket address through the transport.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::ConnectForbiddenHosts`] if the address is denied by the
+    /// filter. Returns an error if connecting fails.
     #[inline]
     pub async fn connect_addr(&self, addr: &SocketAddr) -> Result<(Stream, SocketAddr), Error> {
         if self.filter.filter_socket(addr) == FilterAction::Deny {
@@ -230,6 +261,11 @@ where
         Ok((stream, *addr))
     }
 
+    /// Relays data between a client and a remote stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if reading, writing, or shutting down streams fails.
     pub async fn relay<Client>(
         &self,
         client: Client,
@@ -250,7 +286,7 @@ where
             let half1 = tokio::io::copy(&mut client_reader, &mut remote_writer);
             let half2 = tokio::io::copy(&mut remote_reader, &mut client_writer);
 
-            futures::future::select(
+            let _unused = futures::future::select(
                 Box::pin(async move {
                     drop(half1.await);
                 }),

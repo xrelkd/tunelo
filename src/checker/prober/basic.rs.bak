@@ -40,11 +40,6 @@ impl BasicProber {
     #[must_use]
     pub const fn new(destination: HostAddress) -> Self { Self { destination } }
 
-    /// Probes the given proxy server.
-    ///
-    /// # Errors
-    ///
-    /// Returns an error if connection fails or shutdown fails.
     #[inline]
     pub async fn probe(
         self,

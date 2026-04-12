@@ -23,6 +23,10 @@ where
     ClientStream: Unpin + AsyncRead + AsyncWrite,
     TransportStream: Unpin + AsyncRead + AsyncWrite,
 {
+    #[expect(
+        clippy::needless_pass_by_value,
+        reason = "HashSet is not Copy; intentional for internal use"
+    )]
     pub fn new(
         supported_versions: HashSet<SocksVersion>,
         transport: Arc<Transport<TransportStream>>,
@@ -59,6 +63,16 @@ where
         Self { service_v4, service_v5 }
     }
 
+    /// Dispatches the SOCKS connection to the appropriate handler based on the
+    /// SOCKS version.
+    ///
+    /// # Errors
+    /// Returns an error if the SOCKS version is unsupported or if the handler
+    /// fails.
+    #[expect(
+        clippy::future_not_send,
+        reason = "Service is designed for single-threaded execution; stream is not Send"
+    )]
     pub async fn dispatch(
         &self,
         mut stream: ClientStream,
@@ -88,7 +102,6 @@ where
         }
     }
 
-    #[allow(dead_code)]
     pub fn supported_versions(&self) -> Vec<SocksVersion> {
         let mut versions = Vec::new();
         if self.service_v4.is_some() {

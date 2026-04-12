@@ -37,7 +37,10 @@ pub enum Error {
     RunHttpServer { source: tunelo::server::Error },
 
     #[snafu(display("Errors occurred: {}", Errors::from(errors)))]
-    Collection { errors: Vec<Error> },
+    Collection {
+        #[allow(clippy::use_self)]
+        errors: Vec<Error>,
+    },
 
     #[snafu(display("Could not create Transport, error: {source}"))]
     CreateTransport { source: tunelo::transport::Error },
@@ -119,7 +122,7 @@ impl From<HostAddressError> for Error {
 pub struct Errors<'a>(&'a Vec<Error>);
 
 impl<'a> From<&'a Vec<Error>> for Errors<'a> {
-    fn from(errors: &'a Vec<Error>) -> Errors<'a> { Errors(errors) }
+    fn from(errors: &'a Vec<Error>) -> Self { Self(errors) }
 }
 
 impl fmt::Display for Errors<'_> {

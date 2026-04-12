@@ -17,8 +17,18 @@ pub struct ProxyConnector {
 }
 
 impl ProxyConnector {
-    pub fn new(strategy: Arc<ProxyStrategy>) -> Result<Self, Error> { Ok(Self { strategy }) }
+    /// Creates a new `ProxyConnector`.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the strategy is invalid.
+    pub const fn new(strategy: Arc<ProxyStrategy>) -> Result<Self, Error> { Ok(Self { strategy }) }
 
+    /// Connects to the given host through the proxy.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if connection to the proxy fails or handshake fails.
     pub async fn connect(&self, host: &HostAddress) -> Result<ProxyStream, Error> {
         let strategy = self.strategy.clone();
         let mut socket = Self::build_socket(&strategy).await?;
@@ -39,6 +49,11 @@ impl ProxyConnector {
         Ok(ProxyStream::from_raw(socket, strategy))
     }
 
+    /// Probes the liveness of a proxy strategy.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if connection fails or timeout occurs.
     pub async fn probe_liveness(
         strategy: &ProxyStrategy,
         timeout: Option<Duration>,
@@ -78,7 +93,7 @@ impl ProxyConnector {
                         {
                             drop(socket.shutdown().await);
                             return Err(err);
-                        };
+                        }
                     }
 
                     socket
@@ -103,7 +118,7 @@ impl ProxyConnector {
                 handshake.handshake_socks_v4_tcp_connect(target_host, None).await?;
             }
             ProxyHost::Socks5 { username, password, .. } => {
-                handshake
+                let _unused = handshake
                     .handshake_socks_v5_tcp_connect(
                         target_host,
                         username.as_deref(),
