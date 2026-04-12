@@ -25,37 +25,12 @@ jobs:
       - name: Install Nix
         uses: DeterminateSystems/nix-installer-action@v22
 
-      - name: Install treefmt
-        run: nix profile add 'nixpkgs#treefmt'
-
-      - name: Install prettier
-        run: nix profile add 'nixpkgs#nodePackages.prettier'
-
-      - name: Install nixfmt
-        run: nix profile add 'nixpkgs#nixfmt'
-
-      - name: Install taplo
-        run: nix profile add 'nixpkgs#taplo'
-
-      - name: Run shfmt, shellcheck, checkbashisms
-        uses: luizm/action-sh-checker@v0.10.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: DeterminateSystems/magic-nix-cache-action@v13
         with:
-          sh_checker_comment: true
-          sh_checker_checkbashisms_enable: true
-          sh_checker_exclude: "dev-support/bin/create-package"
+          use-gha-cache: false
 
-      - name: Run treefmt
-        run: |
-          treefmt \
-            --allow-missing-formatter \
-            --fail-on-change \
-            --no-cache \
-            --formatters prettier \
-            --formatters nix \
-            --formatters shell \
-            --formatters toml
+      - name: Check format
+        run: nix build .#check-format
 
   commit:
     name: Lint commit
