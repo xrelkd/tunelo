@@ -15,10 +15,15 @@ pub struct ProxyStream {
 
 impl ProxyStream {
     #[inline]
-    pub fn from_raw(socket: TcpStream, strategy: Arc<ProxyStrategy>) -> Self {
+    pub const fn from_raw(socket: TcpStream, strategy: Arc<ProxyStrategy>) -> Self {
         Self { socket, strategy }
     }
 
+    /// Connects to the target host through a single proxy.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if connection to the proxy fails.
     #[inline]
     pub async fn connect_with_proxy(
         proxy_host: &ProxyHost,
@@ -28,6 +33,11 @@ impl ProxyStream {
         ProxyConnector::new(strategy)?.connect(host).await
     }
 
+    /// Connects to the target host through a chain of proxies.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if connection to any proxy in the chain fails.
     #[inline]
     pub async fn connect_with_proxy_chain(
         proxies: Vec<ProxyHost>,

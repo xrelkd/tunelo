@@ -15,6 +15,17 @@ impl<Stream> ClientHandshake<Stream>
 where
     Stream: Unpin + Send + Sync + AsyncRead + AsyncWrite,
 {
+    /// Establishes an HTTP tunnel to the target host through the CONNECT
+    /// method.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if:
+    /// - Cannot build HTTP request ([`Error::BuildHttpRequest`])
+    /// - Cannot write to stream ([`Error::WriteStream`])
+    /// - Invalid or bad HTTP response ([`Error::BadHttpResponse`],
+    ///   [`Error::HttpResponseTooLarge`])
+    /// - Proxy rejects the request ([`Error::ProxyRejected`])
     pub async fn handshake_http_tunnel(
         &mut self,
         target_host: &HostAddress,
@@ -37,7 +48,7 @@ where
             write!(req, "\r\n").context(error::BuildHttpRequestSnafu)?;
             req
         };
-        self.stream.write(request.as_ref()).await.context(error::WriteStreamSnafu)?;
+        let _unused = self.stream.write(request.as_ref()).await.context(error::WriteStreamSnafu)?;
 
         let mut buf = BytesMut::with_capacity(INITIAL_BUF_SIZE);
         let msg = loop {
@@ -59,7 +70,6 @@ where
 
         match msg.status_code {
             200 => Ok(()),
-            401..=404 => Err(Error::HostUnreachable),
             _ => Err(Error::HostUnreachable),
         }
     }

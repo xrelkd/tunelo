@@ -33,18 +33,18 @@ impl ProxyHost {
     #[must_use]
     pub fn host(&self) -> &str {
         match self {
-            Self::HttpTunnel { host, .. } => host,
-            Self::Socks4a { host, .. } => host,
-            Self::Socks5 { host, .. } => host,
+            Self::HttpTunnel { host, .. }
+            | Self::Socks4a { host, .. }
+            | Self::Socks5 { host, .. } => host,
         }
     }
 
     #[must_use]
     pub const fn port(&self) -> u16 {
         match *self {
-            Self::HttpTunnel { port, .. } => port,
-            Self::Socks4a { port, .. } => port,
-            Self::Socks5 { port, .. } => port,
+            Self::HttpTunnel { port, .. }
+            | Self::Socks4a { port, .. }
+            | Self::Socks5 { port, .. } => port,
         }
     }
 

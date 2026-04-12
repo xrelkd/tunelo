@@ -1,5 +1,6 @@
 use std::{
     collections::HashSet,
+    marker::PhantomData,
     net::{Ipv4Addr, SocketAddr, SocketAddrV4},
     sync::Arc,
 };
@@ -12,6 +13,7 @@ use tokio::{
 
 use crate::{
     authentication::AuthenticationManager,
+    common::HostAddress,
     protocol::socks::v4::{Command, Reply, Request},
     service::socks::{Error, error},
     transport::Transport,
@@ -21,7 +23,7 @@ pub struct Service<ClientStream, TransportStream> {
     supported_commands: HashSet<Command>,
     transport: Arc<Transport<TransportStream>>,
     _authentication_manager: Arc<Mutex<AuthenticationManager>>,
-    _phantom: std::marker::PhantomData<ClientStream>,
+    _phantom: PhantomData<ClientStream>,
 }
 
 impl<ClientStream, TransportStream> Service<ClientStream, TransportStream>
@@ -39,12 +41,12 @@ where
             let mut commands = HashSet::new();
             if enable_tcp_connect {
                 tracing::info!("SOCKS4: TCP Connect is supported.");
-                commands.insert(Command::TcpConnect);
+                let _unused = commands.insert(Command::TcpConnect);
             }
 
             if enable_tcp_bind {
                 tracing::info!("SOCKS4: TCP Bind is supported.");
-                commands.insert(Command::TcpBind);
+                let _unused = commands.insert(Command::TcpBind);
             }
 
             if commands.is_empty() {
@@ -57,10 +59,19 @@ where
             supported_commands,
             transport,
             _authentication_manager: authentication_manager,
-            _phantom: Default::default(),
+            _phantom: PhantomData,
         }
     }
 
+    /// Handles a SOCKS4 connection request.
+    ///
+    /// # Errors
+    /// Returns an error if the request parsing fails or connection to the
+    /// remote host fails.
+    #[expect(
+        clippy::future_not_send,
+        reason = "Service is designed for single-threaded execution; stream is not Send"
+    )]
     pub async fn handle(
         &self,
         mut stream: ClientStream,
@@ -80,7 +91,6 @@ where
         match request.command {
             Command::TcpConnect => {
                 let remote_host = request.destination_socket.as_ref();
-                use crate::common::HostAddress;
 
                 let (remote_socket, remote_addr) = match self.transport.connect(remote_host).await {
                     Ok((socket, addr)) => {

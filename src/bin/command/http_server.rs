@@ -11,7 +11,7 @@ use tokio::sync::Mutex;
 use tunelo::{
     authentication::AuthenticationManager,
     filter::SimpleFilter,
-    server::http::{self, Server, ServerOptions},
+    server::http::{Server, ServerOptions},
     transport::{Resolver, Transport},
 };
 
@@ -23,8 +23,8 @@ pub async fn run<P: AsRef<Path>>(
     config_file: Option<P>,
 ) -> Result<(), Error> {
     let config = match config_file {
-        Some(path) => Config::load(path)?.merge(opts),
-        None => Config::default().merge(opts),
+        Some(path) => Config::load(path)?.merge(&opts),
+        None => Config::default().merge(&opts),
     };
 
     let server_config: ServerOptions = config.into();
@@ -41,7 +41,7 @@ pub async fn run<P: AsRef<Path>>(
     };
 
     let (tx, mut rx) = shutdown::new();
-    signal_handler::start(Box::new(|| tx.shutdown()));
+    let _unused = signal_handler::start(Box::new(|| tx.shutdown()));
 
     http_server
         .serve_with_shutdown(async move {
@@ -76,8 +76,8 @@ impl Default for Config {
 impl Config {
     impl_config_load!(Config);
 
-    pub fn merge(mut self, opts: Options) -> Self {
-        let Options { mut ip, mut port } = opts;
+    pub fn merge(mut self, opts: &Options) -> Self {
+        let &Options { mut ip, mut port } = opts;
 
         merge_option_field!(self, ip);
         merge_option_field!(self, port);
@@ -86,7 +86,7 @@ impl Config {
     }
 }
 
-impl From<Config> for http::ServerOptions {
+impl From<Config> for ServerOptions {
     fn from(val: Config) -> Self {
         let listen_address = val.ip;
         let listen_port = val.port;

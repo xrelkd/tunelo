@@ -15,7 +15,7 @@ pub struct SimpleProxyChecker {
 impl SimpleProxyChecker {
     #[inline]
     #[must_use]
-    pub fn new(proxy_server: ProxyHost) -> Self { Self { proxy_server, probers: Vec::new() } }
+    pub const fn new(proxy_server: ProxyHost) -> Self { Self { proxy_server, probers: Vec::new() } }
 
     #[inline]
     #[must_use]
@@ -84,5 +84,5 @@ impl SimpleProxyChecker {
 
     #[inline]
     #[must_use]
-    pub fn proxy_server(&self) -> &ProxyHost { &self.proxy_server }
+    pub const fn proxy_server(&self) -> &ProxyHost { &self.proxy_server }
 }

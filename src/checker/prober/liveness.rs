@@ -28,7 +28,7 @@ impl LivenessProber {
                 report.alive = false;
                 report.error = Some(Error::ConnectProxyServer { source }.into());
             }
-        };
+        }
 
         report
     }
@@ -43,9 +43,9 @@ pub struct LivenessProberReport {
 impl LivenessProberReport {
     #[inline]
     #[must_use]
-    pub fn timeout() -> Self { Self { alive: false, error: Some(ReportError::Timeout) } }
+    pub const fn timeout() -> Self { Self { alive: false, error: Some(ReportError::Timeout) } }
 
     #[inline]
     #[must_use]
-    pub fn has_error(&self) -> bool { self.error.is_some() }
+    pub const fn has_error(&self) -> bool { self.error.is_some() }
 }

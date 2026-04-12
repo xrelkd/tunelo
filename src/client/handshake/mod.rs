@@ -17,17 +17,20 @@ where
     Stream: Unpin + Send + Sync + AsyncRead + AsyncWrite,
 {
     #[inline]
-    pub fn new(stream: Stream) -> Self { Self { stream } }
+    pub const fn new(stream: Stream) -> Self { Self { stream } }
 
-    #[allow(dead_code)]
     #[inline]
     pub fn into_inner(self) -> Stream { self.stream }
 
-    #[allow(dead_code)]
+    #[expect(dead_code, reason = "Reserved for future stream inspection capabilities")]
     #[inline]
-    fn as_ref(&self) -> &Stream { &self.stream }
+    const fn as_ref(&self) -> &Stream { &self.stream }
 
-    #[allow(dead_code)]
+    /// Shuts down the underlying stream.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the stream shutdown fails.
     #[inline]
     pub async fn shutdown(mut self) -> Result<(), Error> {
         self.stream.shutdown().await.context(error::ShutdownStreamSnafu)?;

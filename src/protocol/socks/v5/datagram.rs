@@ -19,10 +19,17 @@ pub struct Datagram {
 impl Datagram {
     #[inline]
     #[must_use]
-    pub fn new(frag: u8, destination_socket: Address, data: BytesMut) -> Self {
+    pub const fn new(frag: u8, destination_socket: Address, data: BytesMut) -> Self {
         Self { frag, destination_socket, data }
     }
 
+    /// Parses a datagram from bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`Error::BadRequest`] if the reserved field is not zero.
+    /// Returns an error if reading from the input stream fails or if the
+    /// address type is invalid.
     pub fn from_bytes(input: &[u8]) -> Result<Self, Error> {
         use std::io::{Cursor, Read};
 
@@ -66,7 +73,7 @@ impl Datagram {
             };
 
         let mut data = BytesMut::new();
-        input.read(&mut data[..]).context(error::ReadStreamSnafu)?;
+        let _unused = input.read(&mut data[..]).context(error::ReadStreamSnafu)?;
         Ok(Self { frag, destination_socket, data })
     }
 
@@ -100,7 +107,7 @@ impl Datagram {
 
         let mut len = 2 + size_of_val(&self.frag) + dest_sock_vec.len();
         if extensible {
-            len += self.data.len()
+            len += self.data.len();
         }
 
         let mut buf = Vec::with_capacity(len);
@@ -115,6 +122,11 @@ impl Datagram {
         (self.frag, self.destination_socket.into(), self.data)
     }
 
+    /// Serializes the datagram header to a writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing to the writer fails.
     pub fn serialize_header<W: std::io::Write>(
         wrt: &mut W,
         frag: u8,
@@ -127,6 +139,11 @@ impl Datagram {
         Ok(n)
     }
 
+    /// Serializes the entire datagram to a writer.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if writing to the writer fails.
     pub fn serialize<W: std::io::Write>(
         wrt: &mut W,
         frag: u8,

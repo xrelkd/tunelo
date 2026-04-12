@@ -16,7 +16,12 @@ pub struct TrustDnsResolver {
 }
 
 impl TrustDnsResolver {
-    pub async fn new(
+    /// Creates a new `TrustDnsResolver` with custom configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the resolver cannot be initialized.
+    pub fn new(
         resolver_config: ResolverConfig,
         resolver_opts: ResolverOpts,
     ) -> Result<Self, Error> {
@@ -24,11 +29,22 @@ impl TrustDnsResolver {
         Ok(Self { resolver })
     }
 
-    pub async fn new_default() -> Result<Self, Error> {
-        Self::new(ResolverConfig::default(), ResolverOpts::default()).await
+    /// Creates a new `TrustDnsResolver` with default configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the resolver cannot be initialized.
+    pub fn new_default() -> Result<Self, Error> {
+        Self::new(ResolverConfig::default(), ResolverOpts::default())
     }
 
-    pub async fn from_system_conf() -> Result<Self, Error> {
+    /// Creates a new `TrustDnsResolver` from system configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the resolver cannot be initialized from system
+    /// config.
+    pub fn from_system_conf() -> Result<Self, Error> {
         AsyncResolver::tokio_from_system_conf()
             .map(|resolver| Self { resolver })
             .context(error::InitializeTrustDnsResolverSnafu)

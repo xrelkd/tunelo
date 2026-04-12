@@ -72,6 +72,10 @@ impl fmt::Display for ProxyServer {
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[expect(
+    clippy::struct_excessive_bools,
+    reason = "Config struct has multiple boolean flags for clarity"
+)]
 pub struct SocksServer {
     tcp_ip: IpAddr,
     tcp_port: u16,
@@ -125,10 +129,10 @@ impl From<SocksServer> for tunelo::server::socks::ServerOptions {
         let supported_versions = {
             let mut versions = HashSet::new();
             if val.enable_socks4a {
-                versions.insert(SocksVersion::V4);
+                let _unused = versions.insert(SocksVersion::V4);
             }
             if val.enable_socks5 {
-                versions.insert(SocksVersion::V5);
+                let _unused = versions.insert(SocksVersion::V5);
             }
             versions
         };
@@ -136,19 +140,18 @@ impl From<SocksServer> for tunelo::server::socks::ServerOptions {
         let supported_commands = {
             let mut commands = HashSet::new();
             if val.enable_tcp_connect {
-                commands.insert(SocksCommand::TcpConnect);
+                let _unused = commands.insert(SocksCommand::TcpConnect);
             }
 
             match (val.enable_udp_associate, udp_ports.is_empty()) {
-                (false, _) => {}
-                (true, true) => {}
+                (true, true) | (false, _) => {}
                 (true, false) => {
-                    commands.insert(SocksCommand::UdpAssociate);
+                    let _unused = commands.insert(SocksCommand::UdpAssociate);
                 }
             }
 
             if val.enable_tcp_bind {
-                commands.insert(SocksCommand::TcpBind);
+                let _unused = commands.insert(SocksCommand::TcpBind);
             }
 
             commands
@@ -170,7 +173,7 @@ impl From<SocksServer> for tunelo::server::socks::ServerOptions {
 }
 
 impl SocksServer {
-    pub fn listen_socket(&self) -> SocketAddr { SocketAddr::new(self.tcp_ip, self.tcp_port) }
+    pub const fn listen_socket(&self) -> SocketAddr { SocketAddr::new(self.tcp_ip, self.tcp_port) }
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -192,11 +195,10 @@ impl From<HttpServer> for tunelo::server::http::ServerOptions {
 }
 
 impl HttpServer {
-    pub fn listen_socket(&self) -> SocketAddr { SocketAddr::new(self.host, self.port) }
+    pub const fn listen_socket(&self) -> SocketAddr { SocketAddr::new(self.host, self.port) }
 }
 
-// FIXME: Use `AuthenticationMethod`.
-#[allow(dead_code)]
+#[expect(dead_code, reason = "Placeholder for future authentication method implementation")]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum AuthenticationMethod {}
 
