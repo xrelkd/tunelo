@@ -1,9 +1,9 @@
 [package]
 name         = "tunelo"
-version      = "0.1.12"
+version      = "0.1.13"
 authors      = ["xrelkd <46590321+xrelkd@users.noreply.github.com>"]
 edition      = "2024"
-rust-version = "1.93"
+rust-version = "1.98"
 description  = "A proxy server that supports SOCKS4, SOCKS4a, SOCKS5, HTTP tunnel protocols."
 license      = "MIT"
 repository   = "https://github.com/xrelkd/tunelo"
