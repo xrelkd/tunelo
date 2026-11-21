@@ -104,7 +104,7 @@ where
             let r = report.liveness_report();
 
             let alive = r.alive.to_string();
-            let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
+            let err = r.error.as_ref().map_or_default(ToString::to_string);
             let proxy_server = &report.proxy_server;
             let proxy_server_url = proxy_server.to_string();
             {
@@ -130,9 +130,8 @@ where
 
             for r in report.basic_reports() {
                 let destination_reachable = r.destination_reachable.to_string();
-                let destination =
-                    r.destination.as_ref().map(ToString::to_string).unwrap_or_default();
-                let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
+                let destination = r.destination.as_ref().map_or_default(ToString::to_string);
+                let err = r.error.as_ref().map_or_default(ToString::to_string);
                 {
                     let _ =
                         table.add_row(vec![String::new(), destination, destination_reachable, err]);
@@ -151,11 +150,11 @@ where
             }
 
             for r in report.http_reports() {
-                let method = r.method.as_ref().map(ToString::to_string).unwrap_or_default();
+                let method = r.method.as_ref().map_or_default(ToString::to_string);
                 let response_code =
                     r.response_code.as_ref().map_or_else(|| "N/A".to_owned(), ToString::to_string);
-                let url = r.url.as_ref().map(ToString::to_string).unwrap_or_default();
-                let err = r.error.as_ref().map(ToString::to_string).unwrap_or_default();
+                let url = r.url.as_ref().map_or_default(ToString::to_string);
+                let err = r.error.as_ref().map_or_default(ToString::to_string);
 
                 {
                     let _ = table.add_row(vec![String::new(), method, url, response_code, err]);

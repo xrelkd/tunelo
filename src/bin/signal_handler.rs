@@ -34,12 +34,11 @@ async fn run(shutdown_hook: ShutdownHookFn) {
         if SHUTDOWN.load(atomic::Ordering::SeqCst) {
             tracing::info!("Terminating process!");
             std::process::abort();
-        } else {
-            tracing::info!("Shutting down cleanly. Interrupt again to shut down immediately.");
-            SHUTDOWN.store(true, atomic::Ordering::SeqCst);
-            let shutdown_hook = shutdown_hook.take().unwrap();
-            shutdown_hook();
         }
+        tracing::info!("Shutting down cleanly. Interrupt again to shut down immediately.");
+        SHUTDOWN.store(true, atomic::Ordering::SeqCst);
+        let shutdown_hook = shutdown_hook.take().unwrap();
+        shutdown_hook();
     }
 }
 
