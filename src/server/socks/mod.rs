@@ -132,8 +132,8 @@ impl Server {
 
         // FIXME: re-implement `UdpAssociateManager`
         // let (udp_associate_join_handle, udp_associate_stream_tx) =
-        //     if self.supported_commands.contains(&SocksCommand::UdpAssociate) {
-        //         let resolver = self.transport.resolver().clone();
+        //     if self.supported_commands.contains(&SocksCommand::UdpAssociate)
+        // {         let resolver = self.transport.resolver().clone();
         //         let udp_associate_manager = UdpAssociateManager::new(
         //             self.udp_address,
         //             self.udp_ports,
@@ -178,8 +178,10 @@ impl Server {
                     let _unused = tokio::spawn(async move {
                         // let _ = socket.set_keepalive(Some(tcp_keepalive));
                         // FIXME: enable `TimedStream`, `MonitoredStream`
-                        // let socket = TimedStream::new(socket, connection_timeout);
-                        // let socket = MonitoredStream::new(socket, stat_monitor);
+                        // let socket = TimedStream::new(socket,
+                        // connection_timeout);
+                        // let socket = MonitoredStream::new(socket,
+                        // stat_monitor);
                         let _unused = service.dispatch(socket, socket_addr).await;
                     });
                 }

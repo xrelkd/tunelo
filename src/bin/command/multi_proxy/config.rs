@@ -1,3 +1,9 @@
+#![expect(
+    clippy::empty_enums,
+    reason = "Deserialize derive on the intentionally empty AuthenticationMethod placeholder \
+              emits this lint in generated code"
+)]
+
 use std::{
     collections::HashSet,
     fmt,
